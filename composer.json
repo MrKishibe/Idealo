@@ -1,0 +1,35 @@
+{
+    "name": "idealo/idealo",
+    "description": "Sistema de Gestión de para Idealo",
+    "type": "project",
+    "license": "mit",
+    "autoload": {
+        "psr-4": {
+            "Idealo\\": "src/",
+            "Idealo\\Config\\": "config/"
+        }
+    },
+    "authors": [
+        {
+            "name": "moises medina",
+            "email": "moisesargenys@gmail.com"
+        },
+        {
+            "name": "Recneilys Vasquez",
+            "email": "recneilysarianna16@gmail.com"
+        },
+        {
+            "name": "Angel Gonzalez",
+            "email": "anzakugonzalez6@gmail.com"
+        },
+        {
+            "name": "Adrian Vargas",
+            "email": "adrianchov2004@gmail.com"
+        },
+        {
+            "name": "Alan Montilla",
+            "email": "alanjosemontillaromero2@gmail.com"
+        }
+    ],
+    "require": {}
+}

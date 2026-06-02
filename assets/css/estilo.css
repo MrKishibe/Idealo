@@ -1,0 +1,718 @@
+:root {
+    /* Paleta de colores optimizada */
+    --azul-opaco: #2c3e50;
+    --azul-glow: rgba(44, 62, 80, 0.1);
+    --verde-opaco: #3b7a57;
+    --verde-glow: rgba(59, 122, 87, 0.15);
+    --rojo-alerta: #d9534f;
+    
+    /* Grises y Fondos */
+    --gris-fondo: #f4f6f9;
+    --gris-sidebar: #1a1d24;
+    --gris-submenu: #111318;
+    --gris-texto: #333f48;
+    --gris-mutado: #7a8b99;
+    --blanco: #ffffff;
+    
+    /* Configuración de bordes y sombras modernas */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 8px 24px rgba(149, 157, 165, 0.12);
+    --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.05);
+    
+    /* Animaciones fluidas en tiempo real */
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* --- Reseteo Estricto y General --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--gris-fondo);
+    color: var(--gris-texto);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+}
+
+/* --- DISEÑO DE LA SIDEBAR REVOLUCIONADO --- */
+.sidebar {
+    width: 270px;
+    min-width: 270px;
+    background-color: var(--gris-sidebar);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    transition: var(--transition-smooth);
+}
+
+.sidebar-header {
+    padding: 30px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-header .logo-icon {
+    font-size: 22px;
+    color: #4facfe;
+    filter: drop-shadow(0 0 8px rgba(79, 172, 254, 0.6));
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.sidebar-header span {
+    color: var(--blanco);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 20px 14px;
+    overflow-y: auto;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.sidebar-menu ul {
+    list-style: none;
+}
+
+/* Ítems del Menú con Feedback Háptico Visual */
+.menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    color: var(--gris-mutado);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    position: relative;
+    outline: none;
+}
+
+.menu-item i:not(.arrow-icon) {
+    font-size: 18px;
+    margin-right: 14px;
+    transition: var(--transition-fast);
+}
+
+/* Efectos Hover Dinámicos */
+.menu-item:hover {
+    color: var(--blanco);
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+.menu-item:hover i:not(.arrow-icon) {
+    color: var(--blanco);
+    transform: scale(1.1);
+}
+
+/* Estados Activos Transparentes pero Notorios */
+.menu-item.active {
+    color: var(--blanco);
+    background: linear-gradient(135deg, var(--azul-opaco), #34495e);
+    font-weight: 600;
+    box-shadow: 0 8px 16px rgba(44, 62, 80, 0.25);
+}
+
+.menu-item.active::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 25%;
+    height: 50%;
+    width: 4px;
+    background-color: #4facfe;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Menús Desplegables Modernos */
+.menu-group {
+    margin-bottom: 4px;
+}
+
+.menu-group .trigger {
+    justify-content: space-between;
+}
+
+.trigger-left {
+    display: flex;
+    align-items: center;
+}
+
+.arrow-icon {
+    font-size: 12px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animación del Submenú por Altura y Opacidad Real */
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px);
+    background-color: var(--gris-submenu);
+    border-radius: var(--radius-md);
+    margin: 0 4px;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.25s ease, 
+                transform 0.3s ease;
+}
+
+.menu-group.open .submenu {
+    max-height: 300px; /* Suficiente para los enlaces internos */
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 4px;
+    margin-bottom: 8px;
+    padding: 6px 0;
+}
+
+.menu-group.open .arrow-icon {
+    transform: rotate(180deg);
+    color: var(--blanco);
+}
+
+.submenu li a {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px 10px 48px;
+    color: var(--gris-mutado);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+}
+
+.submenu li a i {
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.submenu li a:hover, 
+.submenu li a.active {
+    color: var(--blanco);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.submenu li a.active {
+    color: #4facfe;
+    font-weight: 600;
+}
+
+/* Sección Logout Inferior */
+.logout-section {
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.menu-item.logout:hover {
+    background-color: rgba(217, 83, 79, 0.15);
+    color: #ff6b6b;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+main.main-content {
+    flex: 1;
+    padding: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    animation: fadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.view-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* --- ENCABEZADOS DE PÁGINAS --- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--azul-opaco);
+    letter-spacing: -0.02em;
+}
+
+.page-header p {
+    color: var(--gris-mutado);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+/* --- TARJETAS DASHBOARD INTERACTIVAS (GRID) --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+
+.info-card {
+    background-color: var(--blanco);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.info-card::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: radial-gradient(circle at 90% 10%, rgba(255,255,255,0.3) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.info-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gris-mutado);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--azul-opaco);
+}
+
+/* Iconos de las Tarjetas Refactorizados */
+.card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    transition: var(--transition-smooth);
+}
+
+.info-card:hover .card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.bg-azul { background-color: var(--azul-glow); color: var(--azul-opaco); }
+.bg-verde { background-color: var(--verde-glow); color: var(--verde-opaco); }
+.bg-rojo { background-color: rgba(219, 83, 79, 0.12); color: var(--rojo-alerta); }
+.bg-gris { background-color: #e9ecef; color: #495057; }
+
+/* --- SECCIÓN DE TABLAS Y CONTENEDORES --- */
+.table-actions-bar {
+    background-color: var(--blanco);
+    padding: 20px 24px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 1px solid #edf2f7;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+}
+
+.table-container {
+    background-color: var(--blanco);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.custom-table th {
+    background-color: #f8fafc;
+    color: var(--gris-texto);
+    font-weight: 600;
+    padding: 16px 24px;
+    border-bottom: 2px solid #edf2f7;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.custom-table td {
+    padding: 16px 24px;
+    border-bottom: 1px solid #edf2f7;
+    color: #4a5568;
+    transition: var(--transition-fast);
+}
+
+.custom-table tbody tr {
+    transition: var(--transition-fast);
+}
+
+.custom-table tbody tr:hover {
+    background-color: #fafbfc;
+}
+
+.custom-table tbody tr:hover td {
+    color: #000000;
+}
+
+/* --- COMPONENTES UI COMPACTOS --- */
+
+/* Insignias de Estado Estilo Pastilla Cristal */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    gap: 6px;
+}
+
+.status-indicator::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status-indicator.active {
+    background-color: var(--verde-glow);
+    color: var(--verde-opaco);
+}
+.status-indicator.active::before { background-color: var(--verde-opaco); }
+
+.status-indicator.inactive {
+    background-color: rgba(217, 83, 79, 0.1);
+    color: var(--rojo-alerta);
+}
+.status-indicator.inactive::before { background-color: var(--rojo-alerta); }
+
+/* Botones de Acción Estilizados */
+.btn-action {
+    background: transparent;
+    border: none;
+    font-size: 15px;
+    padding: 8px;
+    margin: 0 3px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.btn-edit {
+    color: var(--azul-opaco);
+    background-color: var(--azul-glow);
+}
+.btn-edit:hover {
+    background-color: var(--azul-opaco);
+    color: var(--blanco);
+    transform: translateY(-2px);
+}
+
+.btn-delete {
+    color: var(--rojo-alerta);
+    background-color: rgba(217, 83, 79, 0.08);
+    text-decoration: none;
+}
+.btn-delete:hover {
+    background-color: var(--rojo-alerta);
+    color: var(--blanco);
+    transform: translateY(-2px);
+}
+
+/* Botones Principales del Sistema */
+.btn-idealo-success {
+    background: linear-gradient(135deg, var(--verde-opaco), #2e6243);
+    color: var(--blanco) !important;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(59, 122, 87, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition-fast);
+}
+
+.btn-idealo-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 122, 87, 0.35);
+}
+
+.btn-idealo-success:active {
+    transform: translateY(1px);
+}
+
+/* Input Unit Group (Materia prima) */
+.input-unit-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-unit-badge {
+    position: absolute;
+    right: 14px;
+    background-color: #edf2f7;
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    color: #718096;
+    pointer-events: none;
+    transition: var(--transition-fast);
+}
+
+/* --- REDISEÑO TOTAL DE VENTANAS MODALES --- */
+.modal-idealo .modal-content {
+    border-radius: var(--radius-lg);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    background-color: var(--blanco);
+}
+
+.modal-idealo .modal-header {
+    background: linear-gradient(135deg, var(--azul-opaco), #243342);
+    color: var(--blanco);
+    padding: 20px 28px;
+    border: none;
+}
+
+.modal-idealo .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.modal-idealo .btn-close {
+    filter: invert(1) grayscale(1) brightness(2);
+    opacity: 0.8;
+    transition: var(--transition-fast);
+}
+.modal-idealo .btn-close:hover {
+    transform: rotate(90deg);
+}
+
+.modal-idealo .modal-body {
+    padding: 28px;
+}
+
+.modal-idealo .form-label {
+    color: var(--gris-texto);
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+}
+
+.modal-idealo .form-control, 
+.modal-idealo .form-select {
+    border: 1.5px solid #e2e8f0;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--gris-texto);
+    transition: var(--transition-fast);
+    background-color: #f8fafc;
+}
+
+.modal-idealo .form-control:focus, 
+.modal-idealo .form-select:focus {
+    border-color: var(--azul-opaco);
+    background-color: var(--blanco);
+    box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.1);
+    outline: none;
+}
+
+/* Modales personalizados puros por JS (Legacy Fallback en tu Materia Prima) */
+.custom-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(26, 29, 36, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.custom-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.custom-modal-content {
+    background-color: var(--blanco);
+    width: 100%;
+    max-width: 500px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+}
+
+.custom-modal.show .custom-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* --- VISTA DE LOGIN TOTALMENTE MINIMALISTA --- */
+.login-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background: radial-gradient(circle at top right, #34495e, var(--gris-sidebar));
+    position: relative;
+}
+
+.login-container {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 45px;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: loginIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.login-header h2 {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--azul-opaco);
+    letter-spacing: -0.5px;
+}
+
+.login-header p {
+    color: var(--gris-mutado);
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+/* --- ANIMACIONES EN TIEMPO REAL (`Keyframes`) --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes loginIn {
+    from { opacity: 0; transform: scale(0.92) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(79, 172, 254, 0.4)); }
+    50% { filter: drop-shadow(0 0 12px rgba(79, 172, 254, 0.8)); }
+}
+
+/* --- RESPONSIVIDAD DINÁMICA --- */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 80px;
+        min-width: 80px;
+        padding: 20px 8px;
+    }
+    .sidebar-header span, 
+    .menu-item span, 
+    .arrow-icon {
+        display: none;
+    }
+    .menu-item {
+        justify-content: center;
+        padding: 12px;
+    }
+    .menu-item i {
+        margin-right: 0 !important;
+        font-size: 20px;
+    }
+    .submenu {
+        position: absolute;
+        left: 85px;
+        width: 200px;
+        background-color: var(--gris-sidebar);
+        box-shadow: var(--shadow-lg);
+    }
+    .submenu li a {
+        padding: 12px 20px;
+    }
+    main.main-content {
+        padding: 24px;
+    }
+}

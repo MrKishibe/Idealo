@@ -20,7 +20,7 @@ class UsuarioModel
                        e.id_empleado, e.nombres, e.apellidos, e.telefono, e.direccion, e.salario, e.cargo
                 FROM usuario u
                 INNER JOIN empleado e ON u.id_usuario = e.id_usuario
-                WHERE u.status_usuario = 'activo' AND e.estado = 'activo'
+                WHERE u.status_usuario = 'activo' AND e.status_empleado = 'activo'
                 ORDER BY u.id_usuario DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -43,7 +43,7 @@ class UsuarioModel
 
             $idUsuario = $this->db->lastInsertId();
 
-            $sqlEmpleado = "INSERT INTO empleado (nombres, apellidos, cedula, telefono, direccion, salario, cargo, estado, id_usuario) 
+            $sqlEmpleado = "INSERT INTO empleado (nombres, apellidos, cedula, telefono, direccion, salario, cargo, status_empleado, id_usuario) 
                             VALUES (:nombres, :apellidos, :cedula, :telefono, :direccion, :salario, :cargo, 'activo', :id_usuario)";
             $stmtE = $this->db->prepare($sqlEmpleado);
             $stmtE->execute([
@@ -116,7 +116,7 @@ class UsuarioModel
             $stmtU = $this->db->prepare($sqlUsuario);
             $stmtU->execute([':id_usuario' => $id]);
 
-            $sqlEmpleado = "UPDATE empleado SET estado = 'inactivo' WHERE id_usuario = :id_usuario";
+            $sqlEmpleado = "UPDATE empleado SET status_empleado = 'inactivo' WHERE id_usuario = :id_usuario";
             $stmtE = $this->db->prepare($sqlEmpleado);
             $stmtE->execute([':id_usuario' => $id]);
 

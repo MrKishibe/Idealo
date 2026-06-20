@@ -45,7 +45,7 @@ class Empleado extends Usuariomodel
 
             $id_usuario_generado = $db->lastInsertId();
 
-            $queryEmpleado = "INSERT INTO empleado (nombres, apellidos, cedula, cargo, id_usuario, estado) 
+            $queryEmpleado = "INSERT INTO empleado (nombres, apellidos, cedula, cargo, id_usuario, status_empleado) 
                               VALUES (:nombres, :apellidos, :cedula, :cargo, :id_usuario, 'activo')";
             $stmtEmpleado = $db->prepare($queryEmpleado);
             $stmtEmpleado->execute([
@@ -117,7 +117,7 @@ class Empleado extends Usuariomodel
             $stmtU = $db->prepare($queryU);
             $stmtU->execute([':id_usuario' => $idUsuario]);
 
-            $queryE = "UPDATE empleado SET estado = 'inactivo' WHERE id_usuario = :id_usuario";
+            $queryE = "UPDATE empleado SET status_empleado = 'inactivo' WHERE id_usuario = :id_usuario";
             $stmtE = $db->prepare($queryE);
             $stmtE->execute([':id_usuario' => $idUsuario]);
 

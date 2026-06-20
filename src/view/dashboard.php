@@ -5,104 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Panel de Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
 </head>
 
 <body>
-
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-lightning-charge-fill logo-icon"></i>
-            <span>Idéalo</span>
-        </div>
-        <nav class="sidebar-menu">
-            <ul>
-                <li>
-                    <a href="index.php?controller=auth&action=dashboard" class="menu-item active">
-                        <i class="bi bi-speedometer2"></i>
-                        <span>Panel de Control</span>
-                    </a>
-                </li>
-                <li class="menu-group">
-                    <button class="menu-item trigger" onclick="toggleMenu('sub-empleados')">
-                        <div class="trigger-left">
-                            <i class="bi bi-people"></i>
-                            <span>Empleados</span>
-                        </div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </button>
-                    <ul id="sub-empleados" class="submenu">
-                        <li><a href="index.php?controller=usuario&action=listar"><i class="bi bi-person-lines-fill"></i> Gestionar Empleados</a></li>
-                        <li><a href="index.php?controller=usuario&action=roles"><i class="bi bi-shield-lock"></i> Roles y Permisos</a></li>
-                    </ul>
-                </li>
-                <li class="menu-group">
-                    <button class="menu-item trigger" onclick="toggleMenu('sub-inventario')">
-                        <div class="trigger-left">
-                            <i class="bi bi-box-seam"></i>
-                            <span>Inventario</span>
-                        </div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </button>
-                    <ul id="sub-inventario" class="submenu">
-                        <li><a href="index.php?controller=inventario&action=materiaPrima"><i class="bi bi-egg"></i> Materia Prima</a></li>
-                        <li><a href="index.php?controller=inventario&action=productos"><i class="bi bi-tags"></i> Catálogo Productos</a></li>
-                    </ul>
-                </li>
-                <li class="menu-group">
-                    <button class="menu-item trigger" onclick="toggleMenu('sub-pedidos')">
-                        <div class="trigger-left">
-                            <i class="bi bi-cart3"></i>
-                            <span>Pedidos y Ventas</span>
-                        </div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </button>
-                    <ul id="sub-pedidos" class="submenu">
-                        <li><a href="index.php?controller=pedido&action=listar"><i class="bi bi-receipt"></i> Ver Pedidos</a></li>
-                        <li><a href="index.php?controller=pedido&action=clientes"><i class="bi bi-person-vcard"></i> Registro Clientes</a></li>
-                        <li><a href="index.php?controller=pedido&action=servicios"><i class="bi bi-wrench-adjustable"></i> Servicios Extra</a></li>
-                    </ul>
-                </li>
-                <li class="menu-group">
-                    <button class="menu-item trigger" onclick="toggleMenu('sub-produccion')">
-                        <div class="trigger-left">
-                            <i class="bi bi-cpu"></i>
-                            <span>Producción</span>
-                        </div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </button>
-                    <ul id="sub-produccion" class="submenu">
-                        <li><a href="index.php?controller=produccion&action=ordenes"><i class="bi bi-activity"></i> Órdenes Activas</a></li>
-                        <li><a href="index.php?controller=produccion&action=consumos"><i class="bi bi-graph-down-arrow"></i> Consumo de Material</a></li>
-                        <li><a href="index.php?controller=produccion&action=perdidas"><i class="bi bi-trash3"></i> Pérdidas y Desmarques</a></li>
-                    </ul>
-                </li>
-                <li class="menu-group">
-                    <button class="menu-item trigger" onclick="toggleMenu('sub-finanzas')">
-                        <div class="trigger-left">
-                            <i class="bi bi-wallet2"></i>
-                            <span>Finanzas</span>
-                        </div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </button>
-                    <ul id="sub-finanzas" class="submenu">
-                        <li><a href="index.php?controller=finanzas&action=pagos"><i class="bi bi-cash-stack"></i> Control de Pagos</a></li>
-                        <li><a href="index.php?controller=finanzas&action=cuentas"><i class="bi bi-bank"></i> Cuentas Bancarias</a></li>
-                        <li><a href="index.php?controller=finanzas&action=metodos"><i class="bi bi-credit-card"></i> Métodos de Pago</a></li>
-                    </ul>
-                </li>
-                <li class="logout-section">
-                    <a href="index.php?controller=auth&action=logout" class="menu-item logout">
-                        <i class="bi bi-box-arrow-left"></i>
-                        <span>Cerrar Sesión</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+<?php include 'src/view/sidebar.php'; ?>
 
     <main class="main-content">
         <div class="view-container" style="padding: 2rem max(2vw, 20px);">
@@ -110,7 +20,9 @@
             <header class="page-header mb-4 pb-3" style="border-bottom: 1px solid #f1f5f9;">
                 <div>
                     <h1 class="fw-bold text-dark mb-1" style="font-size: 1.75rem; letter-spacing: -0.5px;">Panel de Control</h1>
-                    <p class="text-muted mb-0" style="font-size: 0.95rem;">Bienvenido al núcleo operativo de tu taller de sublimación.</p>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                        Bienvenido, <?php echo htmlspecialchars($nombreUsuario); ?> (<?php echo htmlspecialchars($rolUsuario); ?>). Este es el núcleo operativo de tu taller de sublimación.
+                    </p>
                 </div>
             </header>
 

@@ -12,7 +12,7 @@ class OrdenDeProduccionModel extends Database {
     private $estado_de_produccion;
     private $pdo;
 
-    function __construct(){
+   public function __construct(){
         $this->pdo = new Database();
     }
 

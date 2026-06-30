@@ -16,28 +16,32 @@ class EmpleadoController
 
     public function listar()
     {
-        // Trae los registros con el alias correcto listo para usar en la vista
-        $usuarios = $this->model->listarTodos();
-        
-        // Carga la vista compartida de usuarios
-        require_once __DIR__ . '/../view/usuario/listarusuario.php';
+        $empleados = $this->model->listarTodos(true);
+        require_once __DIR__ . '/../view/empleado/listar.php';
     }
 
     public function guardar()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $datos = [
-                'cedula_usuario' => $_POST['cedula_usuario'] ?? '',
-                'id_rol'         => $_POST['id_rol'] ?? '',
-                'contrasena'     => $_POST['contrasena'] ?? $_POST['cedula_usuario'],
-                'nombres'        => $_POST['nombres'] ?? '',
-                'apellidos'      => $_POST['apellidos'] ?? '',
-                'telefono'       => $_POST['telefono'] ?? '',
-                'direccion'      => $_POST['direccion'] ?? '',
-                'salario'        => $_POST['salario'] ?? 0.00,
-                'cargo'          => $_POST['cargo'] ?? 'Operador'
+                'cedula'    => $_POST['cedula'] ?? '',
+                'nombres'   => $_POST['nombres'] ?? '',
+                'apellidos' => $_POST['apellidos'] ?? '',
+                'telefono'  => $_POST['telefono'] ?? '',
+                'direccion' => $_POST['direccion'] ?? '',
+                'salario'   => $_POST['salario'] ?? 0.00,
+                'cargo'     => $_POST['cargo'] ?? 'Costurero'
             ];
-            $this->model->guardar($datos);
+
+            $resultado = $this->model->guardar($datos);
+
+            if ($this->isAjax()) {
+                echo json_encode([
+                    "success" => $resultado,
+                    "message" => $resultado ? "Empleado registrado con éxito" : "Error al registrar el empleado"
+                ]);
+                exit;
+            }
         }
         header('Location: index.php?controller=empleado&action=listar');
         exit;
@@ -47,19 +51,59 @@ class EmpleadoController
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $datos = [
-                'id_usuario'     => $_POST['id_usuario'] ?? '',
-                'cedula_usuario' => $_POST['cedula_usuario'] ?? '',
-                'id_rol'         => $_POST['id_rol'] ?? '',
-                'nombres'        => $_POST['nombres'] ?? '',
-                'apellidos'      => $_POST['apellidos'] ?? '',
-                'telefono'       => $_POST['telefono'] ?? '',
-                'direccion'      => $_POST['direccion'] ?? '',
-                'cargo'          => $_POST['cargo'] ?? '',
-                'salario'        => $_POST['salario'] ?? 0.00
+                'id_empleado' => $_POST['id_empleado'] ?? '',
+                'nombres'     => $_POST['nombres'] ?? '',
+                'apellidos'   => $_POST['apellidos'] ?? '',
+                'telefono'    => $_POST['telefono'] ?? '',
+                'direccion'   => $_POST['direccion'] ?? '',
+                'cargo'       => $_POST['cargo'] ?? '',
+                'salario'     => $_POST['salario'] ?? 0.00
             ];
-            $this->model->editar($datos);
+
+            $resultado = $this->model->editar($datos);
+
+            if ($this->isAjax()) {
+                echo json_encode([
+                    "success" => $resultado,
+                    "message" => $resultado ? "Datos del empleado actualizados" : "Error al actualizar los datos"
+                ]);
+                exit;
+            }
+            header('Location: index.php?controller=empleado&action=listar');
+            exit;
+        } else {
+            if (isset($_GET['id'])) {
+                $empleado = $this->model->obtenerPorId($_GET['id']);
+                if ($empleado) {
+                    if ($this->isAjax()) {
+                        echo json_encode(["success" => true, "data" => $empleado]);
+                        exit;
+                    }
+                    require_once __DIR__ . '/../view/empleado/editar.php';
+                    return;
+                }
+            }
+            header('Location: index.php?controller=empleado&action=listar');
+            exit;
         }
-        header('Location: index.php?controller=empleado&action=listar');
+    }
+
+    public function cambiarEstado()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id_empleado = $_POST['id_empleado'] ?? '';
+            $nuevo_estado = $_POST['status_empleado'] ?? ''; // 'activo' o 'inactivo'
+
+            if (!empty($id_empleado) && !empty($nuevo_estado)) {
+                $resultado = $this->model->cambiarEstado($id_empleado, $nuevo_estado);
+                echo json_encode([
+                    "success" => $resultado,
+                    "message" => $resultado ? "El estado del empleado ha sido actualizado" : "Error al cambiar el estado"
+                ]);
+                exit;
+            }
+        }
+        echo json_encode(["success" => false, "message" => "Petición no válida"]);
         exit;
     }
 
@@ -70,5 +114,11 @@ class EmpleadoController
         }
         header('Location: index.php?controller=empleado&action=listar');
         exit;
+    }
+
+    private function isAjax()
+    {
+        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+            || isset($_POST['ajax']) || isset($_GET['ajax']);
     }
 }

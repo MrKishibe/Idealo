@@ -1,10 +1,4 @@
 <?php
-// ClienteController.php - Procedimental con validación estricta de archivos, mensajes y eventos
-
-
-$rutaVista  = __DIR__ . '/../view/cliente/listar.php';
-
-
 use Idealo\Models\ClienteModel;
 
 $model = new ClienteModel();
@@ -137,10 +131,8 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
+$rutaVista  = __DIR__ . '/../view/cliente/listar.php';
 
-// ==========================================
-// 4. VERIFICACIÓN Y CARGA DE LA VISTA
-// ==========================================
 if (!file_exists($rutaVista)) {
     header("HTTP/1.1 404 Not Found");
     die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");

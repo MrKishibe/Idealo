@@ -1,32 +1,11 @@
 <?php
-// TipoMateriaPrimaController.php - Procedimental con validación estricta de archivos, mensajes y eventos
-
-// Definición de rutas absolutas para verificación de dependencias
-$rutaConfig = dirname(dirname(__DIR__)) . '/Config/Database.php';
-$rutaPropiaModelo = __DIR__ . '/../Models/TipoMateriaPrimaModel.php';
-$rutaVista  = __DIR__ . '/../view/tipo_materia_prima/listar.php';
-
-// =========================================================================
-// 1. VERIFICACIÓN DE ARCHIVOS CRÍTICOS DEL SISTEMA
-// =========================================================================
-if (!file_exists($rutaConfig)) {
-    header("HTTP/1.1 404 Not Found");
-    die("Error 404: No se encontró el archivo de configuración requerido en: <strong>" . htmlspecialchars($rutaConfig) . "</strong>");
-}
-
-if (!file_exists($rutaPropiaModelo)) {
-    header("HTTP/1.1 404 Not Found");
-    die("Error 404: No se encontró el archivo del Modelo requerido en: <strong>" . htmlspecialchars($rutaPropiaModelo) . "</strong>");
-}
-
-// Carga segura de dependencias una vez confirmada su existencia
-require_once $rutaConfig;
-require_once $rutaPropiaModelo;
 
 use Idealo\Models\TipoMateriaPrimaModel;
 
+$rutaVista = __DIR__ . '/../view/tipo_materia_prima/listar.php';
+
 // =========================================================================
-// 2. CONTROL DE PETICIONES POST
+// CONTROL DE PETICIONES POST
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
@@ -38,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         $id = intval($_POST['id_accion']);
         $nuevoEstado = $_POST['nuevo_estado'];
 
-        // Sub-caso: Si incluye 'nombre', significa que es una EDICIÓN COMPLETA
+        // Sub-caso: EDICIÓN COMPLETA
         if (isset($_POST['nombre'])) {
             $nombre = trim($_POST['nombre']);
             $descripcion = trim($_POST['descripcion'] ?? '');
@@ -140,10 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 }
 
 // =========================================================================
-// 3. CONTROL DE PETICIONES GET (AJAX / CARGA ORDINARIA)
+// CONTROL DE PETICIONES GET (AJAX / CARGA ORDINARIA)
 // =========================================================================
 
-// CASO A: AJAX - Listado estructurado y métricas unificadas
+// CASO A: AJAX
 if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -162,7 +141,6 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
 
     if (!is_array($materiales)) $materiales = [];
 
-    // Uso corregido de 'status_tipo_materia'
     $activos = array_filter($materiales, function($m) { return $m['status_tipo_materia'] === 'Activo'; });
     $inactivos = array_filter($materiales, function($m) { return $m['status_tipo_materia'] === 'Inactivo'; });
 
@@ -177,7 +155,7 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     exit;
 }
 
-// CARGA ORDINARIA: Procesar extracción nativa para renderizado directo en servidor
+// CARGA ORDINARIA (FallBack Servidor)
 $materiales = TipoMateriaPrimaModel::consultarMateriales();
 
 if (is_array($materiales) && isset($materiales['error'])) {
@@ -188,9 +166,7 @@ if (!is_array($materiales)) {
     $materiales = array();
 }
 
-// =========================================================================
-// 4. VERIFICACIÓN Y CARGA DE LA VISTA
-// =========================================================================
+// VERIFICACIÓN Y CARGA DE LA VISTA
 if (!file_exists($rutaVista)) {
     header("HTTP/1.1 404 Not Found");
     die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");

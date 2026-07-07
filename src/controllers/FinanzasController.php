@@ -1,187 +1,94 @@
 <?php
-
-namespace Idealo\Controllers;
-
 use Idealo\Models\ControlPagosModel;
 use Idealo\Models\CuentaEmpresaModel;
 use Idealo\Models\MetodoPagoModel;
-use Exception;
 
-require_once dirname(__DIR__) . '/models/ControlPagosModel.php';
-require_once dirname(__DIR__) . '/models/CuentaEmpresaModel.php';
-require_once dirname(__DIR__) . '/models/MetodoPagoModel.php';
+require_once __DIR__ . '/../models/ControlPagosModel.php';
+require_once __DIR__ . '/../models/CuentaEmpresaModel.php';
+require_once __DIR__ . '/../models/MetodoPagoModel.php';
 
-class FinanzasController {
-    private $model;
+$pagosModel = new ControlPagosModel();
+$cuentasModel = new CuentaEmpresaModel();
+$metodosModel = new MetodoPagoModel();
 
-    public function __construct() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $this->model = new ControlPagosModel();
-    }
+$action = $_GET['action'] ?? 'pagos';
 
-    // ==========================================
-    // SECCIÓN: CONTROL DE PAGOS
-    // ==========================================
+// ==========================================
+// CENTRALIZADOR DE ACCIONES (POST)
+// ==========================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
 
-    public function pagos() {
-        $pagos = $this->model->listarTodos();
-        $metodos = $this->model->obtenerMetodosPago();
-        $pedidos = $this->model->obtenerPedidosActivos();
-        
-        require_once dirname(__DIR__) . '/view/finanzas/pagos.php';
-    }
+    try {
+        $accion = $_POST['accion'] ?? '';
+        $entidad = $_POST['entidad'] ?? '';
+        $id = $_POST['id'] ?? null;
+        $resultado = false;
 
-    public function guardar() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $id_pago = $_POST['id_pago'] ?? '';
-                
-                $datos = [
-                    'id_pago'            => $id_pago,
-                    'id_pedido'          => $_POST['id_pedido'] ?? '',
-                    'monto_pago'         => $_POST['monto_pago'] ?? '',
-                    'id_metodo_de_pago'  => $_POST['id_metodo_de_pago'] ?? '',
-                    'referencia'         => $_POST['referencia'] ?? '',
-                    'fecha_pago'         => $_POST['fecha_pago'] ?? '',
-                    'id_usuario'         => $_SESSION['id_usuario'] ?? 1
-                ];
+        // 1. CAMBIAR ESTADO
+        if ($accion === "cambiar_estado") {
+            $nuevoEstado = $_POST['nuevo_estado'];
+            $modelo = match($entidad) {
+                'cuenta' => $cuentasModel,
+                'pago'   => $pagosModel,
+                'metodo' => $metodosModel,
+                default  => null
+            };
 
-                if (empty($id_pago)) {
-                    $res = $this->model->guardar($datos);
-                } else {
-                    $res = $this->model->editar($datos);
-                }
-
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            if ($modelo && method_exists($modelo, 'actualizarEstado')) {
+                $resultado = $modelo->actualizarEstado($id, $nuevoEstado);
             }
+            
+            echo json_encode(['success' => (bool)$resultado, 'message' => $resultado ? 'Estado actualizado correctamente.' : 'Error al actualizar el estado.']);
             exit;
         }
-    }
 
-    public function inhabilitar() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $id_pago = intval($_POST['id_pago'] ?? 0);
-                $estado = intval($_POST['estado'] ?? 0);
-                
-                $res = $this->model->cambiarEstado($id_pago, $estado);
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        // 2. GUARDAR O EDITAR
+        if ($accion === "guardar" || $accion === "editar") {
+            $modelo = match($entidad) {
+                'cuenta' => $cuentasModel,
+                'pago'   => $pagosModel,
+                'metodo' => $metodosModel,
+                default  => null
+            };
+
+            $metodoAccion = ($accion === "guardar") ? "guardar" . ucfirst($entidad) : "editar" . ucfirst($entidad);
+            
+            // Verificación dinámica del método en el modelo
+            if ($modelo && method_exists($modelo, $metodoAccion)) {
+                $resultado = $modelo->$metodoAccion($_POST);
             }
+
+            echo json_encode(['success' => (bool)$resultado, 'message' => $resultado ? 'Operación exitosa.' : 'Error al procesar el registro.']);
             exit;
         }
-    }
 
-    // ==========================================
-    // SECCIÓN: CUENTAS BANCARIAS
-    // ==========================================
-
-    public function cuentas() {
-        $cuentaModel = new CuentaEmpresaModel();
-        $cuentas = $cuentaModel->listarTodas();
-        $metodos = $cuentaModel->obtenerMetodosPago();
-        
-        require_once dirname(__DIR__) . '/view/finanzas/cuentas.php';
-    }
-
-    public function guardarCuenta() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $cuentaModel = new CuentaEmpresaModel();
-                $id_cuenta = $_POST['id_cuenta'] ?? '';
-                
-                $datos = [
-                    'id_cuenta'          => $id_cuenta,
-                    'id_metodo_de_pago'  => $_POST['id_metodo_de_pago'] ?? '',
-                    'tipo_cuenta'        => $_POST['tipo_cuenta'] ?? '',
-                    'identificador'      => $_POST['identificador'] ?? '',
-                    'titular'            => $_POST['titular'] ?? ''
-                ];
-
-                if (empty($id_cuenta)) {
-                    $res = $cuentaModel->guardar($datos);
-                } else {
-                    $res = $cuentaModel->editar($datos);
-                }
-
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            }
-            exit;
-        }
-    }
-
-    public function inhabilitarCuenta() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $cuentaModel = new CuentaEmpresaModel();
-                $id_cuenta = intval($_POST['id_cuenta'] ?? 0);
-                $estado = intval($_POST['estado'] ?? 0);
-                
-                $res = $cuentaModel->cambiarEstado($id_cuenta, $estado);
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            }
-            exit;
-        }
-    }
-
-    // ==========================================
-    // SECCIÓN: MÉTODOS DE PAGO (NUEVO)
-    // ==========================================
-
-    public function metodos() {
-        $metodoModel = new MetodoPagoModel();
-        $metodos = $metodoModel->listarTodos();
-        
-        require_once dirname(__DIR__) . '/view/finanzas/metodos.php';
-    }
-
-    public function guardarMetodo() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $metodoModel = new MetodoPagoModel();
-                $id_metodo = $_POST['id_metodo_de_pago'] ?? '';
-                
-                $datos = [
-                    'id_metodo_de_pago'     => $id_metodo,
-                    'nombre_metodo_de_pago' => $_POST['nombre_metodo_de_pago'] ?? ''
-                ];
-
-                if (empty($id_metodo)) {
-                    $res = $metodoModel->guardar($datos);
-                } else {
-                    $res = $metodoModel->editar($datos);
-                }
-
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            }
-            exit;
-        }
-    }
-
-    public function inhabilitarMetodo() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $metodoModel = new MetodoPagoModel();
-                $id_metodo = intval($_POST['id_metodo_de_pago'] ?? 0);
-                $estado = intval($_POST['estado'] ?? 0);
-                
-                $res = $metodoModel->cambiarEstado($id_metodo, $estado);
-                echo json_encode(['status' => $res ? 'success' : 'error']);
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            }
-            exit;
-        }
+    } catch (\Exception $e) {
+        echo json_encode(['success' => false, 'message' => '❌ Error interno: ' . $e->getMessage()]);
+        exit;
     }
 }
+
+// ==========================================
+// CARGA DE DATOS (GET)
+// ==========================================
+$datos = [];
+switch ($action) {
+    case 'pagos':
+        $pagos = $pagosModel->listarTodos();
+        $pedidos = $pagosModel->obtenerPedidosActivos();
+        $metodos = $pagosModel->obtenerMetodosPago();
+        break;
+    case 'cuentas':
+        $cuentas = $cuentasModel->listarCuentas();
+        $metodos = $cuentasModel->obtenerMetodosPago();
+        break;
+    case 'metodos':
+        $metodos = $metodosModel->listarTodos();
+        break;
+}
+
+$rutaVista = __DIR__ . '/../view/finanzas/' . $action . '.php';
+if (!file_exists($rutaVista)) die("Error 404: No existe la vista.");
+require_once $rutaVista;

@@ -65,7 +65,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="index.php?url=ordenproduccion/listarordenproduccion" method="POST" id="formRegistrarOrden">
-                    <input type="hidden" name="action" value="guardar">
                     <input type="hidden" name="accion" value="guardar">
 
                     <div class="modal-body">
@@ -117,7 +116,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="index.php?url=ordenproduccion/listarordenproduccion" method="POST" id="formEditarOrden">
-                    <input type="hidden" name="action" value="editar">
                     <input type="hidden" name="accion" value="editar">
                     <input type="hidden" name="id_produccion" id="edit_id_orden">
 

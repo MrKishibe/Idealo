@@ -8,6 +8,74 @@ document.addEventListener('DOMContentLoaded', function () {
     let verInactivas = false;
     let ordenes = [];
 
+    const formRegistrarOrden = document.getElementById('formRegistrarOrden');
+    const formEditarOrden = document.getElementById('formEditarOrden');
+    const modalRegistrarOrdenElement = document.getElementById('modalRegistrarOrden');
+    const modalEditarOrdenElement = document.getElementById('modalEditarOrden');
+
+    function mostrarAlerta(tipo, titulo, texto) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: tipo,
+                title: titulo,
+                text: texto,
+                timer: 2200,
+                showConfirmButton: false,
+                timerProgressBar: true
+            });
+        } else {
+            alert(titulo + '\n' + texto);
+        }
+    }
+
+    async function enviarFormulario(form, modalElement) {
+        if (!form) return;
+
+        const submitButton = form.querySelector('button[type="submit"]');
+        const textoOriginal = submitButton ? submitButton.textContent : '';
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Enviando...';
+        }
+
+        try {
+            const actionUrl = form.getAttribute('action') || form.action;
+            if (!actionUrl) {
+                throw new Error('URL de acción del formulario no encontrada.');
+            }
+
+            const response = await fetch(actionUrl, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarAlerta('success', 'Operación exitosa', data.message || 'Guardado correctamente.');
+                if (modalElement) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                    modalInstance.hide();
+                }
+                form.reset();
+                fetchOrdenes();
+            } else {
+                mostrarAlerta('error', 'Error', data.message || 'No se pudo procesar la solicitud.');
+            }
+        } catch (error) {
+            console.error('Error al enviar el formulario:', error);
+            mostrarAlerta('error', 'Error', 'No se pudo conectar con el servidor.');
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = textoOriginal;
+            }
+        }
+    }
+
     function fetchOrdenes() {
         // Se agregó '&accion=listar' para que el controlador de PHP detecte la petición y devuelva el JSON
         fetch('index.php?url=ordenproduccion/listarordenproduccion&accion=listar')
@@ -105,6 +173,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 tituloVista.textContent = 'Gestión de Órdenes de Producción';
             }
             renderizarTabla();
+        });
+    }
+
+    if (formRegistrarOrden) {
+        formRegistrarOrden.addEventListener('submit', function (event) {
+            event.preventDefault();
+            enviarFormulario(formRegistrarOrden, modalRegistrarOrdenElement);
+        });
+    }
+
+    if (formEditarOrden) {
+        formEditarOrden.addEventListener('submit', function (event) {
+            event.preventDefault();
+            enviarFormulario(formEditarOrden, modalEditarOrdenElement);
         });
     }
 

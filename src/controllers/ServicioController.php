@@ -5,23 +5,6 @@ $rutaConfigDatabase = dirname(dirname(__DIR__)) . '/Config/Database.php';
 $rutaPropiaModelo  = __DIR__ . '/../Models/ServicioModel.php';
 $rutaVistaListar    = __DIR__ . '/../view/servicio/listar.php';
 
-// =========================================================================
-// 1. VERIFICACIÓN DE DEPENDENCIAS FÍSICAS EN EL DISCO
-// =========================================================================
-if (!file_exists($rutaConfigDatabase)) {
-    header("HTTP/1.1 404 Not Found");
-    die("Error Crítico: No se encontró la configuración de la BD en: <strong>" . htmlspecialchars($rutaConfigDatabase) . "</strong>");
-}
-
-if (!file_exists($rutaPropiaModelo)) {
-    header("HTTP/1.1 404 Not Found");
-    die("Error Crítico: El archivo del modelo requerido no existe en: <strong>" . htmlspecialchars($rutaPropiaModelo) . "</strong>");
-}
-
-// Carga segura de los recursos
-require_once $rutaConfigDatabase;
-require_once $rutaPropiaModelo;
-
 use Idealo\Models\ServicioModel;
 
 // Captura dinámica de acciones si se manejan mediante la URL clásica (?action=nombre)

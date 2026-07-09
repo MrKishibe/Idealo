@@ -1,82 +1,148 @@
 <?php
+// FinanzasController.php - Procedimental con validación estricta y eventos (Estilo Cliente)
+
 use Idealo\Models\ControlPagosModel;
 use Idealo\Models\CuentaEmpresaModel;
 use Idealo\Models\MetodoPagoModel;
 
-require_once __DIR__ . '/../models/ControlPagosModel.php';
-require_once __DIR__ . '/../models/CuentaEmpresaModel.php';
-require_once __DIR__ . '/../models/MetodoPagoModel.php';
+
 
 $pagosModel = new ControlPagosModel();
 $cuentasModel = new CuentaEmpresaModel();
 $metodosModel = new MetodoPagoModel();
 
-$action = $_GET['action'] ?? 'pagos';
+$action = $_GET['action'] ?? 'pagos'; 
 
-// ==========================================
-// CENTRALIZADOR DE ACCIONES (POST)
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (ob_get_length()) ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
+//
+//  CONTROL DE PETICIONES POST (CRUD)
+// 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
+    
+    $accion = $_POST['accion'] ?? '';
+    $entidad = $_POST['entidad'] ?? ''; // 'cuenta', 'pago', 'metodo'
 
-    try {
-        $accion = $_POST['accion'] ?? '';
-        $entidad = $_POST['entidad'] ?? '';
-        $id = $_POST['id'] ?? null;
-        $resultado = false;
+    // Seleccionar el modelo correspondiente de forma dinámica
+    $modelo = match($entidad) {
+        'cuenta' => $cuentasModel,
+        'pago'   => $pagosModel,
+        'metodo' => $metodosModel,
+        default  => null
+    };
 
-        // 1. CAMBIAR ESTADO
-        if ($accion === "cambiar_estado") {
-            $nuevoEstado = $_POST['nuevo_estado'];
-            $modelo = match($entidad) {
-                'cuenta' => $cuentasModel,
-                'pago'   => $pagosModel,
-                'metodo' => $metodosModel,
-                default  => null
-            };
-
-            if ($modelo && method_exists($modelo, 'actualizarEstado')) {
-                $resultado = $modelo->actualizarEstado($id, $nuevoEstado);
-            }
-            
-            echo json_encode(['success' => (bool)$resultado, 'message' => $resultado ? 'Estado actualizado correctamente.' : 'Error al actualizar el estado.']);
-            exit;
-        }
-
-        // 2. GUARDAR O EDITAR
-        if ($accion === "guardar" || $accion === "editar") {
-            $modelo = match($entidad) {
-                'cuenta' => $cuentasModel,
-                'pago'   => $pagosModel,
-                'metodo' => $metodosModel,
-                default  => null
-            };
-
-            $metodoAccion = ($accion === "guardar") ? "guardar" . ucfirst($entidad) : "editar" . ucfirst($entidad);
-            
-            // Verificación dinámica del método en el modelo
-            if ($modelo && method_exists($modelo, $metodoAccion)) {
-                $resultado = $modelo->$metodoAccion($_POST);
-            }
-
-            echo json_encode(['success' => (bool)$resultado, 'message' => $resultado ? 'Operación exitosa.' : 'Error al procesar el registro.']);
-            exit;
-        }
-
-    } catch (\Exception $e) {
-        echo json_encode(['success' => false, 'message' => '❌ Error interno: ' . $e->getMessage()]);
+    if (!$modelo) {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'message' => '❌ Entidad no válida o no especificada.',
+            'evento' => $accion,
+            'estado' => 'error'
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    // Guardar registro
+    if ($accion === "guardar") {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $metodoGuardar = "guardar" . ucfirst($entidad); // Ej: guardarCuenta, guardarPago
+            if (method_exists($modelo, $metodoGuardar)) {
+                $modelo->$metodoGuardar($_POST);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => '✅ Registro guardado con éxito.',
+                    'evento' => 'guardar',
+                    'estado' => 'completado'
+                ], JSON_UNESCAPED_UNICODE);
+            } else {
+                throw new \Exception("Método de guardado no implementado para esta entidad.");
+            }
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => '❌ ' . $e->getMessage(),
+                'evento' => 'guardar',
+                'estado' => 'error',
+                'validacion' => $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+    
+    // Editar registro
+    if ($accion === "editar") {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $metodoEditar = "editar" . ucfirst($entidad); // Ej: editarCuenta, editarPago
+            if (method_exists($modelo, $metodoEditar)) {
+                $modelo->$metodoEditar($_POST);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => '✅ Registro actualizado con éxito.',
+                    'evento' => 'editar',
+                    'estado' => 'completado'
+                ], JSON_UNESCAPED_UNICODE);
+            } else {
+                throw new \Exception("Método de edición no implementado para esta entidad.");
+            }
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => '❌ ' . $e->getMessage(),
+                'evento' => 'editar',
+                'estado' => 'error',
+                'validacion' => $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
+    //  Cambiar estado (Inhabilitar / Activar)
+    if ($accion === "cambiar_estado") {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $id = $_POST['id'] ?? null;
+            $nuevoEstado = $_POST['nuevo_estado'] ?? 'inhabilitado'; // Asume 'inhabilitado' por defecto
+            
+            if (!$id) throw new \Exception("ID de registro no proporcionado.");
+
+            if (method_exists($modelo, 'actualizarEstado')) {
+                $modelo->actualizarEstado($id, $nuevoEstado);
+                $mensaje = ($nuevoEstado === 'inhabilitado') ? '✅ Registro inhabilitado correctamente.' : '✅ Registro activado correctamente.';
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => $mensaje,
+                    'evento' => 'cambiar_estado',
+                    'estado' => 'completado'
+                ], JSON_UNESCAPED_UNICODE);
+            } else {
+                throw new \Exception("Método de actualización de estado no implementado.");
+            }
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => '❌ ' . $e->getMessage(),
+                'evento' => 'cambiar_estado',
+                'estado' => 'error',
+                'validacion' => $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
+    exit;
 }
 
-// ==========================================
-// CARGA DE DATOS (GET)
-// ==========================================
-$datos = [];
+//
+// 3. CONTROL DE PETICIONES GET (CARGA DE DATOS)
+// 
 switch ($action) {
     case 'pagos':
-        $pagos = $pagosModel->listarTodos();
+        $pagos = $pagosModel->listarPagos();
         $pedidos = $pagosModel->obtenerPedidosActivos();
         $metodos = $pagosModel->obtenerMetodosPago();
         break;
@@ -85,10 +151,18 @@ switch ($action) {
         $metodos = $cuentasModel->obtenerMetodosPago();
         break;
     case 'metodos':
-        $metodos = $metodosModel->listarTodos();
+        $metodos = $metodosModel->listarMetodos();
         break;
 }
 
+// 
+// 4. VERIFICACIÓN Y CARGA DE LA VISTA
+// 
 $rutaVista = __DIR__ . '/../view/finanzas/' . $action . '.php';
-if (!file_exists($rutaVista)) die("Error 404: No existe la vista.");
+
+if (!file_exists($rutaVista)) {
+    header("HTTP/1.1 404 Not Found");
+    die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");
+}
+
 require_once $rutaVista;

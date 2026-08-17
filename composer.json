@@ -31,5 +31,7 @@
             "email": "alanjosemontillaromero2@gmail.com"
         }
     ],
-    "require": {}
+    "require": {
+        "tecnickcom/tcpdf": "^6.11"
+    }
 }

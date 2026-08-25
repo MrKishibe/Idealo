@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,7 +41,6 @@
             border-radius: 50%;
             top: -100px;
             right: -100px;
-            blur: 80px;
             filter: blur(80px);
             z-index: 0;
         }
@@ -191,6 +191,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -198,17 +199,31 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes pulseIcon {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
     </style>
 </head>
+
 <body class="login-body">
 
     <div class="login-container">
@@ -237,10 +252,10 @@
 
         <form action="index.php?controller=auth&action=login" method="POST">
             <div class="mb-3">
-                <label for="cedula_usuario" class="form-label fw-semibold">Cédula de Identidad</label>
+                <label for="cedula_usuario" class="form-label fw-semibold">Nombre de Usuario</label>
                 <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-card-text"></i></span>
-                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="cedula_usuario" placeholder="Ej: 26123456" required autocomplete="off">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="cedula_usuario" placeholder="Ej: admin" required autocomplete="off">
                 </div>
             </div>
 
@@ -258,4 +273,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

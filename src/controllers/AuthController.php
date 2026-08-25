@@ -22,37 +22,30 @@ class AuthController
                 $pdo = new \PDO("mysql:host=localhost;dbname=idealo;charset=utf8mb4", "root", "");
                 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-                $cedula = $_POST['cedula_usuario'] ?? '';
+                $usuario_input = $_POST['cedula_usuario'] ?? $_POST['nombre_usuario'] ?? '';
                 $contrasena = $_POST['contrasena'] ?? '';
 
-                // CORRECCIÓN MÁXIMA: Cruzamos usuario con empleado (para nombre/apellido reales) y con roles
-                $sql = "SELECT u.id_usuario, u.contrasena, u.id_rol, 
-                               e.nombres, e.apellidos, 
+                $sql = "SELECT u.id_usuario, u.nombre_usuario, u.contrasena, u.id_rol, 
                                r.tipo_de_usuario 
                         FROM usuario u 
-                        LEFT JOIN empleado e ON u.id_usuario = e.id_usuario
                         LEFT JOIN roles r ON u.id_rol = r.id_rol 
-                        WHERE u.cedula_usuario = ? AND u.status_usuario = 'activo'";
-                
+                        WHERE u.nombre_usuario = ? AND u.status_usuario = 'activo'";
+
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$cedula]);
+                $stmt->execute([$usuario_input]);
                 $usuario = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                 if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {
-                    $_SESSION['usuario'] = $usuario['id_usuario'];
-                    $_SESSION['rol']     = $usuario['id_rol'];
-                    
-                    // Concatenamos el Nombre y Apellido verdaderos del empleado
-                    $nombreCompleto = trim($usuario['nombre_empleado'] . ' ' . $usuario['apellido_empleado']);
-                    
-                    // Si por alguna razón el usuario no tiene fila en empleados, usamos la cédula de respaldo
-                    $_SESSION['nombre_usuario'] = !empty($nombreCompleto) ? $nombreCompleto : "Usuario (" . $cedula . ")";
-                    $_SESSION['nombre_rol']     = !empty($usuario['nombre_rol']) ? $usuario['nombre_rol'] : 'Sin Rol Asignado';
+
+                    $_SESSION['usuario']        = $usuario['id_usuario'];
+                    $_SESSION['rol']            = $usuario['id_rol'];
+                    $_SESSION['nombre_usuario'] = $usuario['nombre_usuario'];
+                    $_SESSION['nombre_rol']     = !empty($usuario['tipo_de_usuario']) ? $usuario['tipo_de_usuario'] : 'Sin Rol Asignado';
 
                     header("Location: index.php?controller=auth&action=dashboard");
                     exit();
                 } else {
-                    $error_login = "Credenciales incorrectas o el usuario no existe.";
+                    $error_login = "Credenciales incorrectas o el usuario no existe/está inactivo.";
                 }
             } catch (\PDOException $e) {
                 $error_login = "Error de conexión: " . $e->getMessage();
@@ -73,7 +66,6 @@ class AuthController
             exit();
         }
 
-        // Extraemos los datos verdaderos cargados de forma limpia
         $nombreUsuario = $_SESSION['nombre_usuario'] ?? 'Usuario';
         $rolUsuario    = $_SESSION['nombre_rol'] ?? 'Invitado';
 
@@ -81,7 +73,7 @@ class AuthController
             $pdo = new \PDO("mysql:host=localhost;dbname=idealo;charset=utf8mb4", "root", "");
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmtEmpleados = $pdo->query("SELECT COUNT(*) AS total FROM usuario u INNER JOIN empleado e ON u.id_usuario = e.id_usuario WHERE u.status_usuario = 'activo' AND e.status_empleado = 'activo'");
+            $stmtEmpleados = $pdo->query("SELECT COUNT(*) AS total FROM empleado WHERE status_empleado = 'activo'");
             $total_empleados = $stmtEmpleados->fetch(\PDO::FETCH_ASSOC)['total'];
 
             $stmtPedidosStatus = $pdo->query("SELECT estado_pedido, COUNT(*) AS total FROM pedido GROUP BY estado_pedido");

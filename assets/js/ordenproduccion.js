@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    document.addEventListener('click', function (event) {
+    document.addEventListener('click', async function (event) { // <-- OJO: agregamos 'async'
         const target = event.target.closest('.btnEditarOrden');
         if (!target) return;
 
@@ -202,10 +202,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const estado = target.getAttribute('data-estado') || '';
 
         // Buscamos los elementos del DOM en el modal de edición
-        const editId = document.getElementById('edit_id_orden'); // Input oculto
-        const editIdDetallePedido = document.getElementById('edit_id_detalle_pedido'); // El nuevo <select>
+        const editId = document.getElementById('edit_id_orden'); // El que corregimos ayer
+        const editIdDetallePedido = document.getElementById('edit_id_detalle_pedido'); 
         const editFechaInicio = document.getElementById('edit_fecha_de_inicio');
-        const editFechaTerminado = document.getElementById('edit_fecha_terminado'); // Corregido ID
+        const editFechaTerminado = document.getElementById('edit_fecha_terminado'); 
         const editEstado = document.getElementById('edit_estado_de_produccion');
 
         // Asignamos los valores a los inputs del modal
@@ -215,9 +215,49 @@ document.addEventListener('DOMContentLoaded', function () {
         if (editFechaTerminado) editFechaTerminado.value = fechaTerminado;
         if (editEstado) editEstado.value = estado;
 
+        // --- NUEVO: LÓGICA PARA MARCAR LOS TRABAJADORES ---
+        
+        // 1. Limpiamos todos los checkboxes por si quedó alguno marcado de una edición anterior
+        document.querySelectorAll('.check-edit-empleado').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // 2. Buscamos los asignados en la base de datos usando fetch
+        try {
+            const response = await fetch(`index.php?url=ordenproduccion/listarordenproduccion&accion=obtener_empleados&id=${id_produccion}`);
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                // 3. Marcamos solo los que nos devuelve el backend
+                data.data.forEach(id_empleado => {
+                    const checkbox = document.getElementById(`edit_emp_${id_empleado}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Error al cargar los empleados asignados:", error);
+        }
+        // ----------------------------------------------------
+
+        // 4. Finalmente, abrimos el modal ya con los datos cargados
         const modal = new bootstrap.Modal(document.getElementById('modalEditarOrden'));
         modal.show();
     });
+
+    const btnGenerarReporte = document.getElementById('btnGenerarReporte');
+    
+    if (btnGenerarReporte) {
+        btnGenerarReporte.addEventListener('click', function() {
+            // Pasamos un parámetro por la URL para saber si el reporte es de activas o inactivas
+            const estadoFiltro = verInactivas ? 'inactivas' : 'activas';
+            
+            // Abrimos la ruta del generador de reportes en una nueva pestaña
+            const urlReporte = `index.php?url=ordenproduccion/listarordenproduccion&accion=generar_reporte&estado=${estadoFiltro}`;
+            window.open(urlReporte, '_blank');
+        });
+    }
 
     fetchOrdenes();
 });

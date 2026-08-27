@@ -27,8 +27,11 @@
                     <p>Administra las órdenes de producción y su estado en el proceso.</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
+                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
                         <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inactivas</span>
+                    </button>
+                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                     </button>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarOrden">
                         <i class="bi bi-box-seam me-1"></i> Registrar Orden
@@ -37,7 +40,8 @@
             </header>
 
             <div class="table-container p-3">
-                <div class="table-responsive">
+                <!-- Se agregó max-height y overflow-y para el scroll -->
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                     <table class="custom-table" id="tablaOrdenProduccion" style="width: 100%;">
                         <thead>
                             <tr>
@@ -97,6 +101,27 @@
                                     <option value="Inactiva">Inactiva</option>
                                 </select>
                             </div>
+                            
+                            <!-- Nuevo bloque: Asignar Trabajadores -->
+                            <div class="col-12">
+                                <label class="form-label">Asignar Trabajadores</label>
+                                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <?php if (!empty($empleados)): ?>
+                                        <?php foreach ($empleados as $emp): ?>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="empleados[]" value="<?= htmlspecialchars($emp['id_empleado']) ?>" id="emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
+                                                <label class="form-check-label" for="emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
+                                                    <?= htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']) ?> <span class="text-muted" style="font-size: 0.85em;">(<?= htmlspecialchars($emp['cargo']) ?>)</span>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <!-- Fin del nuevo bloque -->
+                            
                         </div>
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
@@ -148,6 +173,27 @@
                                     <option value="Finalizado">Finalizado</option>
                                     <option value="Inactiva">Inactiva</option>
                                 </select>
+
+                                <!-- Bloque: Editar Trabajadores Asignados -->
+                            <div class="col-12">
+                                <label class="form-label">Modificar Trabajadores Asignados</label>
+                                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <?php if (!empty($empleados)): ?>
+                                        <?php foreach ($empleados as $emp): ?>
+                                            <div class="form-check">
+                                                <input class="form-check-input check-edit-empleado" type="checkbox" name="empleados[]" value="<?= htmlspecialchars($emp['id_empleado']) ?>" id="edit_emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
+                                                <label class="form-check-label" for="edit_emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
+                                                    <?= htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']) ?> <span class="text-muted" style="font-size: 0.85em;">(<?= htmlspecialchars($emp['cargo']) ?>)</span>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <!-- Fin del bloque -->
+                             
                             </div>
                         </div>
                     </div>

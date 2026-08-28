@@ -25,6 +25,9 @@
                 <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" data-vista="activos" onclick="alternarVistaInhabilitados('tablaMetodos')">
                     <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                 </button>
+                <button type="button" id="btnGenerarReporteMetodos" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                </button>
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarMetodo">
                     <i class="bi bi-credit-card"></i> Nuevo Método
                 </button>
@@ -119,6 +122,7 @@
             </div>
         </form>
     </div>
+</div>
 
 <script src="assets/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -135,6 +139,15 @@ function cargarDatosEdicionMetodo(id, nombre) {
     document.getElementById('edit_met_id').value = id;
     document.getElementById('edit_met_nombre').value = nombre;
 }
+
+document.getElementById('btnGenerarReporteMetodos').addEventListener('click', function() {
+    const btnAlternar = document.getElementById('btnAlternarEstado');
+    const vistaActual = btnAlternar ? btnAlternar.getAttribute('data-vista') : 'activos';
+    const estadoFiltro = (vistaActual === 'inhabilitados') ? 'inhabilitados' : 'activos';
+    
+    const urlReporte = `index.php?controller=Finanzas&action=metodos&accion=generar_reporte&tipo=metodos&estado=${estadoFiltro}`;
+    window.open(urlReporte, '_blank');
+});
 </script>
 </body>
 </html>

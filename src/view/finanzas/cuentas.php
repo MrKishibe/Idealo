@@ -25,6 +25,9 @@
                 <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" data-vista="activos" onclick="alternarVistaInhabilitados('tablaCuentas')">
                     <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                 </button>
+                <button type="button" id="btnGenerarReporteCuentas" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                </button>
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarCuenta">
                     <i class="bi bi-bank"></i> Registrar Cuenta
                 </button>
@@ -152,6 +155,15 @@ function cargarDatosEdicionCuenta(id, titular, ident, tipo, metodo) {
     document.getElementById('edit_cta_tipo').value = tipo;
     document.getElementById('edit_cta_metodo').value = metodo;
 }
+
+document.getElementById('btnGenerarReporteCuentas').addEventListener('click', function() {
+    const btnAlternar = document.getElementById('btnAlternarEstado');
+    const vistaActual = btnAlternar ? btnAlternar.getAttribute('data-vista') : 'activos';
+    const estadoFiltro = (vistaActual === 'inhabilitados') ? 'inhabilitados' : 'activos';
+    
+    const urlReporte = `index.php?controller=Finanzas&action=cuentas&accion=generar_reporte&tipo=cuentas&estado=${estadoFiltro}`;
+    window.open(urlReporte, '_blank');
+});
 </script>
 </body>
 </html>

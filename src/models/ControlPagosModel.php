@@ -5,6 +5,11 @@ use PDO;
 use Exception;
 
 class ControlPagosModel extends Database {
+
+
+    private $monto_abonado;
+    private $referencia;
+    private $fecha_pago;
     private $pdo;
     public function __construct() { $this->pdo = new Database(); }
 

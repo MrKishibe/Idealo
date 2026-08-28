@@ -1,289 +1,225 @@
-$(document).ready(function() {
-    // 1. Inicializar DataTables
-    var table = $('#tablaEmpleados').DataTable({
-        "language": {
-            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+
+const URL_EMPLEADO = 'index.php?controller=empleado';
+
+$(document).ready(function () {
+
+    let tablaEmpleados = $('#tablaEmpleados').DataTable({
+        language: {
+            url: 'assets/js/es-ES.json'
         },
-        "order": [[0, "desc"]]
+        responsive: true,
+        order: [[0, 'desc']],
+        columnDefs: [
+            { orderable: false, targets: [6] }
+        ]
     });
 
-    // 2. Filtro de activos/inactivos
-    $.fn.dataTable.ext.search.push(
-        function(settings, data, dataIndex) {
-            var estadoColumna = $(table.row(dataIndex).node()).find('td:nth-child(6) span').text().toLowerCase().trim();
-            var vistaActual = $('#btnAlternarEstado').attr('data-vista');
-            
-            if (vistaActual === 'activos') {
-                return estadoColumna === 'activo';
-            } else {
-                return estadoColumna === 'inactivo';
-            }
-        }
-    );
+    let vistaActual = 'activos';
 
-    table.draw();
-
-    // 3. Alternar Vista
-    $('#btnAlternarEstado').click(function() {
-        var vista = $(this).attr('data-vista');
-        if (vista === 'activos') {
-            $(this).attr('data-vista', 'inactivos');
-            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
-            $('#txtBotonEstado').text('Ver activos');
-            $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
-            $('#tituloVista').text('Empleados Inhabilitados');
-        } else {
-            $(this).attr('data-vista', 'activos');
-            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
+    function filtrarPorEstado() {
+        if (vistaActual === 'activos') {
+            tablaEmpleados.column(5).search('^Activo$', true, false).draw();
             $('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Gestión de Empleados');
+        } else {
+            tablaEmpleados.column(5).search('^Inactivo$', true, false).draw();
+            $('#txtBotonEstado').text('Ver activos');
+            $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
+            $('#tituloVista').text('Empleados Inhabilitados');
         }
-        table.draw();
+    }
+
+    filtrarPorEstado();
+
+    $('#btnAlternarEstado').on('click', function () {
+        vistaActual = vistaActual === 'activos' ? 'inactivos' : 'activos';
+        $(this).attr('data-vista', vistaActual);
+        filtrarPorEstado();
     });
 
-    // 4. Guardar Nuevo Empleado (sin rol ni password)
-    $('#btnEnvio').click(function(e) {
-        e.preventDefault();
-        var form = $('#formEmpleado')[0];
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
+
+    $('#btnEnvio').on('click', function () {
+        let cedula    = $('#reg_cedula').val().trim();
+        let nombres   = $('#reg_nombres').val().trim();
+        let apellidos = $('#reg_apellidos').val().trim();
+        let telefono  = $('#reg_telefono').val().trim();
+        let direccion = $('#reg_direccion').val().trim();
+        let cargo     = $('#reg_cargo').val();
+        let salario   = $('#reg_salario').val().trim();
+
+        if (!cedula || !nombres || !apellidos || !cargo || !salario) {
+            Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
             return;
         }
 
-        var datos = {
-            ajax: 1,
-            cedula: $('#reg_cedula').val(),
-            nombres: $('#reg_nombres').val(),
-            apellidos: $('#reg_apellidos').val(),
-            telefono: $('#reg_telefono').val(),
-            cargo: $('#reg_cargo').val(),
-            salario: $('#reg_salario').val(),
-            direccion: $('#reg_direccion').val()
-        };
-
         $.ajax({
-            url: 'index.php?controller=empleado&action=guardar',
+            url: URL_EMPLEADO,
             type: 'POST',
-            data: datos,
+            data: {
+                cedula: cedula,
+                nombres: nombres,
+                apellidos: apellidos,
+                telefono: telefono,
+                direccion: direccion,
+                cargo: cargo,
+                salario: salario
+            },
             dataType: 'json',
-            success: function(res) {
+            success: function (res) {
                 if (res.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Registrado!',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
+                    Swal.fire('¡Registrado!', res.message, 'success').then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: res.message
-                    });
+                    Swal.fire('Error', res.message, 'error');
                 }
             },
-            error: function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Error de comunicación con el servidor.'
-                });
+            error: function () {
+                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
             }
         });
     });
 
-    // 5. Cargar Modal Editar Activo
-    $(document).on('click', '.btnEditarActivo', function() {
-        var id = $(this).data('id');
-        var cedula = $(this).data('cedula');
-        var nombres = $(this).data('nombres');
-        var apellidos = $(this).data('apellidos');
-        var telefono = $(this).data('telefono');
-        var direccion = $(this).data('direccion');
-        var cargo = $(this).data('cargo');
-        var salario = $(this).data('salario');
+    $(document).on('click', '.btnEditarActivo', function () {
+        let btn = $(this);
+        $('#edit_activo_id_empleado').val(btn.data('id'));
+        $('#edit_activo_cedula').val(btn.data('cedula'));
+        $('#edit_activo_nombres').val(btn.data('nombres'));
+        $('#edit_activo_apellidos').val(btn.data('apellidos'));
+        $('#edit_activo_telefono').val(btn.data('telefono'));
+        $('#edit_activo_direccion').val(btn.data('direccion'));
+        $('#edit_activo_cargo').val(btn.data('cargo'));
+        $('#edit_activo_salario').val(btn.data('salario'));
 
-        $('#edit_activo_id_empleado').val(id);
-        $('#edit_activo_cedula').val(cedula);
-        $('#edit_activo_nombres').val(nombres);
-        $('#edit_activo_apellidos').val(apellidos);
-        $('#edit_activo_telefono').val(telefono);
-        $('#edit_activo_direccion').val(direccion);
-        $('#edit_activo_cargo').val(cargo);
-        $('#edit_activo_salario').val(salario);
-
-        var myModal = new bootstrap.Modal(document.getElementById('modalEditarActivo'));
-        myModal.show();
+        let modal = new bootstrap.Modal(document.getElementById('modalEditarActivo'));
+        modal.show();
     });
 
-    // 6. Guardar Cambios Activo
-    $('#btnGuardarEdicionActivo').click(function(e) {
-        e.preventDefault();
-        var form = $('#formEditarActivo')[0];
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
+    $('#btnGuardarEdicionActivo').on('click', function () {
+        let idEmpleado = $('#edit_activo_id_empleado').val();
+        let nombres    = $('#edit_activo_nombres').val().trim();
+        let apellidos  = $('#edit_activo_apellidos').val().trim();
+        let telefono   = $('#edit_activo_telefono').val().trim();
+        let direccion  = $('#edit_activo_direccion').val().trim();
+        let cargo      = $('#edit_activo_cargo').val();
+        let salario    = $('#edit_activo_salario').val().trim();
+        let cedula     = $('#edit_activo_cedula').val().trim();
+
+        if (!nombres || !apellidos || !cargo || !salario) {
+            Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
             return;
         }
 
-        var datos = {
-            ajax: 1,
-            id_empleado: $('#edit_activo_id_empleado').val(),
-            nombres: $('#edit_activo_nombres').val(),
-            apellidos: $('#edit_activo_apellidos').val(),
-            telefono: $('#edit_activo_telefono').val(),
-            cargo: $('#edit_activo_cargo').val(),
-            salario: $('#edit_activo_salario').val(),
-            direccion: $('#edit_activo_direccion').val()
-        };
-
         $.ajax({
-            url: 'index.php?controller=empleado&action=editar',
+            url: URL_EMPLEADO,
             type: 'POST',
-            data: datos,
+            data: {
+                id_accion: idEmpleado,
+                nuevo_estado: 'Activo',
+                nombres: nombres,
+                apellidos: apellidos,
+                cedula: cedula,
+                telefono: telefono,
+                direccion: direccion,
+                cargo: cargo,
+                salario: salario
+            },
             dataType: 'json',
-            success: function(res) {
+            success: function (res) {
                 if (res.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Actualizado!',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
+                    Swal.fire('¡Actualizado!', res.message, 'success').then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: res.message
-                    });
+                    Swal.fire('Error', res.message, 'error');
                 }
             },
-            error: function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Ocurrió un error al guardar los cambios.'
-                });
+            error: function () {
+                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
             }
         });
     });
 
-    // 7. Inactivar Empleado (Papelera)
-    $(document).on('click', '.btnCambiarEstado', function() {
-        var id = $(this).data('id');
-        var nombre = $(this).data('nombre');
+    $(document).on('click', '.btnCambiarEstado', function () {
+        let idEmpleado = $(this).data('id');
+        let nombre     = $(this).data('nombre');
 
         Swal.fire({
             title: '¿Inhabilitar empleado?',
-            text: `¿Estás seguro de que deseas inhabilitar a ${nombre}?`,
+            html: `El empleado <strong>${nombre}</strong> será marcado como <span class="text-danger fw-bold">Inactivo</span>.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc3545',
+            confirmButtonColor: '#d33',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, inhabilitar',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: 'index.php?controller=empleado&action=cambiarEstado',
+                    url: URL_EMPLEADO,
                     type: 'POST',
                     data: {
-                        id_empleado: id,
-                        status_empleado: 'inactivo',
-                        ajax: 1
+                        id_accion: idEmpleado,
+                        nuevo_estado: 'Inactivo'
                     },
                     dataType: 'json',
-                    success: function(res) {
+                    success: function (res) {
                         if (res.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: '¡Inhabilitado!',
-                                text: res.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(() => {
+                            Swal.fire('¡Inhabilitado!', res.message, 'success').then(() => {
                                 location.reload();
                             });
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: res.message
-                            });
+                            Swal.fire('Error', res.message, 'error');
                         }
                     },
-                    error: function() {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'No se pudo inhabilitar al empleado.'
-                        });
+                    error: function () {
+                        Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
                     }
                 });
             }
         });
     });
 
-    // 8. Cargar Modal Inactivo (para reactivar)
-    $(document).on('click', '.btnEditarInactivo', function() {
-        var id = $(this).data('id');
-        var nombre = $(this).data('nombre');
+    $(document).on('click', '.btnEditarInactivo', function () {
+        let btn = $(this);
+        $('#edit_inactivo_id_empleado').val(btn.data('id'));
+        $('#edit_inactivo_nombre_completo').val(btn.data('nombre'));
+        $('#edit_inactivo_status').val('Inactivo');
 
-        $('#edit_inactivo_id_empleado').val(id);
-        $('#edit_inactivo_nombre_completo').val(nombre);
-        $('#edit_inactivo_status').val('inactivo');
-
-        var myModal = new bootstrap.Modal(document.getElementById('modalEditarInactivo'));
-        myModal.show();
+        let modal = new bootstrap.Modal(document.getElementById('modalEditarInactivo'));
+        modal.show();
     });
 
-    // 9. Guardar Cambios Inactivo (Reactivación)
-    $('#btnGuardarEdicionInactivo').click(function(e) {
-        e.preventDefault();
-        var id = $('#edit_inactivo_id_empleado').val();
-        var nuevoEstado = $('#edit_inactivo_status').val();
+    $('#btnGuardarEdicionInactivo').on('click', function () {
+        let idEmpleado = $('#edit_inactivo_id_empleado').val();
+        let nuevoEstado = $('#edit_inactivo_status').val();
 
         $.ajax({
-            url: 'index.php?controller=empleado&action=cambiarEstado',
+            url: URL_EMPLEADO,
             type: 'POST',
             data: {
-                id_empleado: id,
-                status_empleado: nuevoEstado,
-                ajax: 1
+                id_accion: idEmpleado,
+                nuevo_estado: nuevoEstado
             },
             dataType: 'json',
-            success: function(res) {
+            success: function (res) {
                 if (res.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Actualizado!',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
+                    Swal.fire('¡Actualizado!', res.message, 'success').then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: res.message
-                    });
+                    Swal.fire('Error', res.message, 'error');
                 }
             },
-            error: function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Ocurrió un error al procesar el estado.'
-                });
+            error: function () {
+                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
             }
         });
+    });
+
+    $('#modalRegistrarEmpleado').on('hidden.bs.modal', function () {
+        $('#formEmpleado')[0].reset();
+        $('#formEmpleado').removeClass('was-validated');
     });
 });

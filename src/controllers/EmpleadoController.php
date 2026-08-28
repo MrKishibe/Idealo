@@ -1,124 +1,179 @@
 <?php
 
-namespace Idealo\Controllers;
-
 use Idealo\Models\EmpleadoModel;
 
-class EmpleadoController
-{
-    private $model;
+$rutaVista = __DIR__ . '/../view/empleado/listar.php';
 
-    public function __construct()
-    {
-        require_once __DIR__ . '/../models/EmpleadoModel.php';
-        $this->model = new EmpleadoModel();
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
-    public function listar()
-    {
-        $empleados = $this->model->listarTodos(true);
-        require_once __DIR__ . '/../view/empleado/listar.php';
-    }
 
-    public function guardar()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $datos = [
-                'cedula'    => $_POST['cedula'] ?? '',
-                'nombres'   => $_POST['nombres'] ?? '',
-                'apellidos' => $_POST['apellidos'] ?? '',
-                'telefono'  => $_POST['telefono'] ?? '',
-                'direccion' => $_POST['direccion'] ?? '',
-                'salario'   => $_POST['salario'] ?? 0.00,
-                'cargo'     => $_POST['cargo'] ?? 'Costurero'
-            ];
+    if (isset($_POST['id_accion']) && isset($_POST['nuevo_estado'])) {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
 
-            $resultado = $this->model->guardar($datos);
+        $id = intval($_POST['id_accion']);
+        $nuevoEstado = $_POST['nuevo_estado'];
 
-            if ($this->isAjax()) {
-                echo json_encode([
-                    "success" => $resultado,
-                    "message" => $resultado ? "Empleado registrado con éxito" : "Error al registrar el empleado"
-                ]);
-                exit;
-            }
-        }
-        header('Location: index.php?controller=empleado&action=listar');
-        exit;
-    }
+        if (isset($_POST['nombres'])) {
+            $nombres   = trim($_POST['nombres']);
+            $apellidos = trim($_POST['apellidos'] ?? '');
+            $cedula    = trim($_POST['cedula'] ?? '');
+            $telefono  = trim($_POST['telefono'] ?? '');
+            $direccion = trim($_POST['direccion'] ?? '');
+            $cargo     = trim($_POST['cargo'] ?? '');
+            $salario   = trim($_POST['salario'] ?? '0.00');
 
-    public function editar()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $datos = [
-                'id_empleado' => $_POST['id_empleado'] ?? '',
-                'nombres'     => $_POST['nombres'] ?? '',
-                'apellidos'   => $_POST['apellidos'] ?? '',
-                'telefono'    => $_POST['telefono'] ?? '',
-                'direccion'   => $_POST['direccion'] ?? '',
-                'cargo'       => $_POST['cargo'] ?? '',
-                'salario'     => $_POST['salario'] ?? 0.00
-            ];
+            $validacion = EmpleadoModel::validarDatos($nombres, $apellidos, $cedula, $telefono, $direccion, $cargo, $salario, $nuevoEstado, $id);
 
-            $resultado = $this->model->editar($datos);
+            if ($validacion === true) {
+                $resultado = EmpleadoModel::getActualizarDatos($id);
 
-            if ($this->isAjax()) {
-                echo json_encode([
-                    "success" => $resultado,
-                    "message" => $resultado ? "Datos del empleado actualizados" : "Error al actualizar los datos"
-                ]);
-                exit;
-            }
-            header('Location: index.php?controller=empleado&action=listar');
-            exit;
-        } else {
-            if (isset($_GET['id'])) {
-                $empleado = $this->model->obtenerPorId($_GET['id']);
-                if ($empleado) {
-                    if ($this->isAjax()) {
-                        echo json_encode(["success" => true, "data" => $empleado]);
-                        exit;
-                    }
-                    require_once __DIR__ . '/../view/empleado/editar.php';
-                    return;
+                if (isset($resultado['existoso'])) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => '✅ ' . $resultado['existoso'],
+                        'evento'  => 'editar',
+                        'estado'  => 'completado'
+                    ], JSON_UNESCAPED_UNICODE);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => '❌ ' . ($resultado['error'] ?? "Error interno al guardar los cambios."),
+                        'evento'  => 'editar',
+                        'estado'  => 'error'
+                    ], JSON_UNESCAPED_UNICODE);
                 }
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => '❌ ' . $validacion['error'],
+                    'evento'  => 'editar',
+                    'estado'  => 'error_validacion'
+                ], JSON_UNESCAPED_UNICODE);
             }
-            header('Location: index.php?controller=empleado&action=listar');
             exit;
         }
+
+        $respuesta = EmpleadoModel::getCambiarEstado($id, $nuevoEstado);
+
+        if (isset($respuesta['existoso'])) {
+            echo json_encode([
+                'success' => true,
+                'message' => '✅ Estado actualizado con éxito.',
+                'evento'  => 'cambiar_estado',
+                'estado'  => 'completado'
+            ], JSON_UNESCAPED_UNICODE);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => '❌ ' . ($respuesta['error'] ?? "Error al cambiar el estado."),
+                'evento'  => 'cambiar_estado',
+                'estado'  => 'error'
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
     }
 
-    public function cambiarEstado()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id_empleado = $_POST['id_empleado'] ?? '';
-            $nuevo_estado = $_POST['status_empleado'] ?? ''; // 'activo' o 'inactivo'
+    if (isset($_POST['cedula']) && !isset($_POST['id_accion'])) {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
 
-            if (!empty($id_empleado) && !empty($nuevo_estado)) {
-                $resultado = $this->model->cambiarEstado($id_empleado, $nuevo_estado);
+        $nombres   = trim($_POST['nombres'] ?? '');
+        $apellidos = trim($_POST['apellidos'] ?? '');
+        $cedula    = trim($_POST['cedula']);
+        $telefono  = trim($_POST['telefono'] ?? '');
+        $direccion = trim($_POST['direccion'] ?? '');
+        $cargo     = trim($_POST['cargo'] ?? '');
+        $salario   = trim($_POST['salario'] ?? '0.00');
+        $status    = 'Activo';
+
+        $validacion = EmpleadoModel::validarDatos($nombres, $apellidos, $cedula, $telefono, $direccion, $cargo, $salario, $status);
+
+        if ($validacion === true) {
+            $resultado = EmpleadoModel::getRegistrarDatos();
+
+            if (isset($resultado['existoso'])) {
                 echo json_encode([
-                    "success" => $resultado,
-                    "message" => $resultado ? "El estado del empleado ha sido actualizado" : "Error al cambiar el estado"
-                ]);
-                exit;
+                    'success'   => true,
+                    'message'   => '✅ Empleado registrado con éxito.',
+                    'id'        => $resultado['id'],
+                    'nombres'   => $nombres,
+                    'apellidos' => $apellidos,
+                    'cedula'    => $cedula,
+                    'cargo'     => $cargo,
+                    'evento'    => 'guardar',
+                    'estado'    => 'completado'
+                ], JSON_UNESCAPED_UNICODE);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => '❌ ' . ($resultado['error'] ?? "Error interno al guardar en el sistema."),
+                    'evento'  => 'guardar',
+                    'estado'  => 'error'
+                ], JSON_UNESCAPED_UNICODE);
             }
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => '❌ ' . $validacion['error'],
+                'evento'  => 'guardar',
+                'estado'  => 'error_validacion'
+            ], JSON_UNESCAPED_UNICODE);
         }
-        echo json_encode(["success" => false, "message" => "Petición no válida"]);
         exit;
-    }
-
-    public function eliminar()
-    {
-        if (isset($_GET['id'])) {
-            $this->model->inactivar($_GET['id']);
-        }
-        header('Location: index.php?controller=empleado&action=listar');
-        exit;
-    }
-
-    private function isAjax()
-    {
-        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
-            || isset($_POST['ajax']) || isset($_GET['ajax']);
     }
 }
+
+
+if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
+    $empleados = EmpleadoModel::consultarEmpleados();
+
+    if (is_array($empleados) && isset($empleados['error'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => '❌ ' . $empleados['error'],
+            'evento'  => 'listar',
+            'estado'  => 'error'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if (!is_array($empleados)) $empleados = [];
+
+    $activos   = array_filter($empleados, function ($e) {
+        return $e['status_empleado'] === 'Activo';
+    });
+    $inactivos = array_filter($empleados, function ($e) {
+        return $e['status_empleado'] === 'Inactivo';
+    });
+
+    echo json_encode([
+        'empleados' => array_values($empleados),
+        'total'     => count($empleados),
+        'activos'   => count($activos),
+        'inactivos' => count($inactivos),
+        'evento'    => 'listar',
+        'estado'    => 'completado'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$empleados = EmpleadoModel::consultarEmpleados();
+
+if (is_array($empleados) && isset($empleados['error'])) {
+    die("Error Crítico de Datos: " . htmlspecialchars($empleados['error']));
+}
+
+if (!is_array($empleados)) {
+    $empleados = array();
+}
+
+if (!file_exists($rutaVista)) {
+    header("HTTP/1.1 404 Not Found");
+    die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");
+}
+
+require_once $rutaVista;

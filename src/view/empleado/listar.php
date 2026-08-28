@@ -58,7 +58,7 @@ if (!isset($empleados)) {
                                     $nombreCompleto = $emp['nombres'] . ' ' . $emp['apellidos'];
                                     $estadoReal = strtolower($emp['status_empleado'] ?? 'activo');
                                 ?>
-                                    <tr id="fila-<?php echo $emp['id_empleado']; ?>">
+                                    <tr id="fila-<?php echo $emp['id_empleado']; ?>" data-estado="<?php echo $estadoReal; ?>">
                                         <td class="fw-bold"><?php echo htmlspecialchars($emp['cedula']); ?></td>
                                         <td>
                                             <div class="fw-bold text-dark"><?php echo htmlspecialchars($nombreCompleto); ?></div>
@@ -108,7 +108,6 @@ if (!isset($empleados)) {
         </div>
     </main>
 
-    <!-- Modal Registrar Empleado -->
     <div class="modal fade modal-idealo" id="modalRegistrarEmpleado" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -121,11 +120,11 @@ if (!isset($empleados)) {
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Cédula</label>
-                                <input type="text" class="form-control" id="reg_cedula" placeholder="Ej. V-12345678" required>
+                                <input type="text" class="form-control" id="reg_cedula" name="cedula" placeholder="Ej. V-12345678" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cargo</label>
-                                <select class="form-select" id="reg_cargo" required>
+                                <select class="form-select" id="reg_cargo" name="cargo" required>
                                     <option value="" disabled selected>Seleccione un cargo...</option>
                                     <option value="Costurero">Costurero</option>
                                     <option value="Contador">Contador</option>
@@ -137,23 +136,23 @@ if (!isset($empleados)) {
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Nombres</label>
-                                <input type="text" class="form-control" id="reg_nombres" required>
+                                <input type="text" class="form-control" id="reg_nombres" name="nombres" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Apellidos</label>
-                                <input type="text" class="form-control" id="reg_apellidos" required>
+                                <input type="text" class="form-control" id="reg_apellidos" name="apellidos" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Teléfono</label>
-                                <input type="text" class="form-control" id="reg_telefono" placeholder="Ej. 04125555555">
+                                <input type="text" class="form-control" id="reg_telefono" name="telefono" placeholder="Ej. 04125555555">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Salario Base ($)</label>
-                                <input type="number" step="0.01" class="form-control" id="reg_salario" required>
+                                <input type="number" step="0.01" class="form-control" id="reg_salario" name="salario" required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Dirección</label>
-                                <textarea class="form-control" id="reg_direccion" rows="2"></textarea>
+                                <textarea class="form-control" id="reg_direccion" name="direccion" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
@@ -166,7 +165,6 @@ if (!isset($empleados)) {
         </div>
     </div>
 
-    <!-- Modal Editar Activo -->
     <div class="modal fade modal-idealo" id="modalEditarActivo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -224,7 +222,6 @@ if (!isset($empleados)) {
         </div>
     </div>
 
-    <!-- Modal Editar Inactivo -->
     <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -243,8 +240,8 @@ if (!isset($empleados)) {
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Estado de Registro</label>
                                 <select class="form-select border-danger" id="edit_inactivo_status">
-                                    <option value="inactivo" selected>Inactivo (Inhabilitado)</option>
-                                    <option value="activo">Activo (Reactivar Empleado)</option>
+                                    <option value="Inactivo" selected>Inactivo (Inhabilitado)</option>
+                                    <option value="Activo">Activo (Reactivar Empleado)</option>
                                 </select>
                             </div>
                         </div>

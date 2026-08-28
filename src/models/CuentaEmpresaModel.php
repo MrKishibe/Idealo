@@ -7,23 +7,24 @@ use Exception;
 
 class CuentaEmpresaModel extends Database {
     
-    // 1. Capa de Validación Backend:
-    // Permite letras, números, puntos y guiones para la empresa
-    private const REGEX_TITULAR = '/^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/';
     
-    // EXIGE EXACTAMENTE 20 NÚMEROS (Sin espacios, sin guiones)
+    private const REGEX_TITULAR = '/^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/';
+
     private const REGEX_IDENTIFICADOR = '/^[0-9]{20}$/';
 
+    private $tipo_cuenta;
+    private $identificador;
+    private $titular;
+
     public function __construct() { 
-        // Vacío, sin parent::__construct()
+        
     }
 
-    // Método encapsulado para obtener la conexión
     protected function getDb(): PDO {
         return self::connect();
     }
 
-    // 2. Validación de Doble Existencia
+    //  Validación de Doble Existencia
     public function existeCuenta($identificador, $id_excluir = null) {
         $sql = "SELECT id_cuenta FROM cuenta_empresa WHERE identificador = :identificador";
         $params = [':identificador' => $identificador];

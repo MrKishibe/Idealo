@@ -5,6 +5,10 @@ use PDO;
 use Exception;
 
 class MetodoPagoModel extends Database {
+
+
+    private $nombre_metodo_de_pago;
+    private $descripcion_metodo_de_pago;
     private $pdo;
     public function __construct() { $this->pdo = new Database(); }
 

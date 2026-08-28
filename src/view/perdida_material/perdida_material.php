@@ -22,6 +22,10 @@
                     <h1 class="fw-bold text-dark mb-1">Pérdidas de Material</h1>
                     <p class="text-muted mb-0">Registra y gestiona las pérdidas o desmarques del material en producción.</p>
                 </div>
+               <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                </button>
+                
                 <button type="button" class="btn btn-danger px-4" data-bs-toggle="modal" data-bs-target="#modalRegistrarPerdida" style="border-radius: 12px; font-weight: 600;">
                     <i class="bi bi-trash3-fill me-1"></i> Registrar Pérdida
                 </button>

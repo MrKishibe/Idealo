@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const formEditarPerdida = document.getElementById('formEditarPerdida');
     const modalRegistrarPerdidaElement = document.getElementById('modalRegistrarPerdida');
     const modalEditarPerdidaElement = document.getElementById('modalEditarPerdida');
+    const btnGenerarReporte = document.getElementById('btnGenerarReporte');
 
     let perdidas = [];
 
@@ -153,6 +154,13 @@ document.addEventListener('DOMContentLoaded', function () {
         formEditarPerdida.addEventListener('submit', function (event) {
             event.preventDefault();
             enviarFormulario(formEditarPerdida, modalEditarPerdidaElement);
+        });
+    }
+
+    if (btnGenerarReporte) {
+        btnGenerarReporte.addEventListener('click', function () {
+            const urlReporte = 'index.php?url=perdidaMaterial/reporte&accion=reporte';
+            window.open(urlReporte, '_blank');
         });
     }
 

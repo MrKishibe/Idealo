@@ -81,19 +81,22 @@
     </div>
 </main>
 
-<div class="modal fade" id="modalRegistrarCuenta" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade modal-idealo" id="modalRegistrarCuenta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
             <input type="hidden" name="accion" value="guardar">
             <input type="hidden" name="entidad" value="cuenta">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Registrar Cuenta</h5></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Cuenta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <div class="modal-body">
-                    <div class="mb-3"><label>Titular</label><input type="text" class="form-control" name="titular" required></div>
-                    <div class="mb-3"><label>Identificador</label><input type="text" class="form-control" name="identificador" required></div>
+                    <div class="mb-3"><label class="form-label">Titular</label><input type="text" class="form-control" name="titular" required></div>
+                    <div class="mb-3"><label class="form-label">Identificador</label><input type="text" class="form-control" name="identificador" required></div>
                     <div class="row">
-                        <div class="col-6 mb-3"><label>Tipo</label><input type="text" class="form-control" name="tipo_cuenta" required></div>
-                        <div class="col-6 mb-3"><label>Método</label>
+                        <div class="col-6 mb-3"><label class="form-label">Tipo</label><input type="text" class="form-control" name="tipo_cuenta" required></div>
+                        <div class="col-6 mb-3"><label class="form-label">Método</label>
                             <select class="form-select" name="id_metodo_de_pago" required>
                                 <?php foreach($metodos as $met): ?>
                                     <option value="<?= $met['id_metodo_de_pago'] ?>"><?= htmlspecialchars($met['nombre_metodo']) ?></option>
@@ -102,26 +105,33 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-success">Guardar</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
-<div class="modal fade" id="modalEditarCuenta" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Modal Editar Cuenta -->
+<div class="modal fade modal-idealo" id="modalEditarCuenta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
             <input type="hidden" name="accion" value="editar">
             <input type="hidden" name="entidad" value="cuenta">
             <input type="hidden" name="id_cuenta" id="edit_cta_id"> 
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Editar Cuenta</h5></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Cuenta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <div class="modal-body">
-                    <div class="mb-3"><label>Titular</label><input type="text" class="form-control" name="titular" id="edit_cta_titular" required></div>
-                    <div class="mb-3"><label>Identificador</label><input type="text" class="form-control" name="identificador" id="edit_cta_ident" required></div>
+                    <div class="mb-3"><label class="form-label">Titular</label><input type="text" class="form-control" name="titular" id="edit_cta_titular" required></div>
+                    <div class="mb-3"><label class="form-label">Identificador</label><input type="text" class="form-control" name="identificador" id="edit_cta_ident" required></div>
                     <div class="row">
-                        <div class="col-6 mb-3"><label>Tipo</label><input type="text" class="form-control" name="tipo_cuenta" id="edit_cta_tipo" required></div>
-                        <div class="col-6 mb-3"><label>Método</label>
+                        <div class="col-6 mb-3"><label class="form-label">Tipo</label><input type="text" class="form-control" name="tipo_cuenta" id="edit_cta_tipo" required></div>
+                        <div class="col-6 mb-3"><label class="form-label">Método</label>
                             <select class="form-select" name="id_metodo_de_pago" id="edit_cta_metodo" required>
                                 <?php foreach($metodos as $met): ?>
                                     <option value="<?= $met['id_metodo_de_pago'] ?>"><?= htmlspecialchars($met['nombre_metodo']) ?></option>
@@ -130,12 +140,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-primary">Guardar Cambios</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
-
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="assets/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -144,9 +156,7 @@
 <script src="assets/js/finanzas.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('tr[data-estado="inhabilitado"]').forEach(f => f.style.display = 'none');
-});
+
 
 function cargarDatosEdicionCuenta(id, titular, ident, tipo, metodo) {
     document.getElementById('edit_cta_id').value = id;

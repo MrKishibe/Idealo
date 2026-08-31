@@ -201,7 +201,7 @@
         </div>
     </div>
 
-    /////aca agregue las conexiones con los js este no tiene uno propio
+    
     <script src="assets/js/jquery-3.7.0.min.js"></script>
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/jquery.dataTables.min.js"></script>

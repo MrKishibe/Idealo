@@ -32,7 +32,7 @@
                     <i class="bi bi-chevron-down arrow-icon"></i>
                 </button>
                 <ul id="sub-inventario" class="submenu">
-                    <li><a href="index.php?controller=tipoMateriaPrima&action=listar"><i class="bi bi-egg"></i> Materia Prima</a></li>
+                    <li><a href="index.php?controller=inventario&action=materiaPrima"><i class="bi bi-egg"></i> Materia Prima</a></li>
                     <li>
                         <a href="index.php?controller=tipoMateriaPrima&action=listar">
                             <i class="bi bi-tags"></i> Tipo de Material 
@@ -78,7 +78,7 @@
                 <ul id="sub-produccion" class="submenu">
                     <li><a href="index.php?controller=Ordenproduccion&action=listarordenproduccion"><i class="bi bi-activity"></i> Órdenes Activas</a></li>
                     <li><a href="index.php?controller=consumoMaterial&action=listar"><i class="bi bi-graph-down-arrow"></i> Consumo de Material</a></li>
-                    <li><a href="index.php?controller=perdidaMaterial&action=listar"><i class="bi bi-trash3"></i> Pérdidas y Desmarques</a></li>
+                    <li><a href="index.php?controller=perdidaMaterial&action=listar"><i class="bi bi-trash3"></i> Pérdidas</a></li>
                 </ul>
             </li>
             <li class="menu-group">

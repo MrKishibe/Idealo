@@ -1,50 +1,3 @@
-<?php
-if (!isset($consumo_material)) {
-    $consumo_material = [
-        [
-            'id_consumo_material'    => 1,
-            'nombre_materia_prima'   => 'Tela de Algodón 20/1',
-            'costo_unitaro'          => 4.50,
-            'descripcion_de_consumo' => 'Corte de franelas talla M',
-            'cantidad_usada'         => 25,
-            'unidad_de_medida'       => 'Metros',
-            'id_materia_prima'       => 101,
-            'id_produccion'          => 12
-        ],
-        [
-            'id_consumo_material'    => 2,
-            'nombre_materia_prima'   => 'Tinta Textil Plastisol Negra',
-            'costo_unitaro'          => 12.00,
-            'descripcion_de_consumo' => 'Estampado de logos frontales en franelas',
-            'cantidad_usada'         => 2,
-            'unidad_de_medida'       => 'Litros',
-            'id_materia_prima'       => 104,
-            'id_produccion'          => 12
-        ],
-
-        [
-            'id_consumo_material'    => 4,
-            'nombre_materia_prima'   => 'Tela Canvas Impermeable',
-            'costo_unitaro'          => 6.20,
-            'descripcion_de_consumo' => 'Producción de bolsos deportivos',
-            'cantidad_usada'         => 15,
-            'unidad_de_medida'       => 'Metros',
-            'id_materia_prima'       => 102,
-            'id_produccion'          => 15
-        ],
-        [
-            'id_consumo_material'    => 5,
-            'nombre_materia_prima'   => 'Tinta al Agua Violeta',
-            'costo_unitaro'          => 9.50,
-            'descripcion_de_consumo' => 'Serigrafía suave en lote de suéteres',
-            'cantidad_usada'         => 1,
-            'unidad_de_medida'       => 'Litros',
-            'id_materia_prima'       => 105,
-            'id_produccion'          => 17
-        ]
-    ];
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -52,6 +5,8 @@ if (!isset($consumo_material)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Consumo de Material</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
@@ -61,8 +16,8 @@ if (!isset($consumo_material)) {
 </head>
 
 <body>
-
     <?php include 'src/view/sidebar.php'; ?>
+
     <main class="main-content">
         <div class="view-container">
             <header class="page-header">
@@ -72,7 +27,7 @@ if (!isset($consumo_material)) {
                 </div>
                 <div>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarConsumo">
-                        <i class="bi bi-clipboard-plus"></i> Registrar Consumo
+                        <i class="bi bi-clipboard-plus me-1"></i> Registrar Consumo
                     </button>
                 </div>
             </header>
@@ -87,47 +42,50 @@ if (!isset($consumo_material)) {
                                 <th>Costo Unitario</th>
                                 <th>Cantidad Usada</th>
                                 <th>Costo Total</th>
-                                <th>ID Producción</th>
+                                <th>Producción</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php if (is_array($consumo_material)): ?>
-                                <?php foreach ($consumo_material as $c):
-                                    $costoTotal = $c['costo_unitaro'] * $c['cantidad_usada'];
-                                ?>
-                                    <tr id="fila-<?php echo $c['id_consumo_material']; ?>">
-                                        <td class="fw-bold">#<?php echo $c['id_consumo_material']; ?></td>
+                        <tbody id="tbodyConsumos">
+                            <?php $consumos = $consumos ?? []; ?>
+                            <?php if (!empty($consumos)): ?>
+                                <?php foreach ($consumos as $c): ?>
+                                    <?php $costoTotal = (float)($c['costo_unitario'] ?? 0) * (float)($c['cantidad_usada'] ?? 0); ?>
+                                    <tr id="fila-<?php echo htmlspecialchars($c['id_consumo_material'] ?? ''); ?>">
+                                        <td class="fw-bold">#<?php echo htmlspecialchars($c['id_consumo_material'] ?? ''); ?></td>
                                         <td>
-                                            <div class="fw-bold text-dark"><?php echo htmlspecialchars($c['nombre_materia_prima']); ?></div>
-                                            <small class="text-muted"><i class="bi bi-info-circle"></i> <?php echo htmlspecialchars($c['descripcion_de_consumo'] ?: 'Sin descripción'); ?></small>
+                                            <div class="fw-bold text-dark"><?php echo htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material'); ?></div>
+                                            <small class="text-muted"><i class="bi bi-info-circle"></i> <?php echo htmlspecialchars($c['descripcion_de_consumo'] ?? 'Sin descripción'); ?></small>
                                         </td>
-                                        <td class="fw-bold text-muted">$<?php echo number_format((float)$c['costo_unitaro'], 2, '.', ''); ?></td>
-                                        <td class="fw-bold"><?php echo htmlspecialchars($c['cantidad_usada']) . ' ' . htmlspecialchars($c['unidad_de_medida']); ?></td>
-                                        <td class="text-success fw-bold">$<?php echo number_format((float)$costoTotal, 2, '.', ''); ?></td>
+                                        <td class="fw-bold text-muted">$<?php echo number_format((float)($c['costo_unitario'] ?? 0), 2, '.', ','); ?></td>
+                                        <td class="fw-bold"><?php echo htmlspecialchars($c['cantidad_usada'] ?? 0) . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? ''); ?></td>
+                                        <td class="text-success fw-bold">$<?php echo number_format((float)$costoTotal, 2, '.', ','); ?></td>
                                         <td>
-                                            <span class="badge bg-secondary">OP-<?php echo str_pad($c['id_produccion'], 4, '0', STR_PAD_LEFT); ?></span>
+                                            <span class="badge bg-secondary">OP-<?php echo str_pad((string)($c['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?></span>
                                         </td>
                                         <td>
                                             <div class="text-center d-flex justify-content-center gap-1">
                                                 <button class="btn btn-sm btn-outline-primary btnEditarConsumo"
-                                                    data-id="<?php echo $c['id_consumo_material']; ?>"
-                                                    data-materia="<?php echo $c['id_materia_prima']; ?>"
-                                                    data-costo="<?php echo $c['costo_unitaro']; ?>"
-                                                    data-cantidad="<?php echo $c['cantidad_usada']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($c['descripcion_de_consumo']); ?>"
-                                                    data-produccion="<?php echo $c['id_produccion']; ?>">
+                                                    type="button"
+                                                    data-id_consumo_material="<?php echo htmlspecialchars($c['id_consumo_material'] ?? ''); ?>"
+                                                    data-id_materia_prima="<?php echo htmlspecialchars($c['id_materia_prima'] ?? ''); ?>"
+                                                    data-costo_unitario="<?php echo htmlspecialchars($c['costo_unitario'] ?? ''); ?>"
+                                                    data-cantidad_usada="<?php echo htmlspecialchars($c['cantidad_usada'] ?? ''); ?>"
+                                                    data-descripcion_de_consumo="<?php echo htmlspecialchars($c['descripcion_de_consumo'] ?? ''); ?>"
+                                                    data-id_produccion="<?php echo htmlspecialchars($c['id_produccion'] ?? ''); ?>">
                                                     <i class="bi bi-pencil-square"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger btnEliminarConsumo"
-                                                    data-id="<?php echo $c['id_consumo_material']; ?>"
-                                                    data-materia="<?php echo htmlspecialchars($c['nombre_materia_prima']); ?>">
-                                                    <i class="bi bi-trash3-fill"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox-fill fs-3 d-block mb-2"></i>
+                                        No hay consumos registrados aún.
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -136,6 +94,133 @@ if (!isset($consumo_material)) {
         </div>
     </main>
 
+    <div class="modal fade" id="modalRegistrarConsumo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header px-4 pt-4 pb-2 border-0">
+                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clipboard-plus text-success me-2"></i>Registrar Consumo de Material</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formRegistrarConsumo" method="post" action="index.php?controller=consumoMaterial&action=listar">
+                    <input type="hidden" name="accion" value="guardar">
+                    <div class="modal-body px-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Materia prima</label>
+                                <select class="form-select" name="id_materia_prima" required>
+                                    <option value="">Seleccione una materia prima</option>
+                                    <?php $materias = $materias ?? []; ?>
+                                    <?php foreach ($materias as $materia): ?>
+                                        <option value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>">
+                                            <?php echo htmlspecialchars($materia['nombre_materia_prima']); ?>
+                                            (<?php echo htmlspecialchars($materia['unidad_de_medida']); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Orden de producción</label>
+                                <select class="form-select" name="id_produccion" required>
+                                    <option value="">Seleccione una orden</option>
+                                    <?php $ordenes = $ordenes ?? []; ?>
+                                    <?php foreach ($ordenes as $orden): ?>
+                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
+                                            OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
+                                            - <?php echo htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin pedido'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Costo unitario</label>
+                                <input type="number" class="form-control" name="costo_unitario" step="0.01" min="0" required placeholder="Ej. 12.50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Cantidad usada</label>
+                                <input type="number" class="form-control" name="cantidad_usada" step="1" min="1" required placeholder="Ej. 5">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Descripción del consumo</label>
+                                <textarea class="form-control" name="descripcion_de_consumo" rows="3" placeholder="Ej. Consumo de tela para lote de camisas."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer px-4 pb-4 pt-3 border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Registrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditarConsumo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header px-4 pt-4 pb-2 border-0">
+                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-pencil-square text-primary me-2"></i>Editar Consumo de Material</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formEditarConsumo" method="post" action="index.php?controller=consumoMaterial&action=listar">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="id_consumo_material" id="edit_id_consumo_material">
+                    <div class="modal-body px-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Materia prima</label>
+                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima" required>
+                                    <option value="">Seleccione una materia prima</option>
+                                    <?php foreach ($materias as $materia): ?>
+                                        <option value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>">
+                                            <?php echo htmlspecialchars($materia['nombre_materia_prima']); ?>
+                                            (<?php echo htmlspecialchars($materia['unidad_de_medida']); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Orden de producción</label>
+                                <select class="form-select" name="id_produccion" id="edit_id_produccion" required>
+                                    <option value="">Seleccione una orden</option>
+                                    <?php foreach ($ordenes as $orden): ?>
+                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
+                                            OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
+                                            - <?php echo htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin pedido'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Costo unitario</label>
+                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Cantidad usada</label>
+                                <input type="number" class="form-control" name="cantidad_usada" id="edit_cantidad_usada" step="1" min="1" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Descripción del consumo</label>
+                                <textarea class="form-control" name="descripcion_de_consumo" id="edit_descripcion_de_consumo" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer px-4 pb-4 pt-3 border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/jquery-3.7.0.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/jquery.dataTables.min.js"></script>
+    <script src="assets/js/dataTables.bootstrap5.min.js"></script>
+    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/consumo_material.js"></script>
 </body>
 
 </html>

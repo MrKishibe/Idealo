@@ -529,6 +529,10 @@ main.main-content {
     pointer-events: none;
     transition: var(--transition-fast);
 }
+.modal-idealo .modal-lg {
+    min-width: 800px !important;
+    max-width: 800px !important;
+}
 
 /* --- REDISEÑO TOTAL DE VENTANAS MODALES --- */
 .modal-idealo .modal-content {
@@ -716,3 +720,49 @@ main.main-content {
         padding: 24px;
     }
 }
+
+/* ====================================================
+   MODALES EXCLUSIVOS PARA MÉTODOS DE PAGO
+   ==================================================== */
+
+/* 1. Ancho independiente para los modales de Métodos */
+.modal.modal-metodos .modal-dialog {
+    max-width: 700px !important; /* <-- Modifica este valor para hacer el modal más ancho o más angosto */
+    width: 100% !important;
+}
+
+/* 2. Centrado visual (Compensa los 270px del sidebar) */
+@media (min-width: 993px) {
+    .modal.modal-metodos {
+        padding-left: 270px !important; 
+    }
+}
+
+/* 3. Margen y espacio para que el mensaje de error no empuje nada */
+.modal-metodos .modal-body .mb-3 {
+    position: relative;
+    padding-bottom: 5px !important; /* <-- Aumenta esto si el mensaje rojo necesita más espacio abajo */
+    margin-bottom: 10px !important;  /* <-- Separación general si decides agregar más campos luego */
+}
+
+/* 4. Estilos exclusivos para el Input de los Métodos de Pago */
+.modal-metodos .form-control {
+    text-align: left !important; /* Fuerza el texto siempre a la izquierda */
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
+    padding-left: 18px !important;
+    /* No forzamos el padding-right para que el check verde tenga su espacio y no corte el texto */
+    font-size: 13px !important;
+    border-radius: 20px !important; 
+    padding-right: 450px   !important;
+}
+/* 5. Reducir la "barra invisible" de validación de Bootstrap */
+.modal-metodos .form-control.is-valid,
+.modal-metodos .form-control.is-invalid {
+    
+    background-position: right 30px center !important; /* Mueve el check/alerta bien pegado al borde derecho */
+}
+@media (min-width: 993px) {
+    .modal.modal-idealo {
+        padding-left: 400px !important; 
+    } }

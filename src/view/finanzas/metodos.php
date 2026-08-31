@@ -75,19 +75,22 @@
         </div>
     </div>
 </main>
-<div class="modal fade" id="modalRegistrarMetodo" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"> <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST" id="formRegistrarMetodo">
+
+<!-- Modal Registrar Método -->
+<div class="modal fade modal-idealo modal-metodos" id="modalRegistrarMetodo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered"> 
+        <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST" id="formRegistrarMetodo">
             <input type="hidden" name="accion" value="guardar">
             <input type="hidden" name="entidad" value="metodo">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Registrar Método</h5>
+                    <h5 class="modal-title">Registrar Método de Pago</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nombre del Método</label>
-                        <input type="text" class="form-control" name="nombre_metodo_de_pago" required>
+                        <input type="text" class="form-control" name="nombre_metodo_de_pago" minlength="3" maxlength="50" required placeholder="Ej. Efectivo, Transferencia">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -99,20 +102,22 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalEditarMetodo" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"> <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
+<!-- Modal Editar Método -->
+<div class="modal fade modal-idealo modal-metodos" id="modalEditarMetodo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered"> 
+        <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
             <input type="hidden" name="accion" value="editar">
             <input type="hidden" name="entidad" value="metodo">
             <input type="hidden" name="id_metodo_de_pago" id="edit_met_id">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Método</h5>
+                    <h5 class="modal-title">Editar Método de Pago</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nombre del Método</label>
-                        <input type="text" class="form-control" name="nombre_metodo_de_pago" id="edit_met_nombre" required>
+                        <input type="text" class="form-control" name="nombre_metodo_de_pago" id="edit_met_nombre" minlength="3" maxlength="50" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -124,16 +129,14 @@
     </div>
 </div>
 
-<script src="assets/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="assets/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="assets/js/finanzas.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('tr[data-estado="inhabilitado"]').forEach(f => f.style.display = 'none');
-});
+
 
 function cargarDatosEdicionMetodo(id, nombre) {
     document.getElementById('edit_met_id').value = id;

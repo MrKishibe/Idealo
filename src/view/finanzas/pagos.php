@@ -25,6 +25,11 @@
                 <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" data-vista="activos" onclick="alternarVistaInhabilitados('tablaPagos')">
                     <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                 </button>
+                
+                <button type="button" id="btnGenerarReportePagos" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                </button>
+                
                 <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" onclick="document.getElementById('formRegistrarPago').reset();">
                     <i class="bi bi-cash-stack"></i> Registrar Pago
                 </button>
@@ -48,7 +53,7 @@
                     <tbody>
                         <?php foreach ($pagos as $pago): ?>
                         <tr class="fila-pago" data-estado="<?= htmlspecialchars($pago['estado']) ?>">
-                            <td><strong><?= htmlspecialchars($pago['referencia'] ?: 'N/A') ?></strong></td>
+                            <td><strong><?= htmlspecialchars($pago['referencia']) ?></strong></td>
                             <td>Pedido #<?= $pago['id_pedido'] ?></td>
                             <td class="text-success" style="font-weight: 600;">$<?= number_format($pago['monto_pago'], 2) ?></td>
                             <td><?= htmlspecialchars($pago['nombre_metodo']) ?></td>
@@ -61,11 +66,13 @@
                             <td class="text-center">
                                 <div class="d-flex gap-2 justify-content-center">
                                     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarPago" 
-                                        onclick="cargarDatosEdicionPago('<?= $pago['id_pago'] ?>', '<?= $pago['id_pedido'] ?>', '<?= $pago['monto_pago'] ?>', '<?= $pago['id_metodo_de_pago'] ?>', '<?= htmlspecialchars($pago['referencia'] ?? '') ?>', '<?= date('Y-m-d\TH:i', strtotime($pago['fecha_pago'])) ?>')">
+                                        onclick="cargarDatosEdicionPago('<?= $pago['id_pago'] ?>', '<?= $pago['id_pedido'] ?>', '<?= $pago['monto_pago'] ?>', '<?= $pago['id_metodo_de_pago'] ?>', '<?= htmlspecialchars($pago['referencia']) ?>', '<?= date('Y-m-d\TH:i', strtotime($pago['fecha_pago'])) ?>')">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarFinanzas(<?= $pago['id_pago'] ?>, 'pago', 'pagos')">
-                                        <i class="bi bi-trash-fill"></i>
+                                    
+                                    <button class="btn btn-sm <?= $pago['estado'] === 'inhabilitado' ? 'btn-outline-success' : 'btn-outline-danger' ?>" 
+                                        onclick="cambiarEstado(<?= $pago['id_pago'] ?>, 'pago', '<?= $pago['estado'] === 'inhabilitado' ? 'procesado' : 'inhabilitado' ?>')">
+                                        <i class="bi <?= $pago['estado'] === 'inhabilitado' ? 'bi-check-circle-fill' : 'bi-trash-fill' ?>"></i>
                                     </button>
                                 </div>
                             </td>
@@ -78,14 +85,15 @@
     </div>
 </main>
 
-<div class="modal fade" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>Registrar Nuevo Pago</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formRegistrarPago">
+<!-- Modal Registrar Pago -->
+<div class="modal fade modal-idealo" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formRegistrarPago">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>Registrar Nuevo Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <div class="modal-body">
                     <input type="hidden" name="accion" value="guardar">
                     <input type="hidden" name="entidad" value="pago">
@@ -115,8 +123,9 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Referencia (Opcional)</label>
-                        <input type="text" class="form-control" name="referencia">
+                        <!-- Etiqueta y atributos actualizados -->
+                        <label class="form-label">Referencia (6 Dígitos)</label>
+                        <input type="text" class="form-control" name="referencia" maxlength="6" required placeholder="Ej: 123456">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Fecha del Pago</label>
@@ -127,19 +136,20 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar Pago</button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="modal fade" id="modalEditarPago" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Pago</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form">
+<!-- Modal Editar Pago -->
+<div class="modal fade modal-idealo" id="modalEditarPago" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <div class="modal-body">
                     <input type="hidden" name="accion" value="editar">
                     <input type="hidden" name="entidad" value="pago">
@@ -168,8 +178,9 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Referencia</label>
-                        <input type="text" class="form-control" name="referencia" id="edit_referencia">
+                        <!-- Etiqueta y atributos actualizados -->
+                        <label class="form-label">Referencia (6 Dígitos)</label>
+                        <input type="text" class="form-control" name="referencia" id="edit_referencia" maxlength="6" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Fecha del Pago</label>
@@ -180,8 +191,8 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -192,11 +203,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="assets/js/finanzas.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Ocultar inhabilitados al cargar la página
-    document.querySelectorAll('tr[data-estado="inhabilitado"]').forEach(f => f.style.display = 'none');
-});
-
 function cargarDatosEdicionPago(id, pedido, monto, metodo, ref, fecha) {
     document.getElementById('edit_id_pago').value = id;
     document.getElementById('edit_id_pedido').value = pedido;
@@ -205,6 +211,15 @@ function cargarDatosEdicionPago(id, pedido, monto, metodo, ref, fecha) {
     document.getElementById('edit_referencia').value = ref;
     document.getElementById('edit_fecha').value = fecha;
 }
+
+document.getElementById('btnGenerarReportePagos').addEventListener('click', function() {
+    const btnAlternar = document.getElementById('btnAlternarEstado');
+    const vistaActual = btnAlternar ? btnAlternar.getAttribute('data-vista') : 'activos';
+    const estadoFiltro = (vistaActual === 'inhabilitados') ? 'inhabilitados' : 'activos';
+    
+    const urlReporte = `index.php?controller=Finanzas&action=pagos&accion=generar_reporte&tipo=pagos&estado=${estadoFiltro}`;
+    window.open(urlReporte, '_blank');
+});
 </script>
 </body>
 </html>

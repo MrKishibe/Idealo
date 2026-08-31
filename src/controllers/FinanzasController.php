@@ -163,6 +163,8 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     
     if ($tipoReporte === 'cuentas') {
         $tituloReporte = $verInhabilitados ? 'Reporte de Cuentas Inhabilitadas' : 'Reporte de Cuentas Activas';
+    } elseif ($tipoReporte === 'pagos') {
+        $tituloReporte = $verInhabilitados ? 'Reporte de Pagos Inhabilitados' : 'Reporte de Pagos Activos';
     } else {
         $tituloReporte = $verInhabilitados ? 'Reporte de Métodos Inhabilitados' : 'Reporte de Métodos Activos';
     }
@@ -194,6 +196,39 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
                             <td>' . htmlspecialchars($cuenta['titular'] ?? 'N/A') . '</td>
                             <td><code>' . htmlspecialchars($cuenta['identificador'] ?? 'N/A') . '</code></td>
                             <td>' . htmlspecialchars($cuenta['tipo_cuenta'] ?? 'N/A') . '</td>
+                        </tr>';
+            }
+        }
+        $html .= '</table>';
+    } elseif ($tipoReporte === 'pagos') {
+        $todosLosPagos = $pagosModel->listarPagos();
+        $pagosFiltrados = array_filter($todosLosPagos, function($pago) use ($verInhabilitados) {
+            $esInhabilitado = (strtolower($pago['estado'] ?? '') === 'inhabilitado');
+            return $verInhabilitados ? $esInhabilitado : !$esInhabilitado;
+        });
+
+        $html = '<table border="1" cellpadding="5">
+                    <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
+                        <th width="10%">ID</th>
+                        <th width="20%">Referencia</th>
+                        <th width="15%">Pedido</th>
+                        <th width="20%">Monto Abonado</th>
+                        <th width="20%">Método</th>
+                        <th width="15%">Estado</th>
+                    </tr>';
+
+        if (empty($pagosFiltrados)) {
+            $html .= '<tr><td colspan="6" align="center">No hay pagos para mostrar.</td></tr>';
+        } else {
+            foreach ($pagosFiltrados as $pago) {
+                $estadoPago = ucfirst($pago['estado'] ?? 'procesado');
+                $html .= '<tr>
+                            <td align="center">#' . ($pago['id_pago'] ?? '') . '</td>
+                            <td align="center">' . htmlspecialchars($pago['referencia'] ?: 'N/A') . '</td>
+                            <td align="center">#' . ($pago['id_pedido'] ?? '') . '</td>
+                            <td align="right">$' . number_format($pago['monto_pago'] ?? 0, 2) . '</td>
+                            <td>' . htmlspecialchars($pago['nombre_metodo'] ?? 'N/A') . '</td>
+                            <td align="center">' . $estadoPago . '</td>
                         </tr>';
             }
         }

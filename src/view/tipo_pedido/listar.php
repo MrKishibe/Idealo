@@ -4,9 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idéalo - Tipo Pedido (Sublimación)</title>
+    <title>Idéalo - Gestión de Tipos de Pedido</title>
+
+    <!-- Fuentes y CDN -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- CSS Locales -->
     <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css">
@@ -15,189 +19,244 @@
 
 <body>
 
-    <?php include 'src/view/sidebar.php'; ?>
+    <?php include __DIR__ . '/../sidebar.php'; ?>
 
     <main class="main-content">
-        <div class="view-container" style="padding: 2rem max(2vw, 20px);">
-            <header class="page-header d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid #f1f5f9;">
+        <div class="view-container">
+
+            <!-- Encabezado de la Vista -->
+            <header class="page-header">
                 <div>
-                    <h1 class="fw-bold text-dark mb-1" style="font-size: 1.75rem;">Tipos de Pedido</h1>
-                    <p class="text-muted mb-0">Gestión de tipos de servicios y pedidos de sublimación y estampado.</p>
+                    <h1 id="tituloVista">Tipo de Pedido</h1>
+                    <p>Administra los tipos de pedido disponibles para tu negocio.</p>
                 </div>
-                <div>
-                    <button type="button" class="btn btn-success px-4 py-2" data-bs-toggle="modal" data-bs-target="#modalRegistrarTipoPedido" style="border-radius: 12px; font-weight: 600;">
-                        <i class="bi bi-plus-circle me-1"></i> Registrar Tipo Pedido
+
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" 
+                            id="btnAlternarEstado" 
+                            class="btn btn-outline-secondary px-3 py-2" 
+                            style="border-radius: var(--radius-md); font-weight: 600;" 
+                            data-vista="activos">
+                        <i class="bi bi-eye-slash-fill" id="iconoEstado"></i>
+                        <span id="txtBotonEstado">Ver inhabilitados</span>
+                    </button>
+
+                    <button type="button" 
+                            class="btn-idealo-success" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalRegistrarPedido">
+                        <i class="bi bi-cart-plus-fill"></i> Registrar Tipo de Pedido
                     </button>
                 </div>
             </header>
 
-            <div class="table-responsive shadow-sm" style="background:#fff; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden; padding: 1.5rem;">
-                <table class="table table-hover mb-0 align-middle" id="tablaTiposMapeados" style="width: 100%;">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3">ID Tipo Pedido</th>
-                            <th class="px-4 py-3">Nombre Tipo Pedido</th>
-                            <th class="px-4 py-3">Estado Tipo Servicio</th>
-                            <th class="px-4 py-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($tiposPedido) && is_array($tiposPedido)): ?>
-                            <?php foreach ($tiposPedido as $tipo): ?>
-                                <tr>
-                                    <td class="px-4 py-3 fw-bold text-secondary">
-                                        #<?php echo htmlspecialchars($tipo['id_tipo_pedido']); ?>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="fw-semibold text-dark"><?php echo htmlspecialchars($tipo['nombre_tipo_pedido']); ?></div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <?php if (strtolower($tipo['status_tipo_servicio']) === 'activo'): ?>
-                                            <span class="badge bg-success-light text-success px-3 py-2" style="border-radius: 8px;">Activo</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger-light text-danger px-3 py-2" style="border-radius: 8px;">Inactivo</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <div class="d-flex justify-content-center gap-2">
-                                            <button class="btn btn-sm btn-light border btnEditarTipo" data-id="<?php echo (int)$tipo['id_tipo_pedido']; ?>">
-                                                <i class="bi bi-pencil-square text-primary"></i>
-                                            </button>
-                                            <a href="index.php?controller=tipoPedido&action=eliminar&id=<?php echo $tipo['id_tipo_pedido']; ?>" class="btn btn-sm btn-light border text-danger" onclick="return confirm('¿Deseas inactivar este tipo de pedido?')">
-                                                <i class="bi bi-trash3-fill"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+            <!-- Tabla Principial -->
+            <div class="table-container p-3">
+                <div class="table-responsive">
+                    <table class="custom-table" id="tablaTipoPedido" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nombre del Tipo de Pedido</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (is_array($pedidos)): ?>
+                                <?php foreach ($pedidos as $pedido): ?>
+                                    <?php
+                                        $idPedido = $pedido['id_tipo_pedido'] ?? '';
+                                        $nombrePedido = $pedido['nombre_tipo_pedido'] ?? '';
+                                        $estadoPedido = $pedido['status_tipo_servicio'] ?? 'Inactivo';
+                                    ?>
+                                    <tr id="fila-<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <td class="fw-bold">
+                                            <?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>
+                                        </td>
+                                        <td>
+                                            <span class="badge <?php echo $estadoPedido === 'Activo' ? 'bg-success' : 'bg-danger'; ?>">
+                                                <?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <?php if ($estadoPedido === 'Activo'): ?>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-primary btnEditarActivo me-1" 
+                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            title="Editar Tipo de Pedido">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-danger btnCambiarEstado" 
+                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            data-estado="Inactivo" 
+                                                            title="Inhabilitar Tipo de Pedido">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-warning btnEditarInactivo" 
+                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            title="Reactivar Tipo de Pedido">
+                                                        <i class="bi bi-pencil-square"></i> Editar / Reactivar
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
         </div>
     </main>
 
-    <div class="modal fade" id="modalRegistrarTipoPedido" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="border-radius: 16px; border: none;">
-                <div class="modal-header px-4 pt-4 pb-2 border-0">
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Registrar Tipo Pedido</h5>
+    <!-- ================================================================
+         MODAL PARA REGISTRAR
+         ================================================================ -->
+    <div class="modal fade modal-idealo" id="modalRegistrarPedido" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-cart-plus-fill me-2"></i> Registrar Tipo de Pedido
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="index.php?controller=tipoPedido&action=guardar" method="POST">
-                    <div class="modal-body px-4">
+
+                <form id="formTipoPedido" class="needs-validation" novalidate>
+                    <div class="modal-body">
                         <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="form-label fw-semibold">Nombre Tipo Pedido</label>
-                                <input type="text" class="form-control" name="nombre_tipo_pedido" placeholder="Ej. Sublimación" required style="border-radius: 10px;">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Estado Tipo Servicio</label>
-                                <select class="form-select" name="status_tipo_servicio" style="border-radius: 10px;">
-                                    <option value="Activo">Activo</option>
-                                    <option value="Inactivo">Inactivo</option>
-                                </select>
+                            <div class="col-12">
+                                <label class="form-label">Nombre del Tipo de Pedido</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="nombre_tipo_pedido" 
+                                       name="nombre_tipo_pedido" 
+                                       placeholder="Ej. Pedido personalizado" 
+                                       maxlength="50" 
+                                       required>
+                                <div class="invalid-feedback">
+                                    El nombre debe tener entre 3 y 50 caracteres.
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer px-4 pb-4 pt-3 border-0">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancelar</button>
-                        <button type="submit" class="btn btn-success" style="border-radius: 10px; font-weight:600;">Registrar</button>
+
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-idealo-success" id="btnEnvio">Registrar</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="modalEditarTipoPedido" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="border-radius: 16px; border: none;">
-                <div class="modal-header px-4 pt-4 pb-2 border-0">
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-pencil-square text-primary me-2"></i>Editar Tipo Pedido</h5>
+    <!-- ================================================================
+         MODAL PARA EDITAR ACTIVO
+         ================================================================ -->
+    <div class="modal fade modal-idealo" id="modalEditarActivo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i> Editar Tipo de Pedido
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="index.php?controller=tipoPedido&action=editar" method="POST">
-                    <input type="hidden" name="id_tipo_pedido" id="edit_id_tipo_pedido">
-                    <div class="modal-body px-4">
+
+                <form id="formEditarActivo" class="needs-validation" novalidate>
+                    <input type="hidden" id="edit_activo_id" name="edit_activo_id">
+
+                    <div class="modal-body">
                         <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="form-label fw-semibold">Nombre Tipo Pedido</label>
-                                <input type="text" class="form-control" name="nombre_tipo_pedido" id="edit_nombre_tipo_pedido" required style="border-radius: 10px;">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Estado Tipo Servicio</label>
-                                <select class="form-select" name="status_tipo_servicio" id="edit_status_tipo_servicio" style="border-radius: 10px;">
-                                    <option value="Activo">Activo</option>
-                                    <option value="Inactivo">Inactivo</option>
-                                </select>
+                            <div class="col-12">
+                                <label class="form-label">Nombre del Tipo de Pedido</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="edit_activo_nombre" 
+                                       name="edit_activo_nombre" 
+                                       maxlength="50" 
+                                       required>
+                                <div class="invalid-feedback">
+                                    El nombre debe tener entre 3 y 50 caracteres.
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer px-4 pb-4 pt-3 border-0">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" style="border-radius: 10px; font-weight:600;">Guardar Cambios</button>
+
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionActivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- ================================================================
+         MODAL PARA REACTIVAR INACTIVO
+         ================================================================ -->
+    <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-pencil-square me-2"></i> Editar Registro Inhabilitado
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formEditarPedido">
+                    <input type="hidden" id="edit_id_pedido" name="edit_id_pedido">
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Nombre del Tipo de Pedido</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="edit_nombre_pedido" 
+                                       name="edit_nombre_pedido" 
+                                       readonly 
+                                       disabled>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Estado del Registro</label>
+                                <select class="form-select border-danger" id="edit_status_pedido" name="edit_status_pedido">
+                                    <option value="Inactivo" selected>Inactivo (Archivado)</option>
+                                    <option value="Activo">Activo (Reactivar Pedido)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="assets/js/jquery-3.7.0.min.js"></script>
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/jquery.dataTables.min.js"></script>
     <script src="assets/js/dataTables.bootstrap5.min.js"></script>
     <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/tipopedido.js"></script>
 
-    <script>
-        // Inyección limpia de los datos simulados de PHP para evitar bloqueos en Mozilla
-        const datosTiposPedido = <?php echo json_encode(array_column($tiposPedido ?? [], null, 'id_tipo_pedido'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-
-        // Evento para levantar el modal de edición cargando los objetos mapeados
-        $(document).on('click', '.btnEditarTipo', function() {
-            const id = $(this).data('id');
-            const tipo = datosTiposPedido[id];
-
-            if (tipo) {
-                document.getElementById('edit_id_tipo_pedido').value = tipo.id_tipo_pedido;
-                document.getElementById('edit_nombre_tipo_pedido').value = tipo.nombre_tipo_pedido || '';
-
-                let status = tipo.status_tipo_servicio || 'Activo';
-                status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-                document.getElementById('edit_status_tipo_servicio').value = status;
-
-                const modal = new bootstrap.Modal(document.getElementById('modalEditarTipoPedido'));
-                modal.show();
-            }
-        });
-
-        // Inicialización de DataTables
-        $(document).ready(function() {
-            localStorage.clear();
-            sessionStorage.clear();
-
-            $('#tablaTiposMapeados').DataTable({
-                "destroy": true,
-                "bStateSave": false,
-                "language": {
-                    "emptyTable": "No hay tipos de pedido registrados.",
-                    "info": "Mostrando _START_ a _END_ de _TOTAL_ tipos",
-                    "infoEmpty": "Mostrando 0 a 0 de 0 tipos",
-                    "infoFiltered": "(filtrado de un total de _MAX_)",
-                    "lengthMenu": "Mostrar _MENU_ registros",
-                    "search": "Buscar:",
-                    "zeroRecords": "No se encontraron coincidencias",
-                    "paginate": {
-                        "next": "Siguiente",
-                        "previous": "Anterior"
-                    }
-                },
-                "pageLength": 10,
-                "order": [
-                    [0, 'asc']
-                ]
-            });
-        });
-    </script>
 </body>
 
 </html>

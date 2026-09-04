@@ -32,7 +32,7 @@
                     <i class="bi bi-chevron-down arrow-icon"></i>
                 </button>
                 <ul id="sub-inventario" class="submenu">
-                    <li><a href="index.php?controller=inventario&action=materiaPrima"><i class="bi bi-egg"></i> Materia Prima</a></li>
+                    <li><a href="index.php?controller=MateriaPrima&action=materiaPrima"><i class="bi bi-egg"></i> Materia Prima</a></li>
                     <li>
                         <a href="index.php?controller=tipoMateriaPrima&action=listar">
                             <i class="bi bi-tags"></i> Tipo de Material 

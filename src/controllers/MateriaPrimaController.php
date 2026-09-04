@@ -1,16 +1,16 @@
 <?php
 
-use Idealo\Models\TipoPedidoModel;
+use Idealo\Models\MateriaPrimaModel;
 
-$rutaVista = __DIR__ . '/../view/tipo_pedido/listar.php';
+$rutaVista = __DIR__ . '/../view/materia_prima/listar.php';
 
 /*
 |--------------------------------------------------------------------------
-| Función exclusiva para el módulo Tipo Pedido (evita redeclaración)
+| Función exclusiva para el módulo Materia Prima
 |--------------------------------------------------------------------------
 */
-if (!function_exists('responderJSONTipoPedido')) {
-    function responderJSONTipoPedido(array $respuesta): void
+if (!function_exists('responderJSONMateriaPrima')) {
+    function responderJSONMateriaPrima(array $respuesta): void
     {
         if (ob_get_length()) {
             ob_clean();
@@ -51,10 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         $nuevoEstado = trim($_POST['nuevo_estado']);
 
         if ($id === false || $id <= 0) {
-            responderJSONTipoPedido([
+            responderJSONMateriaPrima([
                 'success' => false,
                 'message' =>
-                    '❌ El identificador del tipo de pedido no es válido.',
+                    '❌ El identificador de la materia prima no es válido.',
                 'evento' => 'validacion',
                 'estado' => 'error_validacion'
             ]);
@@ -67,15 +67,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         */
         if (isset($_POST['nombre'])) {
             $nombre = trim($_POST['nombre']);
+            $idTipoMateria = filter_var(
+                $_POST['id_tipo_materia_prima'] ?? 0,
+                FILTER_VALIDATE_INT
+            );
+            $costoUnitario = $_POST['costo_unitario'] ?? 0;
+            $stockActual = $_POST['stock_actual'] ?? 0;
+            $stockMinimo = $_POST['stock_minimo'] ?? 0;
+            $unidadMedida = trim($_POST['unidad_de_medida'] ?? '');
 
-            $validacion = TipoPedidoModel::validarDatos(
+            $validacion = MateriaPrimaModel::validarDatos(
                 $nombre,
+                $idTipoMateria,
+                $costoUnitario,
+                $stockActual,
+                $stockMinimo,
+                $unidadMedida,
                 $nuevoEstado,
                 $id
             );
 
             if ($validacion !== true) {
-                responderJSONTipoPedido([
+                responderJSONMateriaPrima([
                     'success' => false,
                     'message' => '❌ ' . $validacion['error'],
                     'evento' => 'editar',
@@ -84,10 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             }
 
             $resultado =
-                TipoPedidoModel::getActualizarDatos($id);
+                MateriaPrimaModel::getActualizarDatos($id);
 
             if (isset($resultado['exitoso'])) {
-                responderJSONTipoPedido([
+                responderJSONMateriaPrima([
                     'success' => true,
                     'message' => '✅ ' . $resultado['exitoso'],
                     'evento' => 'editar',
@@ -95,11 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 ]);
             }
 
-            responderJSONTipoPedido([
+            responderJSONMateriaPrima([
                 'success' => false,
                 'message' => '❌ ' . (
                     $resultado['error'] ??
-                    'Error interno al actualizar el tipo de pedido.'
+                    'Error interno al actualizar la materia prima.'
                 ),
                 'evento' => 'editar',
                 'estado' => 'error'
@@ -112,13 +125,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         |--------------------------------------------------------------------------
         */
         $respuesta =
-            TipoPedidoModel::getCambiarEstado(
+            MateriaPrimaModel::getCambiarEstado(
                 $id,
                 $nuevoEstado
             );
 
         if (isset($respuesta['exitoso'])) {
-            responderJSONTipoPedido([
+            responderJSONMateriaPrima([
                 'success' => true,
                 'message' => '✅ Estado actualizado con éxito.',
                 'evento' => 'cambiar_estado',
@@ -126,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             ]);
         }
 
-        responderJSONTipoPedido([
+        responderJSONMateriaPrima([
             'success' => false,
             'message' => '❌ ' . (
                 $respuesta['error'] ??
@@ -139,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
     /*
     |--------------------------------------------------------------------------
-    | Registrar nuevo tipo de pedido
+    | Registrar nueva materia prima
     |--------------------------------------------------------------------------
     */
     if (
@@ -147,16 +160,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         !isset($_POST['id_accion'])
     ) {
         $nombre = trim($_POST['nombre']);
+        $idTipoMateria = filter_var(
+            $_POST['id_tipo_materia_prima'] ?? 0,
+            FILTER_VALIDATE_INT
+        );
+        $costoUnitario = $_POST['costo_unitario'] ?? 0;
+        $stockActual = $_POST['stock_actual'] ?? 0;
+        $stockMinimo = $_POST['stock_minimo'] ?? 0;
+        $unidadMedida = trim($_POST['unidad_de_medida'] ?? '');
         $status = 'Activo';
 
-        $validacion =
-            TipoPedidoModel::validarDatos(
-                $nombre,
-                $status
-            );
+        $validacion = MateriaPrimaModel::validarDatos(
+            $nombre,
+            $idTipoMateria,
+            $costoUnitario,
+            $stockActual,
+            $stockMinimo,
+            $unidadMedida,
+            $status
+        );
 
         if ($validacion !== true) {
-            responderJSONTipoPedido([
+            responderJSONMateriaPrima([
                 'success' => false,
                 'message' => '❌ ' . $validacion['error'],
                 'evento' => 'guardar',
@@ -165,26 +190,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         }
 
         $resultado =
-            TipoPedidoModel::getRegistrarDatos();
+            MateriaPrimaModel::getRegistrarDatos();
 
         if (isset($resultado['exitoso'])) {
-            responderJSONTipoPedido([
+            responderJSONMateriaPrima([
                 'success' => true,
                 'message' =>
-                    '✅ Tipo de pedido registrado con éxito.',
+                    '✅ Materia prima registrada con éxito.',
                 'id' => $resultado['id'],
                 'nombre' => $nombre,
-                'status' => $status,
                 'evento' => 'guardar',
                 'estado' => 'completado'
             ]);
         }
 
-        responderJSONTipoPedido([
+        responderJSONMateriaPrima([
             'success' => false,
             'message' => '❌ ' . (
                 $resultado['error'] ??
-                'Error interno al guardar el tipo de pedido.'
+                'Error interno al guardar la materia prima.'
             ),
             'evento' => 'guardar',
             'estado' => 'error'
@@ -201,48 +225,48 @@ if (
     isset($_GET['ajax']) &&
     $_GET['ajax'] === 'listar'
 ) {
-    $pedidos = TipoPedidoModel::consultarPedidos();
+    $materiasPrimas = MateriaPrimaModel::consultarMateriasPrimas();
 
     if (
-        is_array($pedidos) &&
-        isset($pedidos['error'])
+        is_array($materiasPrimas) &&
+        isset($materiasPrimas['error'])
     ) {
-        responderJSONTipoPedido([
+        responderJSONMateriaPrima([
             'success' => false,
-            'message' => '❌ ' . $pedidos['error'],
+            'message' => '❌ ' . $materiasPrimas['error'],
             'evento' => 'listar',
             'estado' => 'error'
         ]);
     }
 
-    if (!is_array($pedidos)) {
-        $pedidos = [];
+    if (!is_array($materiasPrimas)) {
+        $materiasPrimas = [];
     }
 
     $activos = array_filter(
-        $pedidos,
-        function ($pedido) {
+        $materiasPrimas,
+        function ($mp) {
             return (
-                ($pedido['status_tipo_servicio'] ?? '') ===
+                ($mp['status_materia_prima'] ?? '') ===
                 'Activo'
             );
         }
     );
 
     $inactivos = array_filter(
-        $pedidos,
-        function ($pedido) {
+        $materiasPrimas,
+        function ($mp) {
             return (
-                ($pedido['status_tipo_servicio'] ?? '') ===
+                ($mp['status_materia_prima'] ?? '') ===
                 'Inactivo'
             );
         }
     );
 
-    responderJSONTipoPedido([
+    responderJSONMateriaPrima([
         'success' => true,
-        'pedidos' => array_values($pedidos),
-        'total' => count($pedidos),
+        'materias_primas' => array_values($materiasPrimas),
+        'total' => count($materiasPrimas),
         'activos' => count($activos),
         'inactivos' => count($inactivos),
         'evento' => 'listar',
@@ -252,27 +276,62 @@ if (
 
 /*
 |--------------------------------------------------------------------------
+| Carga AJAX para tipos activos
+|--------------------------------------------------------------------------
+*/
+if (
+    isset($_GET['ajax']) &&
+    $_GET['ajax'] === 'tipos_activos'
+) {
+    $tipos = MateriaPrimaModel::consultarTiposActivos();
+
+    if (
+        is_array($tipos) &&
+        isset($tipos['error'])
+    ) {
+        responderJSONMateriaPrima([
+            'success' => false,
+            'message' => '❌ ' . $tipos['error'],
+            'evento' => 'tipos_activos',
+            'estado' => 'error'
+        ]);
+    }
+
+    if (!is_array($tipos)) {
+        $tipos = [];
+    }
+
+    responderJSONMateriaPrima([
+        'success' => true,
+        'tipos' => array_values($tipos),
+        'evento' => 'tipos_activos',
+        'estado' => 'completado'
+    ]);
+}
+
+/*
+|--------------------------------------------------------------------------
 | Carga normal de la vista
 |--------------------------------------------------------------------------
 */
-$pedidos = TipoPedidoModel::consultarPedidos();
+$materiasPrimas = MateriaPrimaModel::consultarMateriasPrimas();
 
 if (
-    is_array($pedidos) &&
-    isset($pedidos['error'])
+    is_array($materiasPrimas) &&
+    isset($materiasPrimas['error'])
 ) {
     die(
         'Error crítico de datos: ' .
         htmlspecialchars(
-            $pedidos['error'],
+            $materiasPrimas['error'],
             ENT_QUOTES,
             'UTF-8'
         )
     );
 }
 
-if (!is_array($pedidos)) {
-    $pedidos = [];
+if (!is_array($materiasPrimas)) {
+    $materiasPrimas = [];
 }
 
 if (!file_exists($rutaVista)) {

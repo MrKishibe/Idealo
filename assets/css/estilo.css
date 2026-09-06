@@ -1,12 +1,10 @@
 :root {
-    /* Paleta de colores optimizada */
     --azul-opaco: #2c3e50;
     --azul-glow: rgba(44, 62, 80, 0.1);
     --verde-opaco: #3b7a57;
     --verde-glow: rgba(59, 122, 87, 0.15);
     --rojo-alerta: #d9534f;
     
-    /* Grises y Fondos */
     --gris-fondo: #f4f6f9;
     --gris-sidebar: #1a1d24;
     --gris-submenu: #111318;
@@ -14,7 +12,6 @@
     --gris-mutado: #7a8b99;
     --blanco: #ffffff;
     
-    /* Configuración de bordes y sombras modernas */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
@@ -22,12 +19,10 @@
     --shadow-md: 0 8px 24px rgba(149, 157, 165, 0.12);
     --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.05);
     
-    /* Animaciones fluidas en tiempo real */
     --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* --- Reseteo Estricto y General --- */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -44,7 +39,6 @@ body {
     letter-spacing: -0.01em;
 }
 
-/* --- DISEÑO DE LA SIDEBAR REVOLUCIONADO --- */
 .sidebar {
     width: 270px;
     min-width: 270px;
@@ -99,7 +93,6 @@ body {
     list-style: none;
 }
 
-/* Ítems del Menú con Feedback Háptico Visual */
 .menu-item {
     display: flex;
     align-items: center;
@@ -124,7 +117,6 @@ body {
     transition: var(--transition-fast);
 }
 
-/* Efectos Hover Dinámicos */
 .menu-item:hover {
     color: var(--blanco);
     background-color: rgba(255, 255, 255, 0.05);
@@ -136,7 +128,6 @@ body {
     transform: scale(1.1);
 }
 
-/* Estados Activos Transparentes pero Notorios */
 .menu-item.active {
     color: var(--blanco);
     background: linear-gradient(135deg, var(--azul-opaco), #34495e);
@@ -155,7 +146,6 @@ body {
     border-radius: 0 4px 4px 0;
 }
 
-/* Menús Desplegables Modernos */
 .menu-group {
     margin-bottom: 4px;
 }
@@ -174,7 +164,6 @@ body {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Animación del Submenú por Altura y Opacidad Real */
 .submenu {
     max-height: 0;
     overflow: hidden;
@@ -189,7 +178,7 @@ body {
 }
 
 .menu-group.open .submenu {
-    max-height: 300px; /* Suficiente para los enlaces internos */
+    max-height: 300px;
     opacity: 1;
     transform: translateY(0);
     margin-top: 4px;
@@ -230,7 +219,6 @@ body {
     font-weight: 600;
 }
 
-/* Sección Logout Inferior */
 .logout-section {
     margin-top: auto;
     padding-top: 15px;
@@ -242,7 +230,6 @@ body {
     color: #ff6b6b;
 }
 
-/* --- CONTENEDOR PRINCIPAL --- */
 main.main-content {
     flex: 1;
     padding: 40px;
@@ -258,7 +245,6 @@ main.main-content {
     gap: 32px;
 }
 
-/* --- ENCABEZADOS DE PÁGINAS --- */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -278,7 +264,6 @@ main.main-content {
     margin-top: 4px;
 }
 
-/* --- TARJETAS DASHBOARD INTERACTIVAS (GRID) --- */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -335,7 +320,6 @@ main.main-content {
     color: var(--azul-opaco);
 }
 
-/* Iconos de las Tarjetas Refactorizados */
 .card-icon {
     width: 56px;
     height: 56px;
@@ -356,7 +340,6 @@ main.main-content {
 .bg-rojo { background-color: rgba(219, 83, 79, 0.12); color: var(--rojo-alerta); }
 .bg-gris { background-color: #e9ecef; color: #495057; }
 
-/* --- SECCIÓN DE TABLAS Y CONTENEDORES --- */
 .table-actions-bar {
     background-color: var(--blanco);
     padding: 20px 24px;
@@ -417,9 +400,6 @@ main.main-content {
     color: #000000;
 }
 
-/* --- COMPONENTES UI COMPACTOS --- */
-
-/* Insignias de Estado Estilo Pastilla Cristal */
 .status-indicator {
     display: inline-flex;
     align-items: center;
@@ -449,7 +429,6 @@ main.main-content {
 }
 .status-indicator.inactive::before { background-color: var(--rojo-alerta); }
 
-/* Botones de Acción Estilizados */
 .btn-action {
     background: transparent;
     border: none;
@@ -485,7 +464,6 @@ main.main-content {
     transform: translateY(-2px);
 }
 
-/* Botones Principales del Sistema */
 .btn-idealo-success {
     background: linear-gradient(135deg, var(--verde-opaco), #2e6243);
     color: var(--blanco) !important;
@@ -510,7 +488,6 @@ main.main-content {
     transform: translateY(1px);
 }
 
-/* Input Unit Group (Materia prima) */
 .input-unit-group {
     position: relative;
     display: flex;
@@ -534,7 +511,6 @@ main.main-content {
     max-width: 800px !important;
 }
 
-/* --- REDISEÑO TOTAL DE VENTANAS MODALES --- */
 .modal-idealo .modal-content {
     border-radius: var(--radius-lg);
     border: none;
@@ -594,7 +570,6 @@ main.main-content {
     outline: none;
 }
 
-/* Modales personalizados puros por JS (Legacy Fallback en tu Materia Prima) */
 .custom-modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -629,7 +604,6 @@ main.main-content {
     transform: scale(1) translateY(0);
 }
 
-/* --- VISTA DE LOGIN TOTALMENTE MINIMALISTA --- */
 .login-body {
     display: flex;
     justify-content: center;
@@ -670,7 +644,6 @@ main.main-content {
     margin-top: 6px;
 }
 
-/* --- ANIMACIONES EN TIEMPO REAL (`Keyframes`) --- */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
@@ -686,7 +659,6 @@ main.main-content {
     50% { filter: drop-shadow(0 0 12px rgba(79, 172, 254, 0.8)); }
 }
 
-/* --- RESPONSIVIDAD DINÁMICA --- */
 @media (max-width: 992px) {
     .sidebar {
         width: 80px;
@@ -721,48 +693,49 @@ main.main-content {
     }
 }
 
-/* ====================================================
-   MODALES EXCLUSIVOS PARA MÉTODOS DE PAGO
-   ==================================================== */
-
-/* 1. Ancho independiente para los modales de Métodos */
 .modal.modal-metodos .modal-dialog {
-    max-width: 700px !important; /* <-- Modifica este valor para hacer el modal más ancho o más angosto */
+    max-width: 700px !important;
     width: 100% !important;
 }
 
-/* 2. Centrado visual (Compensa los 270px del sidebar) */
 @media (min-width: 993px) {
     .modal.modal-metodos {
         padding-left: 270px !important; 
     }
 }
 
-/* 3. Margen y espacio para que el mensaje de error no empuje nada */
 .modal-metodos .modal-body .mb-3 {
     position: relative;
-    padding-bottom: 5px !important; /* <-- Aumenta esto si el mensaje rojo necesita más espacio abajo */
-    margin-bottom: 10px !important;  /* <-- Separación general si decides agregar más campos luego */
+    padding-bottom: 5px !important;
+    margin-bottom: 10px !important;
 }
 
-/* 4. Estilos exclusivos para el Input de los Métodos de Pago */
 .modal-metodos .form-control {
-    text-align: left !important; /* Fuerza el texto siempre a la izquierda */
+    text-align: left !important;
     padding-top: 15px !important;
     padding-bottom: 15px !important;
     padding-left: 18px !important;
-    /* No forzamos el padding-right para que el check verde tenga su espacio y no corte el texto */
     font-size: 13px !important;
     border-radius: 20px !important; 
     padding-right: 450px   !important;
 }
-/* 5. Reducir la "barra invisible" de validación de Bootstrap */
+
 .modal-metodos .form-control.is-valid,
 .modal-metodos .form-control.is-invalid {
-    
-    background-position: right 30px center !important; /* Mueve el check/alerta bien pegado al borde derecho */
+    background-position: right 30px center !important;
 }
+
 @media (min-width: 993px) {
     .modal.modal-idealo {
-        padding-left: 400px !important; 
-    } }
+        padding-left: 200px !important; 
+    } 
+}
+
+@media (min-width: 993px) {
+    #modalRegistrarPago, 
+    #modalEditarPago,
+    #modalRegistrarCuenta,
+    #modalEditarCuenta {
+        padding-left: 500px !important; 
+    }
+}

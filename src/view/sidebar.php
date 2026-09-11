@@ -35,7 +35,7 @@
                     <li><a href="index.php?controller=MateriaPrima&action=materiaPrima"><i class="bi bi-egg"></i> Materia Prima</a></li>
                     <li>
                         <a href="index.php?controller=tipoMateriaPrima&action=listar">
-                            <i class="bi bi-tags"></i> Tipo de Material 
+                            <i class="bi bi-tags"></i> Tipo de Material
                         </a>
                     </li>
                     <li><a href="index.php?controller=producto&action=listar"><i class="bi bi-tags"></i> Catálogo Productos</a></li>
@@ -96,18 +96,26 @@
                 </ul>
             </li>
             <li class="menu-group">
-                <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-perfil')">
+                <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-usuarios')">
                     <div class="trigger-left">
-                        <i class="bi bi-person-circle"></i>
-                        <span>Perfil</span>
+                        <i class="bi bi-shield-lock"></i>
+                        <span>Usuarios</span>
                     </div>
                     <i class="bi bi-chevron-down arrow-icon"></i>
                 </button>
-                <ul id="sub-perfil" class="submenu">
-                    <li><a href="index.php?controller=usuario&action=perfil"><i class="bi bi-person-vcard"></i> Mi perfil</a></li>
+                <ul id="sub-usuarios" class="submenu">
                     <li><a href="index.php?controller=gestionUsuario&action=listar"><i class="bi bi-person-gear"></i> Gestionar Usuarios</a></li>
+                    <li><a href="index.php?controller=rol&action=listar"><i class="bi bi-person-badge"></i> Roles</a></li>
+                    <li><a href="index.php?controller=permiso&action=listar"><i class="bi bi-key"></i> Permisos</a></li>
                 </ul>
             </li>
+            <li>
+                <a href="index.php?controller=usuario&action=perfil" class="menu-item">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Perfil</span>
+                </a>
+            </li>
+
             <li class="logout-section">
                 <a href="index.php?controller=auth&action=logout" class="menu-item logout">
                     <i class="bi bi-box-arrow-left"></i>
@@ -119,22 +127,22 @@
 </aside>
 
 <script>
-// Forzamos el registro en el objeto global WINDOW para que sobreviva a jQuery y DataTables
-window.toggleMenu = function(menuId) {
-    const menu = document.getElementById(menuId);
-    if (!menu) return;
-    
-    menu.classList.toggle('active');
-    
-    // Verificación segura para evitar errores si la estructura previa cambia dinámicamente
-    const trigger = menu.previousElementSibling;
-    if (trigger) {
-        const arrow = trigger.querySelector('.arrow-icon');
-        if (arrow) {
-            arrow.classList.toggle('rotated');
+    // Forzamos el registro en el objeto global WINDOW para que sobreviva a jQuery y DataTables
+    window.toggleMenu = function(menuId) {
+        const menu = document.getElementById(menuId);
+        if (!menu) return;
+
+        menu.classList.toggle('active');
+
+        // Verificación segura para evitar errores si la estructura previa cambia dinámicamente
+        const trigger = menu.previousElementSibling;
+        if (trigger) {
+            const arrow = trigger.querySelector('.arrow-icon');
+            if (arrow) {
+                arrow.classList.toggle('rotated');
+            }
         }
-    }
-};
+    };
 </script>
 <script>
     function toggleMenu(id) {

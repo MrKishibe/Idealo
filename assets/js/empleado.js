@@ -1,4 +1,3 @@
-
 const URL_EMPLEADO = 'index.php?controller=empleado';
 
 $(document).ready(function () {
@@ -32,12 +31,69 @@ $(document).ready(function () {
 
     filtrarPorEstado();
 
+    function recargarTabla() {
+        $.getJSON(URL_EMPLEADO + '&ajax=listar', function (res) {
+            tablaEmpleados.clear();
+
+            res.empleados.forEach(function (emp) {
+                let nombre = emp.nombres + ' ' + emp.apellidos;
+                let estado = emp.status_empleado;
+                let esActivo = estado === 'Activo';
+
+                let acciones = '';
+                if (esActivo) {
+                    acciones =
+                        '<div class="text-center d-flex justify-content-center gap-1">' +
+                            '<button class="btn btn-sm btn-outline-primary btnEditarActivo"' +
+                                ' data-id="' + emp.id_empleado + '"' +
+                                ' data-cedula="' + (emp.cedula || '') + '"' +
+                                ' data-nombres="' + (emp.nombres || '') + '"' +
+                                ' data-apellidos="' + (emp.apellidos || '') + '"' +
+                                ' data-telefono="' + (emp.telefono || '') + '"' +
+                                ' data-direccion="' + (emp.direccion || '') + '"' +
+                                ' data-cargo="' + (emp.cargo || '') + '"' +
+                                ' data-salario="' + (emp.salario || '') + '">' +
+                                '<i class="bi bi-pencil-square"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-outline-danger btnCambiarEstado"' +
+                                ' data-id="' + emp.id_empleado + '"' +
+                                ' data-nombre="' + nombre + '">' +
+                                '<i class="bi bi-trash3-fill"></i>' +
+                            '</button>' +
+                        '</div>';
+                } else {
+                    acciones =
+                        '<div class="text-center d-flex justify-content-center gap-1">' +
+                            '<button class="btn btn-sm btn-outline-warning btnEditarInactivo"' +
+                                ' data-id="' + emp.id_empleado + '"' +
+                                ' data-nombre="' + nombre + '">' +
+                                '<i class="bi bi-pencil-square"></i> Editar / Reactivar' +
+                            '</button>' +
+                        '</div>';
+                }
+
+                tablaEmpleados.row.add([
+                    '<span class="fw-bold">' + emp.cedula + '</span>',
+                    '<div class="fw-bold text-dark">' + nombre + '</div>' +
+                        '<small class="text-muted"><i class="bi bi-geo-alt"></i> ' + (emp.direccion || 'Sin dirección') + '</small>',
+                    emp.telefono || 'N/A',
+                    emp.cargo,
+                    '<span class="text-success fw-bold">$' + parseFloat(emp.salario).toFixed(2) + '</span>',
+                    '<span class="badge ' + (esActivo ? 'bg-success' : 'bg-danger') + '">' + estado + '</span>',
+                    acciones
+                ]);
+            });
+
+            tablaEmpleados.draw();
+            filtrarPorEstado();
+        });
+    }
+
     $('#btnAlternarEstado').on('click', function () {
         vistaActual = vistaActual === 'activos' ? 'inactivos' : 'activos';
         $(this).attr('data-vista', vistaActual);
         filtrarPorEstado();
     });
-
 
     $('#btnEnvio').on('click', function () {
         let cedula    = $('#reg_cedula').val().trim();
@@ -56,27 +112,19 @@ $(document).ready(function () {
         $.ajax({
             url: URL_EMPLEADO,
             type: 'POST',
-            data: {
-                cedula: cedula,
-                nombres: nombres,
-                apellidos: apellidos,
-                telefono: telefono,
-                direccion: direccion,
-                cargo: cargo,
-                salario: salario
-            },
+            data: { cedula, nombres, apellidos, telefono, direccion, cargo, salario },
             dataType: 'json',
             success: function (res) {
                 if (res.success) {
-                    Swal.fire('¡Registrado!', res.message, 'success').then(() => {
-                        location.reload();
-                    });
+                    bootstrap.Modal.getInstance(document.getElementById('modalRegistrarEmpleado'))?.hide();
+                    Swal.fire('¡Registrado!', res.message, 'success');
+                    recargarTabla();
                 } else {
                     Swal.fire('Error', res.message, 'error');
                 }
             },
             error: function () {
-                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
+                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
             }
         });
     });
@@ -115,28 +163,21 @@ $(document).ready(function () {
             url: URL_EMPLEADO,
             type: 'POST',
             data: {
-                id_accion: idEmpleado,
-                nuevo_estado: 'Activo',
-                nombres: nombres,
-                apellidos: apellidos,
-                cedula: cedula,
-                telefono: telefono,
-                direccion: direccion,
-                cargo: cargo,
-                salario: salario
+                id_accion: idEmpleado, nuevo_estado: 'Activo',
+                nombres, apellidos, cedula, telefono, direccion, cargo, salario
             },
             dataType: 'json',
             success: function (res) {
                 if (res.success) {
-                    Swal.fire('¡Actualizado!', res.message, 'success').then(() => {
-                        location.reload();
-                    });
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo'))?.hide();
+                    Swal.fire('¡Actualizado!', res.message, 'success');
+                    recargarTabla();
                 } else {
                     Swal.fire('Error', res.message, 'error');
                 }
             },
             error: function () {
-                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
+                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
             }
         });
     });
@@ -159,22 +200,18 @@ $(document).ready(function () {
                 $.ajax({
                     url: URL_EMPLEADO,
                     type: 'POST',
-                    data: {
-                        id_accion: idEmpleado,
-                        nuevo_estado: 'Inactivo'
-                    },
+                    data: { id_accion: idEmpleado, nuevo_estado: 'Inactivo' },
                     dataType: 'json',
                     success: function (res) {
                         if (res.success) {
-                            Swal.fire('¡Inhabilitado!', res.message, 'success').then(() => {
-                                location.reload();
-                            });
+                            Swal.fire('¡Inhabilitado!', res.message, 'success');
+                            recargarTabla();
                         } else {
                             Swal.fire('Error', res.message, 'error');
                         }
                     },
                     error: function () {
-                        Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
+                        Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
                     }
                 });
             }
@@ -192,28 +229,25 @@ $(document).ready(function () {
     });
 
     $('#btnGuardarEdicionInactivo').on('click', function () {
-        let idEmpleado = $('#edit_inactivo_id_empleado').val();
+        let idEmpleado  = $('#edit_inactivo_id_empleado').val();
         let nuevoEstado = $('#edit_inactivo_status').val();
 
         $.ajax({
             url: URL_EMPLEADO,
             type: 'POST',
-            data: {
-                id_accion: idEmpleado,
-                nuevo_estado: nuevoEstado
-            },
+            data: { id_accion: idEmpleado, nuevo_estado: nuevoEstado },
             dataType: 'json',
             success: function (res) {
                 if (res.success) {
-                    Swal.fire('¡Actualizado!', res.message, 'success').then(() => {
-                        location.reload();
-                    });
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo'))?.hide();
+                    Swal.fire('¡Actualizado!', res.message, 'success');
+                    recargarTabla();
                 } else {
                     Swal.fire('Error', res.message, 'error');
                 }
             },
             error: function () {
-                Swal.fire('Error', '❌ No se pudo conectar con el servidor.', 'error');
+                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
             }
         });
     });

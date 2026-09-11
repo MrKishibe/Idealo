@@ -31,14 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 if (isset($resultado['existoso'])) {
                     echo json_encode([
                         'success' => true,
-                        'message' => '✅ ' . $resultado['existoso'],
+                        'message' => $resultado['existoso'],
                         'evento'  => 'editar',
                         'estado'  => 'completado'
                     ], JSON_UNESCAPED_UNICODE);
                 } else {
                     echo json_encode([
                         'success' => false,
-                        'message' => '❌ ' . ($resultado['error'] ?? "Error interno al guardar los cambios."),
+                        'message' => ($resultado['error'] ?? "Error interno al guardar los cambios."),
                         'evento'  => 'editar',
                         'estado'  => 'error'
                     ], JSON_UNESCAPED_UNICODE);
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => '❌ ' . $validacion['error'],
+                    'message' => $validacion['error'],
                     'evento'  => 'editar',
                     'estado'  => 'error_validacion'
                 ], JSON_UNESCAPED_UNICODE);
@@ -59,14 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if (isset($respuesta['existoso'])) {
             echo json_encode([
                 'success' => true,
-                'message' => '✅ Estado actualizado con éxito.',
+                'message' => 'Estado actualizado con éxito.',
                 'evento'  => 'cambiar_estado',
                 'estado'  => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => '❌ ' . ($respuesta['error'] ?? "Error al cambiar el estado."),
+                'message' => ($respuesta['error'] ?? "Error al cambiar el estado."),
                 'evento'  => 'cambiar_estado',
                 'estado'  => 'error'
             ], JSON_UNESCAPED_UNICODE);
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             if (isset($resultado['existoso'])) {
                 echo json_encode([
                     'success'   => true,
-                    'message'   => '✅ Empleado registrado con éxito.',
+                    'message'   => 'Empleado registrado con éxito.',
                     'id'        => $resultado['id'],
                     'nombres'   => $nombres,
                     'apellidos' => $apellidos,
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => '❌ ' . ($resultado['error'] ?? "Error interno al guardar en el sistema."),
+                    'message' => ($resultado['error'] ?? "Error interno al guardar en el sistema."),
                     'evento'  => 'guardar',
                     'estado'  => 'error'
                 ], JSON_UNESCAPED_UNICODE);
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => '❌ ' . $validacion['error'],
+                'message' => $validacion['error'],
                 'evento'  => 'guardar',
                 'estado'  => 'error_validacion'
             ], JSON_UNESCAPED_UNICODE);
@@ -134,7 +134,7 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     if (is_array($empleados) && isset($empleados['error'])) {
         echo json_encode([
             'success' => false,
-            'message' => '❌ ' . $empleados['error'],
+            'message' => $empleados['error'],
             'evento'  => 'listar',
             'estado'  => 'error'
         ], JSON_UNESCAPED_UNICODE);

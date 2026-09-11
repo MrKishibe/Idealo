@@ -23,7 +23,7 @@ class EmpleadoModel extends Database
     public static $expNombres   = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/';
     public static $expApellidos = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/';
     public static $expCedula    = '/^[a-zA-Z0-9\-]{3,20}$/';
-    public static $expTelefono  = '/^[0-9\+\-\s]{0,20}$/';
+    public static $expTelefono  = '/^(0412|0414|0416|0422|0424|0426)\d{7}$/';
     public static $expDireccion = '/^[\s\S]{0,500}$/';
     public static $expCargo     = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/';
     public static $expSalario   = '/^\d+(\.\d{1,2})?$/';

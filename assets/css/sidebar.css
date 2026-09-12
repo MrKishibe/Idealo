@@ -1,0 +1,125 @@
+
+    .sidebar {
+        width: 250px;
+        background-color: #16181e; /* Fondo oscuro de la sidebar */
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    /* Encabezado: Logo blanco circular y texto Idealo */
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 24px 20px 20px 24px;
+    }
+    .sidebar-header .logo-img {
+        width: 34px !important;
+        height: 34px !important;
+        object-fit: contain;
+        filter: invert(1); 
+        border-radius: 50%;
+        display: block;
+    }
+    .sidebar-header span {
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    /* Lista y estructura del Menú */
+    .sidebar-menu {
+        padding: 0 14px;
+        flex: 1;
+    }
+    .sidebar-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    /* Enlaces y Botones del menú */
+    .menu-item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 10px 14px;
+        color: #94a3b8; 
+        text-decoration: none;
+        font-size: 0.93rem;
+        font-weight: 400;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+        gap: 14px; /* Espacio exacto entre icono y texto */
+    }
+    /* Efecto al pasar el cursor */
+    .menu-item:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .menu-item:hover .menu-icon,
+    .menu-item:hover .arrow-icon {
+        filter: brightness(0) invert(1);
+    }
+    /* Botón desplegable (Trigger) */
+    .menu-item.trigger {
+        justify-content: space-between;
+    }
+    .trigger-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    /* Iconos SVG locales */
+    .menu-icon {
+        width: 18px !important;
+        height: 18px !important;
+        object-fit: contain;
+        filter: brightness(0) invert(0.68); 
+        flex-shrink: 0;
+        transition: filter 0.2s ease;
+    }
+    /* Flecha desplegable a la derecha */
+    .arrow-icon {
+        width: 12px !important;
+        height: 12px !important;
+        object-fit: contain;
+        filter: brightness(0) invert(0.5);
+        transition: transform 0.3s ease, filter 0.2s ease;
+        flex-shrink: 0;
+    }
+    .arrow-icon.rotated,
+    .menu-group.open .arrow-icon {
+        transform: rotate(180deg);
+    }
+    /* Submenús */
+    .submenu {
+        display: none;
+        list-style: none;
+        padding-left: 20px !important;
+        margin-top: 4px;
+    }
+    .submenu.active,
+    .menu-group.open .submenu {
+        display: flex !important;
+    }
+    .submenu .menu-item {
+        font-size: 0.88rem;
+        padding: 8px 12px;
+    }
+
+    .logout-section {
+        margin-top: 14px !important;
+        padding-top: 14px !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 20px;
+    }

@@ -119,16 +119,48 @@ class OrdenDeProduccionModel extends Database {
         return $stmt->execute();
     }
 
+    private function actualizarEstadoPedido($id_detalle_pedido, string $estado): void {
+        $sql = "UPDATE pedido p
+                INNER JOIN detalle_pedido dp ON dp.id_pedido = p.id_pedido
+                SET p.estado_pedido = :estado
+                WHERE dp.id_detalle_pedido = :id_detalle_pedido";
+        $stmt = $this->pdo->connect()->prepare($sql);
+        $stmt->execute([
+            ':estado' => $estado,
+            ':id_detalle_pedido' => $id_detalle_pedido
+        ]);
+    }
+
     protected function validar(array &$datos, bool $esEdicion = false): void {
         $id_detalle_pedido = $datos['id_detalle_pedido'] ?? null;
         $id_produccion = $datos['id_produccion'] ?? null;
+        $fecha_inicio = $datos['fecha_de_inicio'] ?? null;
+        $fecha_terminado = $datos['fecha_terminado'] ?? null;
+        $estado = $datos['estado_de_produccion'] ?? null;
 
-        if (empty($id_detalle_pedido)) {
-            throw new Exception('El detalle de pedido es obligatorio.');
+        // Patrones de Expresiones Regulares
+        $regexId = '/^[1-9]\d*$/';
+        $regexFecha = '/^\d{4}-\d{2}-\d{2}$/';
+        $regexEstado = '/^(Planificado|En Proceso|Finalizado|Inactiva)$/';
+
+        if (empty($id_detalle_pedido) || !preg_match($regexId, $id_detalle_pedido)) {
+            throw new Exception('El detalle de pedido es obligatorio y debe ser un número entero válido.');
         }
 
-        if ($esEdicion && (empty($id_produccion) || !is_numeric($id_produccion))) {
-            throw new \InvalidArgumentException('El id de la orden de producción es obligatorio para editar.');
+        if ($esEdicion && (empty($id_produccion) || !preg_match($regexId, $id_produccion))) {
+            throw new \InvalidArgumentException('El id de la orden de producción es obligatorio y debe ser numérico.');
+        }
+
+        if (!empty($fecha_inicio) && !preg_match($regexFecha, $fecha_inicio)) {
+            throw new Exception('La fecha de inicio no tiene un formato válido (YYYY-MM-DD).');
+        }
+
+        if (!empty($fecha_terminado) && !preg_match($regexFecha, $fecha_terminado)) {
+            throw new Exception('La fecha de finalización no tiene un formato válido (YYYY-MM-DD).');
+        }
+
+        if (!empty($estado) && !preg_match($regexEstado, $estado)) {
+            throw new Exception('El estado de producción no está dentro de los valores permitidos.');
         }
 
         $sql = "SELECT COUNT(*) FROM orden_de_produccion WHERE id_detalle_pedido = :id_detalle_pedido";
@@ -164,6 +196,8 @@ class OrdenDeProduccionModel extends Database {
         $id_produccion = $this->registrarOrdenProduccion();
 
         if ($id_produccion) {
+            $this->actualizarEstadoPedido($this->id_detalle_pedido, 'pendiente');
+
             // Si el usuario seleccionó empleados, los guardamos en la tabla puente
             if (!empty($datos['empleados']) && is_array($datos['empleados'])) {
                 $conn = $this->pdo->connect();
@@ -202,6 +236,10 @@ class OrdenDeProduccionModel extends Database {
 
         // 2. Si la tabla principal se actualizó bien, procedemos con los trabajadores
         if ($editado) {
+            if ($this->estado_de_produccion === 'Finalizado') {
+                $this->actualizarEstadoPedido($this->id_detalle_pedido, 'completado');
+            }
+
             $conn = $this->pdo->connect();
 
             // Limpiamos los trabajadores antiguos de la tabla puente

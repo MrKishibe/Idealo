@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'idealo/idealo',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '16d0e9cfb2676aaa9078dc3e80af8e19669087db',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'idealo/idealo' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '16d0e9cfb2676aaa9078dc3e80af8e19669087db',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -33,9 +33,6 @@ class MateriaPrimaModel extends Database
     public static $expStatus =
         '/^(Activo|Inactivo)$/';
 
-    public static $expUnidad =
-        '/^(centímetro|metro|milímetro)$/';
-
     /*
     |--------------------------------------------------------------------------
     | Consultar todas las materias primas
@@ -99,13 +96,6 @@ class MateriaPrimaModel extends Database
             return [
                 'error' =>
                 'El estado asignado no es válido.'
-            ];
-        }
-
-        if (!preg_match(self::$expUnidad, $unidadMedida)) {
-            return [
-                'error' =>
-                'La unidad de medida debe ser: centímetro, metro o milímetro.'
             ];
         }
 

@@ -53,12 +53,12 @@ if ($action === 'guardar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = ServicioModel::getRegistrarDatos($nombre, $status);
         
         if (isset($resultado['exitoso'])) {
-            echo json_encode(['success' => true, 'message' => '✅ Servicio registrado con éxito.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'message' => 'Servicio registrado con éxito.'], JSON_UNESCAPED_UNICODE);
         } else {
-            echo json_encode(['success' => false, 'message' => '❌ ' . ($resultado['error'] ?? 'Error interno en el servidor.')], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'message' => ($resultado['error'] ?? 'Error interno en el servidor.')], JSON_UNESCAPED_UNICODE);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => '❌ ' . $validacion['error']], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'message' => $validacion['error']], JSON_UNESCAPED_UNICODE);
     }
     exit;
 }
@@ -73,7 +73,7 @@ if ($action === 'editar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status_servicio'] ?? 'activo';
 
     if ($id === 0) {
-        echo json_encode(['success' => false, 'message' => '❌ ID de servicio no válido.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'message' => 'ID de servicio no válido.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -83,12 +83,12 @@ if ($action === 'editar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = ServicioModel::getActualizarDatos($id, $nombre, $status);
         
         if (isset($resultado['exitoso'])) {
-            echo json_encode(['success' => true, 'message' => '✅ Servicio actualizado con éxito.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'message' => 'Servicio actualizado con éxito.'], JSON_UNESCAPED_UNICODE);
         } else {
-            echo json_encode(['success' => false, 'message' => '❌ ' . ($resultado['error'] ?? 'Error al actualizar los datos.')], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'message' => ($resultado['error'] ?? 'Error al actualizar los datos.')], JSON_UNESCAPED_UNICODE);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => '❌ ' . $validacion['error']], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'message' => $validacion['error']], JSON_UNESCAPED_UNICODE);
     }
     exit;
 }
@@ -104,12 +104,12 @@ if ($action === 'eliminar') {
         $resultado = ServicioModel::getCambiarEstado($id, 'inactivo');
         
         if (isset($resultado['exitoso'])) {
-            echo json_encode(['success' => true, 'message' => '✅ Servicio inhabilitado correctamente.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'message' => 'Servicio inhabilitado correctamente.'], JSON_UNESCAPED_UNICODE);
         } else {
-            echo json_encode(['success' => false, 'message' => '❌ ' . ($resultado['error'] ?? 'Error al cambiar el estado.')], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'message' => ($resultado['error'] ?? 'Error al cambiar el estado.')], JSON_UNESCAPED_UNICODE);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => '❌ ID no proporcionado o inválido.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'message' => 'ID no proporcionado o inválido.'], JSON_UNESCAPED_UNICODE);
     }
     exit;
 }

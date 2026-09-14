@@ -36,8 +36,8 @@
                                 <th>Nombre</th>
                                 <th>Tipo</th>
                                 <th>Costo Unit.</th>
-                                <th>Stock Actual</th>
-                                <th>Stock Mínimo</th>
+                                <th>cantidad Actual</th>
+                                <th>cantidad Mínimo</th>
                                 <th>Estado</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -57,7 +57,7 @@
                                         <button class="btn btn-sm btn-outline-primary btnEditarActivo me-1" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" data-id-tipo="<?php echo $mp['id_tipo_materia_prima']; ?>" data-costo="<?php echo $mp['costo_unitario']; ?>" data-stock-actual="<?php echo $mp['stock_actual']; ?>" data-stock-minimo="<?php echo $mp['stock_minimo']; ?>" data-unidad="<?php echo htmlspecialchars($mp['unidad_de_medida']); ?>" title="Editar"><i class="bi bi-pencil-square"></i></button>
                                         <button class="btn btn-sm btn-outline-danger btnCambiarEstado" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" title="Inhabilitar"><i class="bi bi-trash3-fill"></i></button>
                                         <?php else: ?>
-                                        <button class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" title="Reactivar"><i class="bi bi-pencil-square"></i> Editar / Reactivar</button>
+                                        <button class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" data-id-tipo="<?php echo $mp['id_tipo_materia_prima']; ?>" data-costo="<?php echo $mp['costo_unitario']; ?>" data-stock-actual="<?php echo $mp['stock_actual']; ?>" data-stock-minimo="<?php echo $mp['stock_minimo']; ?>" data-unidad="<?php echo htmlspecialchars($mp['unidad_de_medida']); ?>" title="Editar / Reactivar"><i class="bi bi-pencil-square"></i></button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -84,27 +84,40 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="nombre_materia_prima" maxlength="100" required>
+                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tipo</label>
                                 <select class="form-select" id="id_tipo_materia_prima" required><option value="">Cargando...</option></select>
+                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Costo Unit.</label>
                                 <input type="number" class="form-control" id="costo_unitario" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Actual</label>
                                 <input type="number" class="form-control" id="stock_actual" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Mínimo</label>
                                 <input type="number" class="form-control" id="stock_minimo" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Unidad de Medida</label>
                                 <select class="form-select" id="unidad_de_medida" required>
                                     <option value="">Seleccione...</option>
+                                    <optgroup label="Conteo / Piezas">
+                                        <option value="unidad">unidad (ud)</option>
+                                        <option value="pieza">pieza (pza)</option>
+                                        <option value="paquete">paquete (paq)</option>
+                                        <option value="caja">caja (cj)</option>
+                                        <option value="docena">docena (doc)</option>
+                                        <option value="set">set</option>
+                                    </optgroup>
                                     <optgroup label="Longitud">
                                         <option value="milímetro">milímetro (mm)</option>
                                         <option value="centímetro">centímetro (cm)</option>
@@ -121,6 +134,7 @@
                                         <option value="galon">galón (gal)</option>
                                     </optgroup>
                                 </select>
+                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
                             </div>
                         </div>
                     </div>
@@ -148,27 +162,40 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="edit_activo_nombre" maxlength="100" required>
+                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tipo</label>
                                 <select class="form-select" id="edit_activo_id_tipo" required><option value="">Cargando...</option></select>
+                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Costo</label>
                                 <input type="number" class="form-control" id="edit_activo_costo" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Actual</label>
                                 <input type="number" class="form-control" id="edit_activo_stock_actual" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Mínimo</label>
                                 <input type="number" class="form-control" id="edit_activo_stock_minimo" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Unidad de Medida</label>
                                 <select class="form-select" id="edit_activo_unidad" required>
                                     <option value="">Seleccione...</option>
+                                    <optgroup label="Conteo / Piezas">
+                                        <option value="unidad">unidad (ud)</option>
+                                        <option value="pieza">pieza (pza)</option>
+                                        <option value="paquete">paquete (paq)</option>
+                                        <option value="caja">caja (cj)</option>
+                                        <option value="docena">docena (doc)</option>
+                                        <option value="set">set</option>
+                                    </optgroup>
                                     <optgroup label="Longitud">
                                         <option value="milímetro">milímetro (mm)</option>
                                         <option value="centímetro">centímetro (cm)</option>
@@ -185,6 +212,7 @@
                                         <option value="galon">galón (gal)</option>
                                     </optgroup>
                                 </select>
+                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
                             </div>
                         </div>
                     </div>
@@ -197,32 +225,86 @@
         </div>
     </div>
 
-    <!-- Modal Inactivo -->
+    <!-- Modal Editar Inactivo (Nombre + Todos los campos + Estado) -->
     <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Inhabilitado</h5>
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Materia Prima Inhabilitada</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="formEditarMateriaPrima">
-                    <input type="hidden" id="edit_id_materia_prima">
+                <form id="formEditarInactivo">
+                    <input type="hidden" id="edit_inactivo_id">
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="edit_nombre_materia_prima" readonly disabled>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Estado</label>
-                            <select class="form-select" id="edit_status_materia_prima">
-                                <option value="Inactivo">Inactivo</option>
-                                <option value="Activo">Activo</option>
-                            </select>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="edit_inactivo_nombre" maxlength="100" required>
+                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo</label>
+                                <select class="form-select" id="edit_inactivo_id_tipo" required><option value="">Cargando...</option></select>
+                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Costo</label>
+                                <input type="number" class="form-control" id="edit_inactivo_costo" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Stock Actual</label>
+                                <input type="number" class="form-control" id="edit_inactivo_stock_actual" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="edit_inactivo_stock_minimo" step="0.01" min="0" required>
+                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Unidad de Medida</label>
+                                <select class="form-select" id="edit_inactivo_unidad" required>
+                                    <option value="">Seleccione...</option>
+                                    <optgroup label="Conteo / Piezas">
+                                        <option value="unidad">unidad (ud)</option>
+                                        <option value="pieza">pieza (pza)</option>
+                                        <option value="paquete">paquete (paq)</option>
+                                        <option value="caja">caja (cj)</option>
+                                        <option value="docena">docena (doc)</option>
+                                        <option value="set">set</option>
+                                    </optgroup>
+                                    <optgroup label="Longitud">
+                                        <option value="milímetro">milímetro (mm)</option>
+                                        <option value="centímetro">centímetro (cm)</option>
+                                        <option value="metro">metro (m)</option>
+                                    </optgroup>
+                                    <optgroup label="Peso/Masa">
+                                        <option value="miligramo">miligramo (mg)</option>
+                                        <option value="gramo">gramo (g)</option>
+                                        <option value="kilogramo">kilogramo (kg)</option>
+                                    </optgroup>
+                                    <optgroup label="Líquidos/Volumen">
+                                        <option value="mililitro">mililitro (ml)</option>
+                                        <option value="litro">litro (L)</option>
+                                        <option value="galon">galón (gal)</option>
+                                    </optgroup>
+                                </select>
+                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_inactivo_estado" required>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                                <div class="invalid-feedback">Debe seleccionar un estado.</div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionInactivo">Guardar</button>
+                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>

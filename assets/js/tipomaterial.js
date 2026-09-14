@@ -5,56 +5,95 @@ $(document).ready(function () {
 
     console.log("Inicialización: tipomaterial.js sincronizado con el controlador procedimental.");
 
-    // Expresión regular para validar nombres (entre 3 y 50 caracteres)
-    const regexNombre = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]{3,50}$/;
+    // Expresión regular para validar nombres (entre 3 y 50 caracteres) con / - . ( )
+    const regexNombre = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s/\-\.\(\)]{3,50}$/;
+    const mensajeErrorNombre = "El nombre debe tener entre 3 y 50 caracteres (letras, números o /-.()).";
 
-    // Validador visual de campos en tiempo real (Corregido para evitar duplicados y vacíos)
+    // Función auxiliar para reseteo completo de formularios y mensajes visuales
+    function limpiarFormulario(formSelector, inputJQuery) {
+        if (formSelector && $(formSelector).length > 0) {
+            $(formSelector)[0].reset();
+            $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+            $(formSelector).find(".feedback-validacion").remove();
+        } else if (inputJQuery && inputJQuery.length > 0) {
+            inputJQuery.removeClass("is-valid is-invalid");
+            inputJQuery.siblings(".feedback-validacion").remove();
+        }
+    }
+
+    // Validador de campos (Ejecutado solo al presionar el botón de envío)
     function validarCampo(input, regex, mensajeError) {
         if (!input || input.length === 0) return false;
         let domInput = input[0];
         
-        // Limpiar cualquier mensaje de validación previo en este contenedor
-        $(domInput).siblings(".feedback-validacion").remove();
+        // 1. Ocultar o eliminar mensajes estáticos que puedan venir desde el HTML
+        $(domInput).siblings("small:not(.feedback-validacion), .invalid-feedback, .valid-feedback").hide();
         
-        // Crear el contenedor limpio para el mensaje
-        let feedback = document.createElement("small");
-        feedback.classList.add("feedback-validacion", "form-text");
-        domInput.parentNode.appendChild(feedback);
+        // 2. Buscar si ya existe el contenedor dinámico o crearlo si no existe
+        let $feedback = $(domInput).siblings(".feedback-validacion");
+        if ($feedback.length === 0) {
+            $feedback = $('<small class="feedback-validacion form-text d-block"></small>');
+            $(domInput).after($feedback);
+        }
 
         let valor = input.val().trim();
 
-        // Si el campo está vacío, es inválido inmediatamente
+        // Evaluar si el campo está vacío
         if (valor === "") {
             input.removeClass("is-valid").addClass("is-invalid");
-            feedback.textContent = "Este campo no puede estar vacío.";
-            feedback.style.color = "#dc3545";
+            $feedback.text("Este campo no puede estar vacío.").css("color", "#dc3545").show();
             return false;
         }
 
-        // Evaluar la expresión regular una vez confirmado que tiene texto
+        // Evaluar con la expresión regular
         if (regex.test(valor)) {
             input.removeClass("is-invalid").addClass("is-valid");
-            feedback.textContent = "Campo válido";
-            feedback.style.color = "#198754";
+            $feedback.text("").hide();
             return true;
         } else {
             input.removeClass("is-valid").addClass("is-invalid");
-            feedback.textContent = mensajeError;
-            feedback.style.color = "#dc3545";
+            $feedback.text(mensajeError).css("color", "#dc3545").show();
             return false;
         }
     }
 
-    // Escuchadores en tiempo real para las entradas de texto (Input e Input-Edición)
-    $("#nombre_tipo_material").on("input", function() {
-        validarCampo($(this), regexNombre, "El nombre debe tener entre 3 y 50 caracteres.");
+    // =========================================================================
+    // CONTROL DE LIMPIEZA Y EVENTOS DE MODALES (BOOTSTRAP)
+    // =========================================================================
+    
+    // 1. Modal Registrar: NO limpiar al cerrar (solo ocultar)
+    $('#modalRegistrarMaterial').on('hide.bs.modal', function () {
+        if (document.activeElement) document.activeElement.blur();
     });
 
-    $("#edit_activo_nombre").on("input", function() {
-        validarCampo($(this), regexNombre, "El nombre debe tener entre 3 y 50 caracteres.");
+    // Botón Cancelar explícito en Registrar -> SÍ limpia
+    $('#modalRegistrarMaterial').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
+        limpiarFormulario("#formTipoMaterial");
     });
 
-    // Carga de datos asíncrona adaptada al parámetro ajax=listar de tu controlador
+    // 2. Modal Editar Activo: NO limpiar al cerrar (solo ocultar)
+    $('#modalEditarActivo').on('hide.bs.modal', function () {
+        if (document.activeElement) document.activeElement.blur();
+    });
+
+    // Botón Cancelar explícito en Editar Activo -> SÍ limpia
+    $('#modalEditarActivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
+        limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
+        $('#edit_activo_id').val('');
+    });
+
+    // 3. Modal Editar Inactivo: NO limpiar al cerrar (solo ocultar)
+    $('#modalEditarInactivo').on('hide.bs.modal', function () {
+        if (document.activeElement) document.activeElement.blur();
+    });
+
+    // Botón Cancelar explícito en Editar Inactivo -> SÍ limpia
+    $('#modalEditarInactivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
+        limpiarFormulario("#formEditarMaterial");
+        $('#edit_id_material').val('');
+    });
+
+    // Carga de datos asíncrona
     function cargarMateriales() {
         $.ajax({
             url: 'index.php?controller=tipoMateriaPrima&action=listar&ajax=listar',
@@ -75,7 +114,7 @@ $(document).ready(function () {
         });
     }
 
-    // Extracción de contingencia directa desde el HTML si la petición AJAX principal falla
+    // Extracción de contingencia desde el HTML
     function extraerDatosDeTablaEstatica() {
         todosLosMateriales = [];
         $('#tablaTipoMaterial tbody tr').each(function() {
@@ -84,8 +123,7 @@ $(document).ready(function () {
             if (!idAttr) return;
             const id = idAttr.replace('fila-', '');
             
-            const btnEditar = fila.find('.btnEditarActivo');
-            const btnInactivo = fila.find('.btnEditarInactivo');
+            const btnEditar = fila.find('.btnEditarActivo, .btnEditarInactivo');
             
             let nombre = "";
             let descripcion = "";
@@ -94,11 +132,7 @@ $(document).ready(function () {
             if (btnEditar.length > 0) {
                 nombre = btnEditar.data('nombre');
                 descripcion = btnEditar.data('descripcion');
-                estado = "Activo";
-            } else if (btnInactivo.length > 0) {
-                nombre = btnInactivo.data('nombre');
-                descripcion = fila.find('td:eq(1)').text().trim();
-                estado = "Inactivo";
+                estado = fila.find('.badge').text().trim() === 'Inactivo' ? 'Inactivo' : 'Activo';
             }
 
             if (nombre) {
@@ -113,7 +147,7 @@ $(document).ready(function () {
         renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
     }
 
-    // Renderizador dinámico de filas gobernado por la matriz reactiva y DataTables
+    // Renderizador dinámico de filas con DataTables
     function renderizarTabla(estadoFiltro) {
         const tbody = $('#tablaTipoMaterial tbody');
         
@@ -143,20 +177,24 @@ $(document).ready(function () {
                         <button class="btn btn-sm btn-outline-primary btnEditarActivo me-1" 
                                 data-id="${mat.id_tipo_materia_prima}" 
                                 data-nombre="${nombreMat}" 
-                                data-descripcion="${descMat}">
+                                data-descripcion="${descMat}"
+                                data-estado="${estadoReal}">
                             <i class="bi bi-pencil-square"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger btnCambiarEstado" 
                                 data-id="${mat.id_tipo_materia_prima}" 
-                                data-nombre="${nombreMat}">
+                                data-nombre="${nombreMat}"
+                                data-estado="Inactivo">
                             <i class="bi bi-trash3-fill"></i>
                         </button>`;
                 } else {
                     acciones = `
                         <button class="btn btn-sm btn-outline-warning btnEditarInactivo" 
                                 data-id="${mat.id_tipo_materia_prima}" 
-                                data-nombre="${nombreMat}">
-                            <i class="bi bi-pencil-square"></i> Editar / Reactivar
+                                data-nombre="${nombreMat}"
+                                data-descripcion="${descMat}"
+                                data-estado="${estadoReal}">
+                            <i class="bi bi-pencil-square"></i>
                         </button>`;
                 }
 
@@ -199,14 +237,16 @@ $(document).ready(function () {
         }
     });
 
-    // ACCIÓN: REGISTRAR (Sincronizado con el CASO B de tu controlador procedimental)
+    // =========================================================================
+    // ACCIÓN: REGISTRAR
+    // =========================================================================
     $("#btnEnvio").on("click", function (e) {
         e.preventDefault();
 
         let inputNombre = $("#nombre_tipo_material");
         let inputDesc = $("#descripcion_tipo_material");
 
-        let vNom = validarCampo(inputNombre, regexNombre, "El nombre debe tener entre 3 y 50 caracteres.");
+        let vNom = validarCampo(inputNombre, regexNombre, mensajeErrorNombre);
         if (!vNom) return;
 
         $.ajax({
@@ -219,12 +259,19 @@ $(document).ready(function () {
             dataType: 'json',
             success: function(response) {
                 if(response.success) {
-                    Swal.fire({ icon: 'success', title: '¡Completado!', text: response.message, confirmButtonColor: '#10b981' });
-                    $("#formTipoMaterial")[0].reset();
-                    $("#formTipoMaterial").find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-                    $("#formTipoMaterial").find(".feedback-validacion").remove(); // Limpiar feedbacks
-                    bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMaterial')).hide();
-                    cargarMateriales();
+                    if (document.activeElement) document.activeElement.blur();
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Completado', 
+                        text: response.message, 
+                        confirmButtonColor: '#10b981',
+                        didClose: () => {
+                            // Limpiar SOLO después de registro exitoso
+                            limpiarFormulario("#formTipoMaterial");
+                            bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMaterial')).hide();
+                            cargarMateriales();
+                        }
+                    });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error de Validación', text: response.message, confirmButtonColor: '#dc3545' });
                 }
@@ -240,41 +287,56 @@ $(document).ready(function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
         const descripcion = $(this).data('descripcion');
+        const estado = $(this).data('estado') || 'Activo';
+
+        $('#edit_activo_nombre, #edit_activo_descripcion').removeClass("is-invalid is-valid");
+        $('#modalEditarActivo').find(".feedback-validacion").remove();
 
         $('#edit_activo_id').val(id);
-        $('#edit_activo_nombre').val(nombre).removeClass("is-invalid is-valid");
-        $('#edit_activo_descripcion').val(descripcion).removeClass("is-invalid is-valid");
-        $('#modalEditarActivo').find(".feedback-validacion").remove(); 
+        $('#edit_activo_nombre').val(nombre);
+        $('#edit_activo_descripcion').val(descripcion);
         
-        new bootstrap.Modal(document.getElementById('modalEditarActivo')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarActivo')).show();
     });
 
-    // ACCIÓN: GUARDAR CAMBIOS EDICIÓN ACTIVO (Sincronizado con el CASO A de tu controlador)
-    $('#btnGuardarEdicionActivo').on('click', function(e) {
+    // =========================================================================
+    // ACCIÓN: GUARDAR CAMBIOS EDICIÓN ACTIVO
+    // =========================================================================
+    $('#formEditarActivo').on('submit', function(e) {
         e.preventDefault();
         
         let id = $('#edit_activo_id').val();
         let inputNombre = $('#edit_activo_nombre');
         let inputDesc = $('#edit_activo_descripcion');
 
-        let vNom = validarCampo(inputNombre, regexNombre, "El nombre debe tener entre 3 y 50 caracteres.");
+        let vNom = validarCampo(inputNombre, regexNombre, mensajeErrorNombre);
         if (!vNom) return;
 
         $.ajax({
             url: 'index.php?controller=tipoMateriaPrima&action=listar',
             type: 'POST',
             data: {
-                id_accion: id,             
-                nuevo_estado: 'Activo',    
+                id_accion: id,            
                 nombre: inputNombre.val().trim(),
                 descripcion: inputDesc.val().trim()
             },
             dataType: 'json',
             success: function(response) {
                 if(response.success) {
-                    Swal.fire({ icon: 'success', title: 'Actualizado', text: response.message, confirmButtonColor: '#10b981' });
-                    bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
-                    cargarMateriales();
+                    if (document.activeElement) document.activeElement.blur();
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Actualizado', 
+                        text: response.message, 
+                        confirmButtonColor: '#10b981',
+                        didClose: () => {
+                            // Limpiar SOLO después de edición exitosa
+                            limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
+                            $('#edit_activo_id').val('');
+                            bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
+                            cargarMateriales();
+                        }
+                    });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
                 }
@@ -282,49 +344,13 @@ $(document).ready(function () {
         });
     });
 
-    // ACCIÓN: ABRIR MODAL EDICIÓN INACTIVO (REACTIVAR)
-    $(document).on('click', '.btnEditarInactivo', function() {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-
-        $('#edit_id_material').val(id);
-        $('#edit_nombre_material').val(nombre);
-        $('#edit_status_material').val('Inactivo'); 
-
-        new bootstrap.Modal(document.getElementById('modalEditarInactivo')).show();
-    });
-
-    // ACCIÓN: GUARDAR CAMBIOS EDICIÓN INACTIVO / REACTIVACIÓN (CASO A - Mutación rápida)
-    $('#btnGuardarEdicionInactivo').on('click', function(e) {
-        e.preventDefault();
-        let id = $('#edit_id_material').val();
-        let nuevoEstado = $('#edit_status_material').val(); 
-
-        $.ajax({
-            url: 'index.php?controller=tipoMateriaPrima&action=listar',
-            type: 'POST',
-            data: {
-                id_accion: id,
-                nuevo_estado: nuevoEstado
-            },
-            dataType: 'json',
-            success: function(response) {
-                if(response.success) {
-                    Swal.fire({ icon: 'success', title: 'Estado Modificado', text: response.message, confirmButtonColor: '#10b981' });
-                    bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
-                    cargarMateriales();
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
-                }
-            }
-        });
-    });
-
-    // ACCIÓN: INHABILITAR DIRECTO DESDE LA FILA ACTIVA (CASO A - Flujo rápido)
+    // ACCIÓN: INHABILITAR DIRECTO DESDE LA FILA ACTIVA
     $(document).on('click', '.btnCambiarEstado', function() {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
         
+        if (document.activeElement) document.activeElement.blur();
+
         Swal.fire({
             title: '¿Inhabilitar Tipo de Material?',
             text: `El registro "${nombre}" pasará a la lista de archivados.`,
@@ -357,6 +383,89 @@ $(document).ready(function () {
         });
     });
 
-    // Inicializar cargando el listado dinámico al entrar
+    // =========================================================================
+    // ACCIÓN: ABRIR MODAL EDICIÓN INACTIVO (NOMBRE + DESCRIPCIÓN + ESTADO)
+    // =========================================================================
+    $(document).on('click', '.btnEditarInactivo', function() {
+        const id = $(this).data('id');
+        const nombre = $(this).data('nombre');
+        const descripcion = $(this).data('descripcion') || '';
+        const estado = $(this).data('estado') || 'Inactivo';
+
+        // Limpiar validaciones previas
+        $('#edit_nombre_material, #edit_descripcion_material').removeClass("is-invalid is-valid");
+        $('#modalEditarInactivo').find(".feedback-validacion").remove();
+
+        // Llenar campos del modal
+        $('#edit_id_material').val(id);
+        $('#edit_nombre_material').val(nombre);
+        $('#edit_descripcion_material').val(descripcion);
+
+        if ($('#edit_status_material').length > 0) {
+            $('#edit_status_material').val(estado); // Activo o Inactivo
+        }
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarInactivo')).show();
+    });
+
+    // =========================================================================
+    // ACCIÓN: GUARDAR CAMBIOS DESDE MODAL INACTIVO (NOMBRE + DESCRIPCIÓN + ESTADO)
+    // =========================================================================
+    $('#formEditarMaterial').on('submit', function (e) {
+        e.preventDefault();
+
+        const id = $('#edit_id_material').val();
+        const nombre = $('#edit_nombre_material').val().trim();
+        const descripcion = $('#edit_descripcion_material').val().trim();
+        const nuevoEstado = $('#edit_status_material').val();
+
+        // Validación básica del nombre
+        if (!nombre) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo requerido',
+                text: 'El nombre no puede estar vacío.',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        $.ajax({
+            url: 'index.php?controller=tipoMateriaPrima&action=listar',
+            type: 'POST',
+            data: {
+                id_accion: id,
+                nombre: nombre,
+                descripcion: descripcion,
+                nuevo_estado: nuevoEstado
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response.success) {
+                    if (document.activeElement) document.activeElement.blur();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Actualizado',
+                        text: response.message || 'El registro ha sido actualizado correctamente.',
+                        confirmButtonColor: '#10b981',
+                        didClose: () => {
+                            // Limpiar SOLO después de edición exitosa
+                            limpiarFormulario("#formEditarMaterial");
+                            $('#edit_id_material').val('');
+                            bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
+                            cargarMateriales();
+                        }
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
+                }
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Error al procesar la solicitud con el servidor.', confirmButtonColor: '#dc3545' });
+            }
+        });
+    });
+
+    // Cargar datos iniciales
     cargarMateriales();
 });

@@ -76,7 +76,7 @@
     </div>
 </main>
 
-<!-- Modal Registrar Método -->
+<!-- modal de registrar -->
 <div class="modal fade modal-idealo modal-metodos" id="modalRegistrarMetodo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered"> 
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST" id="formRegistrarMetodo">
@@ -94,7 +94,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar</button>
                 </div>
             </div>
@@ -102,7 +103,7 @@
     </div>
 </div>
 
-<!-- Modal Editar Método -->
+<!-- modal pa editar -->
 <div class="modal fade modal-idealo modal-metodos" id="modalEditarMetodo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered"> 
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
@@ -121,7 +122,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </div>
@@ -136,8 +138,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="assets/js/finanzas.js"></script>
 <script>
-
-
 function cargarDatosEdicionMetodo(id, nombre) {
     document.getElementById('edit_met_id').value = id;
     document.getElementById('edit_met_nombre').value = nombre;

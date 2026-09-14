@@ -50,7 +50,7 @@
                 </div>
             </header>
 
-            <!-- Tabla Principial -->
+            <!-- Tabla Principal -->
             <div class="table-container p-3">
                 <div class="table-responsive">
                     <table class="custom-table" id="tablaTipoPedido" style="width: 100%;">
@@ -85,6 +85,7 @@
                                                             class="btn btn-sm btn-outline-primary btnEditarActivo me-1" 
                                                             data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
                                                             data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                            data-estado="<?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>"
                                                             title="Editar Tipo de Pedido">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </button>
@@ -102,8 +103,9 @@
                                                             class="btn btn-sm btn-outline-warning btnEditarInactivo" 
                                                             data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
                                                             data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            title="Reactivar Tipo de Pedido">
-                                                        <i class="bi bi-pencil-square"></i> Editar / Reactivar
+                                                            data-estado="<?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>"
+                                                            title="Editar / Reactivar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -121,7 +123,7 @@
 
     <!-- ================================================================
          MODAL PARA REGISTRAR
-         ================================================================ -->
+         ================================================================= -->
     <div class="modal fade modal-idealo" id="modalRegistrarPedido" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -162,7 +164,7 @@
 
     <!-- ================================================================
          MODAL PARA EDITAR ACTIVO
-         ================================================================ -->
+         ================================================================= -->
     <div class="modal fade modal-idealo" id="modalEditarActivo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -203,8 +205,8 @@
     </div>
 
     <!-- ================================================================
-         MODAL PARA REACTIVAR INACTIVO
-         ================================================================ -->
+         MODAL PARA EDITAR INACTIVO (NOMBRE + ESTADO)
+         ================================================================= -->
     <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -226,15 +228,18 @@
                                        class="form-control" 
                                        id="edit_nombre_pedido" 
                                        name="edit_nombre_pedido" 
-                                       readonly 
-                                       disabled>
+                                       maxlength="50" 
+                                       required>
+                                <div class="invalid-feedback">
+                                    El nombre no puede estar vacío.
+                                </div>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Estado del Registro</label>
-                                <select class="form-select border-danger" id="edit_status_pedido" name="edit_status_pedido">
-                                    <option value="Inactivo" selected>Inactivo (Archivado)</option>
-                                    <option value="Activo">Activo (Reactivar Pedido)</option>
+                                <select class="form-select border-warning" id="edit_status_pedido" name="edit_status_pedido" required>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
                                 </select>
                             </div>
                         </div>
@@ -242,7 +247,7 @@
 
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>

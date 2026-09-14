@@ -15,10 +15,10 @@ class TipoMateriaPrimaModel extends Database
     private static $status_tipo_materia;
 
     // =========================================================================
-    // CAPA 1: EXPRESIONES REGULARES STRICTS (Solo letras, números y espacios)
+    // CAPA 1: EXPRESIONES REGULARES STRICTS
     // =========================================================================
-    public static $expNombre = '/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]{3,50}$/'; 
-    public static $expDescripcion = '/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]{0,250}$/';
+    public static $expNombre = '/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\/\-\.\(\)]{3,50}$/'; 
+    public static $expDescripcion = '/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\/\-\.\(\)\,\;]{0,250}$/';
     public static $expStatus = '/^(Activo|Inactivo)$/';
 
     /**
@@ -40,11 +40,11 @@ class TipoMateriaPrimaModel extends Database
         $status = trim($status);
 
         if (empty($nombre)) {
-            return array("error" => 'El nombre del material is obligatorio.');
+            return array("error" => 'El nombre del material es obligatorio.');
         }
 
         if (!preg_match(self::$expNombre, $nombre)) {
-            return array("error" => 'El nombre solo debe contener letras, números y espacios (entre 3 y 50 caracteres).');
+            return array("error" => 'El nombre solo debe contener letras, números y caracteres (entre 3 y 50 caracteres).');
         }
 
         // Asignación temporal a atributos para que la función privada de verificación los evalúe
@@ -56,7 +56,7 @@ class TipoMateriaPrimaModel extends Database
         }
 
         if (!empty($descripcion) && !preg_match(self::$expDescripcion, $descripcion)) {
-            return array("error" => 'La descripción solo debe contener letras, números y espacios (máximo 250 caracteres).');
+            return array("error" => 'La descripción contiene caracteres no válidos (máximo 250 caracteres).');
         }
 
         if (!preg_match(self::$expStatus, $status)) {

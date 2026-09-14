@@ -12,14 +12,14 @@ $metodosModel = new MetodoPagoModel();
 $action = $_GET['action'] ?? 'pagos'; 
 
 //
-// 1. CONTROL DE PETICIONES POST (CRUD)
+//  CRUD
 // 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
     $accion = $_POST['accion'] ?? '';
-    $entidad = $_POST['entidad'] ?? ''; // 'cuenta', 'pago', 'metodo'
+    $entidad = $_POST['entidad'] ?? ''; 
 
-    // Seleccionar el modelo correspondiente de forma dinámica
+  
     $modelo = match($entidad) {
         'cuenta' => $cuentasModel,
         'pago'   => $pagosModel,
@@ -32,14 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => false,
-            'message' => '❌ Entidad no válida o no especificada.',
+            'message' => ' Entidad no válida o no especificada.',
             'evento' => $accion,
             'estado' => 'error'
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // Guardar registro
+    // guardar registro
     if ($accion === "guardar") {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 $modelo->$metodoGuardar($_POST);
                 echo json_encode([
                     'success' => true, 
-                    'message' => '✅ Registro guardado con éxito.',
+                    'message' => ' Registro guardado con éxito.',
                     'evento' => 'guardar',
                     'estado' => 'completado'
                 ], JSON_UNESCAPED_UNICODE);
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => ' ' . $e->getMessage(),
                 'evento' => 'guardar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         exit;
     }
     
-    // Editar registro
+    // editar registro
     if ($accion === "editar") {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 $modelo->$metodoEditar($_POST);
                 echo json_encode([
                     'success' => true, 
-                    'message' => '✅ Registro actualizado con éxito.',
+                    'message' => ' Registro actualizado con éxito.',
                     'evento' => 'editar',
                     'estado' => 'completado'
                 ], JSON_UNESCAPED_UNICODE);
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => '' . $e->getMessage(),
                 'evento' => 'editar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         exit;
     }
 
-    // Cambiar estado (Inhabilitar / Activar)
+    // cambiar estado 
     if ($accion === "cambiar_estado") {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
             if (method_exists($modelo, 'actualizarEstado')) {
                 $modelo->actualizarEstado($id, $nuevoEstado);
-                $mensaje = ($nuevoEstado === 'inhabilitado') ? '✅ Registro inhabilitado correctamente.' : '✅ Registro activado correctamente.';
+                $mensaje = ($nuevoEstado === 'inhabilitado') ? ' Registro inhabilitado correctamente.' : ' Registro activado correctamente.';
                 
                 echo json_encode([
                     'success' => true, 
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => ' ' . $e->getMessage(),
                 'evento' => 'cambiar_estado',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -136,10 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 }
 
 //
-// 2. CONTROL DE PETICIONES GET (CARGA DE DATOS Y REPORTES)
+//  GET CARGA DE DATOS Y REPORTES
 // 
 
-// GENERAR REPORTE PDF CON TCPDF PARA FINANZAS
 if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     if (ob_get_length()) ob_clean(); 
     
@@ -285,7 +284,7 @@ switch ($action) {
 }
 
 // 
-// 3. VERIFICACIÓN Y CARGA DE LA VISTA
+//  CARGA DE LA VISTA
 // 
 $rutaVista = __DIR__ . '/../view/finanzas/' . $action . '.php';
 

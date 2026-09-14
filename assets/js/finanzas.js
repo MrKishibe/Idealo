@@ -1,8 +1,7 @@
-$(document).ready(function () {
-    console.log("Inicialización: finanzas.js listo con validaciones dinámicas, estados y DataTables.");
+let tablaFinanzas;
 
-    // 1. Inicialización de DataTables en Español
-    let tablaFinanzas = $('.custom-table').DataTable({
+window.inicializarTabla = function() {
+    tablaFinanzas = $('.custom-table').DataTable({
         language: {
             "sProcessing":     "Procesando...",
             "sLengthMenu":     "Mostrar _MENU_ registros",
@@ -22,8 +21,37 @@ $(document).ready(function () {
         pageLength: 10,
         responsive: true
     });
+};
 
-    // 2. Filtro inicial de DataTables para ocultar inhabilitados
+window.recargarDatos = function() {
+    fetch(window.location.href)
+    .then(r => r.text())
+    .then(html => {
+        let parser = new DOMParser();
+        let doc = parser.parseFromString(html, 'text/html');
+        let newTbody = doc.querySelector('.custom-table tbody').innerHTML;
+        tablaFinanzas.destroy();
+        document.querySelector('.custom-table tbody').innerHTML = newTbody;
+        window.inicializarTabla();
+        tablaFinanzas.draw();
+    });
+};
+
+
+window.limpiarFormulario = function(btn) {
+    let form = $(btn).closest('form');
+    if (form.length > 0) {
+        form[0].reset(); // Resetea los valores escritos
+        
+   
+        form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+        form.find('.feedback-validacion').text('');
+    }
+};
+
+$(document).ready(function () {
+    window.inicializarTabla();
+
     $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
         let rowNode = settings.aoData[dataIndex].nTr;
         let estado = $(rowNode).attr('data-estado');
@@ -43,16 +71,12 @@ $(document).ready(function () {
         tablaFinanzas.draw();
     }
 
-    // 3. Expresiones regulares
     const regexTitular = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/;
     const regexIdentificador = /^[0-9]{20}$/; 
     const regexMetodo = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]{3,50}$/; 
-    
-    // --- NUEVAS REGEX PARA PAGOS ---
     const regexMonto = /^[0-9]+(\.[0-9]{1,2})?$/; 
-    const regexReferencia = /^[0-9]{6}$/; // Exactamente 6 números
+    const regexReferencia = /^[0-9]{6}$/;
 
-    // 4. Renderizador visual de alertas
     function validarCampo(input, regex, mensajeError) {
         if (!input || input.length === 0) return false;
         let domInput = input[0];
@@ -66,7 +90,6 @@ $(document).ready(function () {
 
         let valor = input.val() ? input.val().trim() : '';
 
-        // Excepción para campos opcionales (ya no aplicará para referencia porque le pondremos required)
         if (valor === '' && !domInput.hasAttribute('required')) {
             input.removeClass("is-invalid").addClass("is-valid");
             feedback.textContent = "";
@@ -86,7 +109,11 @@ $(document).ready(function () {
         }
     }
 
-    // 5. Eventos en tiempo real
+    
+    $(document).on('input', '.finanzas-form input[name="referencia"]', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
     $(document).on('keyup blur', '.finanzas-form input[name="titular"]', function() {
         validarCampo($(this), regexTitular, "Titular inválido (Debe tener entre 3 y 60 caracteres).");
     });
@@ -101,7 +128,6 @@ $(document).ready(function () {
         validarCampo($(this), regexMetodo, "Nombre inválido (Solo letras, sin números ni símbolos).");
     });
     
-    // --- EVENTOS EN TIEMPO REAL PARA PAGOS ---
     $(document).on('keyup blur', '.finanzas-form input[name="monto_pago"]', function() {
         let esValido = validarCampo($(this), regexMonto, "Monto inválido (Solo números positivos).");
         if (esValido && parseFloat($(this).val()) <= 0) {
@@ -111,7 +137,6 @@ $(document).ready(function () {
         }
     });
     
-    // Validación en tiempo real para Referencia
     $(document).on('keyup blur', '.finanzas-form input[name="referencia"]', function() {
         let val = $(this).val().trim();
         let msj = (val.length !== 6) 
@@ -120,7 +145,6 @@ $(document).ready(function () {
         validarCampo($(this), regexReferencia, msj);
     });
 
-    // 6. Intercepción de Formularios
     $('.finanzas-form').on('submit', function (e) {
         e.preventDefault();
         let formularioValido = true;
@@ -141,7 +165,6 @@ $(document).ready(function () {
             if (parseFloat(inputMonto.val()) <= 0) formularioValido = false;
         }
         
-        // Verificación estricta de referencia (6 números)
         if (inputReferencia.length > 0) { 
             if (!validarCampo(inputReferencia, regexReferencia, "Referencia obligatoria de 6 números.")) formularioValido = false; 
         }
@@ -156,7 +179,17 @@ $(document).ready(function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                Swal.fire({ icon: 'success', title: '¡Éxito!', text: data.message }).then(() => location.reload());
+                Swal.fire({ icon: 'success', title: '¡Éxito!', text: data.message, timer: 1500, showConfirmButton: false }).then(() => {
+                    formActual[0].reset();
+                    if (typeof bootstrap !== 'undefined') {
+                        const modales = document.querySelectorAll('.modal.show');
+                        modales.forEach(modal => {
+                            const modalInstance = bootstrap.Modal.getInstance(modal);
+                            if (modalInstance) modalInstance.hide();
+                        });
+                    }
+                    window.recargarDatos();
+                });
             } else {
                 Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Ocurrió un error en el servidor.' });
             }
@@ -208,7 +241,9 @@ window.cambiarEstado = function(id, entidad, nuevoEstado) {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('¡Éxito!', data.message, 'success').then(() => location.reload());
+                    Swal.fire({ title: '¡Éxito!', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false }).then(() => {
+                        window.recargarDatos();
+                    });
                 } else {
                     Swal.fire('Error', data.message, 'error');
                 }

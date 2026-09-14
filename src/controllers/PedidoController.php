@@ -1,80 +1,457 @@
 <?php
 
-namespace Idealo\Controllers;
+use Idealo\Models\PedidoModel;
 
-class PedidoController
-{
-    /**
-     * Carga y procesa la lista de pedidos de sublimación y costura.
-     */
-    public function listar(): void
-    {
-        // Simulación de datos estructurados provenientes del Modelo
-        $pedidos = [
-            [
-                'id_pedido' => 101,
-                'fecha_creacion' => '2026-06-10',
-                'fecha_entrega' => '2026-06-25',
-                'id_tipo_pedido' => 'Sublimación',
-                'descripcion' => 'Lote de 50 tazas corporativas color mate.',
-                'estado_pedido' => 'pendiente',
-                'descuento_divisa' => 15.50,
-                'monto_total' => 284.50,
-                'id_cliente' => 'C-847291 (Inversiones Alpa C.A)'
-            ],
-            [
-                'id_pedido' => 102,
-                'fecha_creacion' => '2026-06-14',
-                'fecha_entrega' => '2026-06-18',
-                'id_tipo_pedido' => 'Bordado',
-                'descripcion' => '10 Gorras estructuradas con relieve frontal.',
-                'estado_pedido' => 'completado',
-                'descuento_divisa' => 0.00,
-                'monto_total' => 120.00,
-                'id_cliente' => 'C-104922 (Carlos Mendoza)'
-            ],
-            [
-                'id_pedido' => 103,
-                'fecha_creacion' => '2026-06-16',
-                'fecha_entrega' => '2026-06-17',
-                'id_tipo_pedido' => 'Estampado',
-                'descripcion' => 'Impresión textil DTF para 5 franelas promocionales.',
-                'estado_pedido' => 'cancelado',
-                'descuento_divisa' => 5.00,
-                'monto_total' => 45.00,
-                'id_cliente' => 'C-302911 (Studio Creativo S.A.)'
-            ]
-        ];
 
-        // RUTA CORREGIDA: Sube un nivel desde src/controllers/ y entra a src/view/pedido/listar.php
-        require_once __DIR__ . '/../view/pedido/listar.php';
+
+$model = new PedidoModel();
+
+$rutaVista = __DIR__ . '/../view/pedido/listarpedido.php';
+
+
+/*
+|--------------------------------------------------------------------------
+| Respuesta JSON
+|--------------------------------------------------------------------------
+*/
+$responderJson = static function (
+    array $respuesta,
+    int $codigoHttp = 200
+): void {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
     }
 
-    /**
-     * Procesa la inserción de un nuevo registro de pedido
-     */
-    public function guardar(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Lógica de sanitización y guardado
-            // $this->modelo->insertar($_POST);
-            
-            header('Location: index.php?controller=pedido&action=listar');
-            exit;
+    http_response_code($codigoHttp);
+
+    header(
+        'Content-Type: application/json; charset=utf-8'
+    );
+
+    echo json_encode(
+        $respuesta,
+        JSON_UNESCAPED_UNICODE |
+        JSON_UNESCAPED_SLASHES
+    );
+
+    exit;
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Respuesta de error JSON
+|--------------------------------------------------------------------------
+*/
+$responderError = static function (
+    Throwable $e,
+    string $evento
+) use (
+    $responderJson
+): void {
+    $responderJson(
+        [
+            'success' => false,
+            'message' => $e->getMessage(),
+            'evento' => $evento
+        ],
+        400
+    );
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener texto desde POST
+|--------------------------------------------------------------------------
+*/
+$textoPost = static function (
+    string $campo
+): string {
+    return trim(
+        (string) (
+            $_POST[$campo] ?? ''
+        )
+    );
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener entero desde POST
+|--------------------------------------------------------------------------
+*/
+$enteroPost = static function (
+    string $campo
+): int {
+    return (int) (
+        $_POST[$campo] ?? 0
+    );
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener decimal desde POST
+|--------------------------------------------------------------------------
+*/
+$decimalPost = static function (
+    string $campo
+): float {
+    return (float) (
+        $_POST[$campo] ?? 0
+    );
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Crear estructura de datos del pedido
+|--------------------------------------------------------------------------
+*/
+$crearDatosPedido = static function () use (
+    $textoPost,
+    $enteroPost,
+    $decimalPost
+): array {
+    return [
+        'pedido' => [
+            'fecha_creacion' =>
+                $textoPost(
+                    'fecha_creacion'
+                ),
+
+            'fecha_entrega' =>
+                $textoPost(
+                    'fecha_entrega'
+                ),
+
+            'id_cliente' =>
+                $enteroPost(
+                    'id_cliente'
+                ),
+
+            'id_tipo_pedido' =>
+                $enteroPost(
+                    'id_tipo_pedido'
+                ),
+
+            'descripcion' =>
+                $textoPost(
+                    'descripcion'
+                ),
+
+            'descuento_divisa' =>
+                $decimalPost(
+                    'descuento_divisa'
+                ),
+
+            'estado_pedido' =>
+                $textoPost(
+                    'estado_pedido'
+                )
+        ],
+
+        'detalle' => [
+            'id_producto_caracteristica' =>
+                $enteroPost(
+                    'id_producto_caracteristica'
+                ),
+
+            'id_servicio' =>
+                $enteroPost(
+                    'id_servicio'
+                ),
+
+            'cantidad' =>
+                $enteroPost(
+                    'cantidad'
+                ),
+
+            'costo_mano_de_obra' =>
+                $decimalPost(
+                    'costo_mano_de_obra'
+                ),
+
+            'costo_materiales' =>
+                $decimalPost(
+                    'costo_materiales'
+                ),
+
+            'descuento_producto' =>
+                $decimalPost(
+                    'descuento_producto'
+                ),
+
+            'metodo_servicio' =>
+                $textoPost(
+                    'metodo_servicio'
+                )
+        ]
+    ];
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| AJAX: características según producto
+|--------------------------------------------------------------------------
+*/
+if (
+    ($_GET['accion'] ?? '') ===
+    'caracteristicas_por_producto'
+) {
+    try {
+        $idProducto = (int) (
+            $_GET['id_producto'] ?? 0
+        );
+
+        if ($idProducto <= 0) {
+            throw new Exception(
+                'El producto seleccionado no es válido.'
+            );
         }
-    }
 
-    /**
-     * Procesa la edición o actualización de estados del pedido
-     */
-    public function editar(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Lógica de actualización
-            // $this->modelo->actualizar($_POST['id_pedido'], $_POST);
-            
-            header('Location: index.php?controller=pedido&action=listar');
-            exit;
-        }
+        $caracteristicas =
+            $model->obtenerCaracteristicasPorProducto(
+                $idProducto
+            );
+
+        $responderJson([
+            'success' => true,
+            'data' => $caracteristicas
+        ]);
+
+    } catch (Throwable $e) {
+        $responderError(
+            $e,
+            'caracteristicas_por_producto'
+        );
     }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| AJAX: listar pedidos
+|--------------------------------------------------------------------------
+*/
+if (
+    ($_GET['accion'] ?? '') ===
+    'listar'
+) {
+    try {
+        $filtro = strtolower(
+            trim(
+                (string) (
+                    $_GET['filtro'] ??
+                    'activos'
+                )
+            )
+        );
+
+        if (
+            !in_array(
+                $filtro,
+                [
+                    'activos',
+                    'inhabilitados'
+                ],
+                true
+            )
+        ) {
+            $filtro = 'activos';
+        }
+
+        $pedidos = $model->listarPedidos(
+            $filtro
+        );
+
+        $responderJson([
+            'success' => true,
+            'data' => $pedidos
+        ]);
+
+    } catch (Throwable $e) {
+        $responderError(
+            $e,
+            'listar'
+        );
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| AJAX: obtener pedido por ID
+|--------------------------------------------------------------------------
+*/
+if (
+    ($_GET['accion'] ?? '') ===
+    'obtener'
+) {
+    try {
+        $idPedido = (int) (
+            $_GET['id'] ?? 0
+        );
+
+        if ($idPedido <= 0) {
+            throw new Exception(
+                'El identificador del pedido no es válido.'
+            );
+        }
+
+        $pedido = $model->obtenerPedido(
+            $idPedido
+        );
+
+        if (!$pedido) {
+            throw new Exception(
+                'El pedido solicitado no existe.'
+            );
+        }
+
+        $responderJson([
+            'success' => true,
+            'data' => $pedido
+        ]);
+
+    } catch (Throwable $e) {
+        $responderError(
+            $e,
+            'obtener'
+        );
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| POST: registrar, editar e inhabilitar
+|--------------------------------------------------------------------------
+*/
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $accion = trim(
+        (string) (
+            $_POST['accion'] ?? ''
+        )
+    );
+
+    try {
+        if ($accion === 'guardar') {
+            $datos = $crearDatosPedido();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Todo pedido nuevo inicia pendiente
+            |--------------------------------------------------------------------------
+            */
+            $datos['pedido']['estado_pedido'] =
+                'pendiente';
+
+            $idPedido = $model->guardarPedido(
+                $datos
+            );
+
+            $responderJson([
+                'success' => true,
+                'message' =>
+                    'Pedido registrado correctamente.',
+                'id_pedido' => $idPedido
+            ]);
+
+        } elseif ($accion === 'editar') {
+            $datos = $crearDatosPedido();
+
+            $idPedido = $enteroPost(
+                'id_pedido'
+            );
+
+            if ($idPedido <= 0) {
+                throw new Exception(
+                    'El identificador del pedido no es válido.'
+                );
+            }
+
+            $datos['id_pedido'] = $idPedido;
+
+            $model->editarPedido($datos);
+
+            $responderJson([
+                'success' => true,
+                'message' =>
+                    'Pedido actualizado correctamente.'
+            ]);
+
+        } elseif ($accion === 'inhabilitar') {
+            $idPedido = $enteroPost(
+                'id_pedido'
+            );
+
+            if ($idPedido <= 0) {
+                throw new Exception(
+                    'El identificador del pedido no es válido.'
+                );
+            }
+
+            $model->inhabilitarPedido(
+                $idPedido
+            );
+
+            $responderJson([
+                'success' => true,
+                'message' =>
+                    'Pedido inhabilitado correctamente.'
+            ]);
+
+        } else {
+            throw new Exception(
+                'La acción solicitada no es válida.'
+            );
+        }
+
+    } catch (Throwable $e) {
+        $responderError(
+            $e,
+            $accion !== '' ? $accion : 'post'
+        );
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Cargar la vista principal
+|--------------------------------------------------------------------------
+*/
+if (!file_exists($rutaVista)) {
+    http_response_code(404);
+
+    die(
+        'No existe la vista de gestión de pedidos.'
+    );
+}
+
+try {
+    $clientes = $model->obtenerClientes();
+
+    $tiposPedido = $model->obtenerTiposPedido();
+
+    $productos = $model->obtenerProductosActivos();
+
+    $servicios = $model->obtenerServicios();
+
+    require_once $rutaVista;
+
+} catch (Throwable $e) {
+    http_response_code(500);
+
+    die(
+        'Error al cargar el módulo de pedidos: ' .
+        htmlspecialchars(
+            $e->getMessage(),
+            ENT_QUOTES,
+            'UTF-8'
+        )
+    );
 }

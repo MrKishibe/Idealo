@@ -2,6 +2,7 @@ $(document).ready(function () {
     let tablaClientesDataTable = null;
     let todosLosClientes = []; 
     let verEliminados = false;
+    let debeReiniciarModal = false; // Bandera para controlar el reinicio selectivo
 
     console.log("Inicialización: cliente.js listo con depuración inteligente.");
 
@@ -20,6 +21,16 @@ $(document).ready(function () {
     function soloLetrasTeclado(e) {
         if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter', '.'].includes(e.key)) return;
         if (!/^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]$/.test(e.key)) e.preventDefault();
+    }
+
+    // Limpiador centralizado de formularios para modales
+    function limpiarFormularioModal(formId) {
+        const $form = $(formId);
+        if ($form.length) {
+            $form[0].reset();
+            $form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+            $form.find('.feedback-validación').remove();
+        }
     }
 
     // Renderizador visual de alertas individuales debajo de los inputs
@@ -70,6 +81,28 @@ $(document).ready(function () {
     setupAccesibilidadModal('modalRegistrarCliente', 'numero_de_documento');
     setupAccesibilidadModal('modalEditarCliente', 'edit_nombre_razon_social');
 
+    // --- CONTROL DE REINICIO SELECTIVO ---
+
+    // Capturar cuando se presione un botón con la clase .btn-cancelar-modal dentro del modal
+    $(document).on('click', '#modalRegistrarCliente .btn-cancelar-modal', function () {
+        debeReiniciarModal = true;
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalRegistrarCliente'));
+        if (modalInstance) modalInstance.hide();
+    });
+
+    // Evento de cierre del modal: solo limpia si fue por botón Cancelar o Registro Exitoso
+    $('#modalRegistrarCliente').on('hidden.bs.modal', function () {
+        if (debeReiniciarModal) {
+            limpiarFormularioModal('#formRegistrarCliente');
+            debeReiniciarModal = false; // Resetear la bandera para la próxima interacción
+        }
+    });
+
+    // En el modal de edición siempre es recomendable limpiar al cerrar
+    $('#modalEditarCliente').on('hidden.bs.modal', function () {
+        limpiarFormularioModal('#formEditarCliente');
+    });
+
     // Carga de Datos con detector inteligente de respuestas HTML/JSON
     function cargarClientes() {
         $.ajax({
@@ -95,7 +128,6 @@ $(document).ready(function () {
                     return;
                 }
 
-                // ADAPTACIÓN: Si es un objeto que contiene la propiedad 'clientes', extraemos su matriz interna
                 if (data && typeof data === 'object' && Array.isArray(data.clientes)) {
                     todosLosClientes = data.clientes;
                 } else if (Array.isArray(data)) {
@@ -228,9 +260,11 @@ $(document).ready(function () {
             success: function(data) {
                 if(data.success) {
                     Swal.fire({ icon: 'success', title: 'Guardado', text: data.message, confirmButtonColor: '#10b981' });
-                    $("#formRegistrarCliente")[0].reset();
-                    $("#formRegistrarCliente").find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+                    
+                    // Indicar que tras guardar exitosamente el formulario SÍ debe reiniciarse al ocultarse
+                    debeReiniciarModal = true;
                     bootstrap.Modal.getInstance(document.getElementById('modalRegistrarCliente')).hide();
+                    
                     cargarClientes();
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error de Validación', text: data.message, confirmButtonColor: '#dc3545' });

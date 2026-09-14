@@ -30,7 +30,7 @@
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                 </button>
                 
-                <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" onclick="document.getElementById('formRegistrarPago').reset();">
+                <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">
                     <i class="bi bi-cash-stack"></i> Registrar Pago
                 </button>
             </div>
@@ -54,7 +54,11 @@
                         <?php foreach ($pagos as $pago): ?>
                         <tr class="fila-pago" data-estado="<?= htmlspecialchars($pago['estado']) ?>">
                             <td><strong><?= htmlspecialchars($pago['referencia']) ?></strong></td>
-                            <td>Pedido #<?= $pago['id_pedido'] ?></td>
+                            <td>
+                                Pedido #<?= $pago['id_pedido'] ?>
+                                <br>
+                                <small class="text-muted"><?= htmlspecialchars($pago['nombre_razon_social'] . ' ' . $pago['apellido']) ?></small>
+                            </td>
                             <td class="text-success" style="font-weight: 600;">$<?= number_format($pago['monto_pago'], 2) ?></td>
                             <td><?= htmlspecialchars($pago['nombre_metodo']) ?></td>
                             <td><?= date('d/m/Y h:i A', strtotime($pago['fecha_pago'])) ?></td>
@@ -85,7 +89,7 @@
     </div>
 </main>
 
-<!-- Modal Registrar Pago -->
+<!-- modal pa registrar pagos -->
 <div class="modal fade modal-idealo" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formRegistrarPago">
@@ -103,7 +107,9 @@
                         <select class="form-select" name="id_pedido" required>
                             <option value="">Seleccione un pedido...</option>
                             <?php foreach($pedidos as $ped): ?>
-                                <option value="<?= $ped['id_pedido'] ?>">Pedido #<?= $ped['id_pedido'] ?></option>
+                                <option value="<?= $ped['id_pedido'] ?>">
+                                    Pedido #<?= $ped['id_pedido'] ?> - <?= htmlspecialchars($ped['nombre_razon_social'] . ' ' . $ped['apellido']) ?> (Total: $<?= number_format($ped['monto_total'], 2) ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -123,7 +129,6 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <!-- Etiqueta y atributos actualizados -->
                         <label class="form-label">Referencia (6 Dígitos)</label>
                         <input type="text" class="form-control" name="referencia" maxlength="6" required placeholder="Ej: 123456">
                     </div>
@@ -133,7 +138,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar Pago</button>
                 </div>
             </div>
@@ -141,7 +147,7 @@
     </div>
 </div>
 
-<!-- Modal Editar Pago -->
+<!-- modal de editar pagos  -->
 <div class="modal fade modal-idealo" id="modalEditarPago" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form">
@@ -159,7 +165,9 @@
                         <label class="form-label">Número de Pedido</label>
                         <select class="form-select" name="id_pedido" id="edit_id_pedido" required>
                             <?php foreach($pedidos as $ped): ?>
-                                <option value="<?= $ped['id_pedido'] ?>">Pedido #<?= $ped['id_pedido'] ?></option>
+                                <option value="<?= $ped['id_pedido'] ?>">
+                                    Pedido #<?= $ped['id_pedido'] ?> - <?= htmlspecialchars($ped['nombre_razon_social'] . ' ' . $ped['apellido']) ?> (Total: $<?= number_format($ped['monto_total'], 2) ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -178,7 +186,6 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <!-- Etiqueta y atributos actualizados -->
                         <label class="form-label">Referencia (6 Dígitos)</label>
                         <input type="text" class="form-control" name="referencia" id="edit_referencia" maxlength="6" required>
                     </div>
@@ -188,7 +195,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </div>

@@ -53,8 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if ($id === false || $id <= 0) {
             responderJSONTipoPedido([
                 'success' => false,
-                'message' =>
-                    '❌ El identificador del tipo de pedido no es válido.',
+                'message' => 'El identificador del tipo de pedido no es valido.',
                 'evento' => 'validacion',
                 'estado' => 'error_validacion'
             ]);
@@ -77,19 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             if ($validacion !== true) {
                 responderJSONTipoPedido([
                     'success' => false,
-                    'message' => '❌ ' . $validacion['error'],
+                    'message' => $validacion['error'],
                     'evento' => 'editar',
                     'estado' => 'error_validacion'
                 ]);
             }
 
-            $resultado =
-                TipoPedidoModel::getActualizarDatos($id);
+            $resultado = TipoPedidoModel::getActualizarDatos($id);
 
             if (isset($resultado['exitoso'])) {
                 responderJSONTipoPedido([
                     'success' => true,
-                    'message' => '✅ ' . $resultado['exitoso'],
+                    'message' => $resultado['exitoso'],
                     'evento' => 'editar',
                     'estado' => 'completado'
                 ]);
@@ -97,10 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
             responderJSONTipoPedido([
                 'success' => false,
-                'message' => '❌ ' . (
-                    $resultado['error'] ??
-                    'Error interno al actualizar el tipo de pedido.'
-                ),
+                'message' => $resultado['error'] ?? 'Error interno al actualizar el tipo de pedido.',
                 'evento' => 'editar',
                 'estado' => 'error'
             ]);
@@ -111,16 +106,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         | Cambio rápido de estado
         |--------------------------------------------------------------------------
         */
-        $respuesta =
-            TipoPedidoModel::getCambiarEstado(
-                $id,
-                $nuevoEstado
-            );
+        $respuesta = TipoPedidoModel::getCambiarEstado(
+            $id,
+            $nuevoEstado
+        );
 
         if (isset($respuesta['exitoso'])) {
             responderJSONTipoPedido([
                 'success' => true,
-                'message' => '✅ Estado actualizado con éxito.',
+                'message' => 'Estado actualizado con exito.',
                 'evento' => 'cambiar_estado',
                 'estado' => 'completado'
             ]);
@@ -128,10 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         responderJSONTipoPedido([
             'success' => false,
-            'message' => '❌ ' . (
-                $respuesta['error'] ??
-                'Error al cambiar el estado.'
-            ),
+            'message' => $respuesta['error'] ?? 'Error al cambiar el estado.',
             'evento' => 'cambiar_estado',
             'estado' => 'error'
         ]);
@@ -149,29 +140,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         $nombre = trim($_POST['nombre']);
         $status = 'Activo';
 
-        $validacion =
-            TipoPedidoModel::validarDatos(
-                $nombre,
-                $status
-            );
+        $validacion = TipoPedidoModel::validarDatos(
+            $nombre,
+            $status
+        );
 
         if ($validacion !== true) {
             responderJSONTipoPedido([
                 'success' => false,
-                'message' => '❌ ' . $validacion['error'],
+                'message' => $validacion['error'],
                 'evento' => 'guardar',
                 'estado' => 'error_validacion'
             ]);
         }
 
-        $resultado =
-            TipoPedidoModel::getRegistrarDatos();
+        $resultado = TipoPedidoModel::getRegistrarDatos();
 
         if (isset($resultado['exitoso'])) {
             responderJSONTipoPedido([
                 'success' => true,
-                'message' =>
-                    '✅ Tipo de pedido registrado con éxito.',
+                'message' => 'Tipo de pedido registrado con exito.',
                 'id' => $resultado['id'],
                 'nombre' => $nombre,
                 'status' => $status,
@@ -182,10 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         responderJSONTipoPedido([
             'success' => false,
-            'message' => '❌ ' . (
-                $resultado['error'] ??
-                'Error interno al guardar el tipo de pedido.'
-            ),
+            'message' => $resultado['error'] ?? 'Error interno al guardar el tipo de pedido.',
             'evento' => 'guardar',
             'estado' => 'error'
         ]);
@@ -209,7 +194,7 @@ if (
     ) {
         responderJSONTipoPedido([
             'success' => false,
-            'message' => '❌ ' . $pedidos['error'],
+            'message' => $pedidos['error'],
             'evento' => 'listar',
             'estado' => 'error'
         ]);
@@ -223,8 +208,7 @@ if (
         $pedidos,
         function ($pedido) {
             return (
-                ($pedido['status_tipo_servicio'] ?? '') ===
-                'Activo'
+                ($pedido['status_tipo_servicio'] ?? '') === 'Activo'
             );
         }
     );
@@ -233,8 +217,7 @@ if (
         $pedidos,
         function ($pedido) {
             return (
-                ($pedido['status_tipo_servicio'] ?? '') ===
-                'Inactivo'
+                ($pedido['status_tipo_servicio'] ?? '') === 'Inactivo'
             );
         }
     );
@@ -262,7 +245,7 @@ if (
     isset($pedidos['error'])
 ) {
     die(
-        'Error crítico de datos: ' .
+        'Error critico de datos: ' .
         htmlspecialchars(
             $pedidos['error'],
             ENT_QUOTES,

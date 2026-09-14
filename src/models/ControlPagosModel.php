@@ -16,10 +16,20 @@ class ControlPagosModel extends Database {
     }
 
     public function listarPagos() {
-        $sql = "SELECT cp.id_pago, cp.monto_abonado AS monto_pago, cp.referencia, cp.fecha_pago, cp.status_pago AS estado, cp.id_pedido, cp.id_metodo_de_pago, mp.nombre_metodo_de_pago AS nombre_metodo FROM pago cp LEFT JOIN metodo_de_pago mp ON cp.id_metodo_de_pago = mp.id_metodo_de_pago ORDER BY cp.id_pago DESC";
-        $stmt = $this->pdo->connect()->prepare($sql); $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+    $sql = "SELECT cp.id_pago, cp.monto_abonado AS monto_pago, cp.referencia, cp.fecha_pago, 
+                   cp.status_pago AS estado, cp.id_pedido, cp.id_metodo_de_pago, 
+                   mp.nombre_metodo_de_pago AS nombre_metodo, 
+                   c.nombre_razon_social, c.apellido 
+            FROM pago cp 
+            LEFT JOIN metodo_de_pago mp ON cp.id_metodo_de_pago = mp.id_metodo_de_pago 
+            LEFT JOIN pedido p ON cp.id_pedido = p.id_pedido
+            LEFT JOIN cliente c ON p.id_cliente = c.id_cliente
+            ORDER BY cp.id_pago DESC";
+            
+    $stmt = $this->pdo->connect()->prepare($sql); 
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
     
     public function obtenerMetodosPago() {
         $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago AS nombre_metodo FROM metodo_de_pago WHERE status_metodo_de_pago = 'activo'";
@@ -27,11 +37,15 @@ class ControlPagosModel extends Database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    public function obtenerPedidosActivos() {
-        $sql = "SELECT id_pedido FROM pedido";
-        $stmt = $this->pdo->connect()->prepare($sql); $stmt->execute(); 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+   public function obtenerPedidosActivos() {
+    // Se añade un JOIN con la tabla cliente para obtener el nombre y se extrae el monto_total del pedido
+    $sql = "SELECT p.id_pedido, p.monto_total, c.nombre_razon_social, c.apellido 
+            FROM pedido p 
+            INNER JOIN cliente c ON p.id_cliente = c.id_cliente";
+    $stmt = $this->pdo->connect()->prepare($sql); 
+    $stmt->execute(); 
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
     
     // --- VALIDACIÓN DE DOBLE CARA (BACKEND) ---
     protected function validar(&$datos, $esEdicion = false) {

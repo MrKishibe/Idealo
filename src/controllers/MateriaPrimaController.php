@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             responderJSONMateriaPrima([
                 'success' => false,
                 'message' =>
-                    '❌ El identificador de la materia prima no es válido.',
+                    'El identificador de la materia prima no es válido.',
                 'evento' => 'validacion',
                 'estado' => 'error_validacion'
             ]);
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             if ($validacion !== true) {
                 responderJSONMateriaPrima([
                     'success' => false,
-                    'message' => '❌ ' . $validacion['error'],
+                    'message' => $validacion['error'],
                     'evento' => 'editar',
                     'estado' => 'error_validacion'
                 ]);
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             if (isset($resultado['exitoso'])) {
                 responderJSONMateriaPrima([
                     'success' => true,
-                    'message' => '✅ ' . $resultado['exitoso'],
+                    'message' => $resultado['exitoso'],
                     'evento' => 'editar',
                     'estado' => 'completado'
                 ]);
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
             responderJSONMateriaPrima([
                 'success' => false,
-                'message' => '❌ ' . (
+                'message' => (
                     $resultado['error'] ??
                     'Error interno al actualizar la materia prima.'
                 ),
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if (isset($respuesta['exitoso'])) {
             responderJSONMateriaPrima([
                 'success' => true,
-                'message' => '✅ Estado actualizado con éxito.',
+                'message' => 'Estado actualizado con éxito.',
                 'evento' => 'cambiar_estado',
                 'estado' => 'completado'
             ]);
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         responderJSONMateriaPrima([
             'success' => false,
-            'message' => '❌ ' . (
+            'message' => (
                 $respuesta['error'] ??
                 'Error al cambiar el estado.'
             ),
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if ($validacion !== true) {
             responderJSONMateriaPrima([
                 'success' => false,
-                'message' => '❌ ' . $validacion['error'],
+                'message' => $validacion['error'],
                 'evento' => 'guardar',
                 'estado' => 'error_validacion'
             ]);
@@ -196,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             responderJSONMateriaPrima([
                 'success' => true,
                 'message' =>
-                    '✅ Materia prima registrada con éxito.',
+                    'Materia prima registrada con éxito.',
                 'id' => $resultado['id'],
                 'nombre' => $nombre,
                 'evento' => 'guardar',
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         responderJSONMateriaPrima([
             'success' => false,
-            'message' => '❌ ' . (
+            'message' => (
                 $resultado['error'] ??
                 'Error interno al guardar la materia prima.'
             ),
@@ -233,7 +233,7 @@ if (
     ) {
         responderJSONMateriaPrima([
             'success' => false,
-            'message' => '❌ ' . $materiasPrimas['error'],
+            'message' => $materiasPrimas['error'],
             'evento' => 'listar',
             'estado' => 'error'
         ]);
@@ -291,7 +291,7 @@ if (
     ) {
         responderJSONMateriaPrima([
             'success' => false,
-            'message' => '❌ ' . $tipos['error'],
+            'message' => $tipos['error'],
             'evento' => 'tipos_activos',
             'estado' => 'error'
         ]);

@@ -80,7 +80,7 @@
         </div>
     </div>
 </main>
-
+<!-- modal pa registrar -->
 <div class="modal fade modal-idealo" id="modalRegistrarCuenta" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
@@ -106,7 +106,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                 
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar</button>
                 </div>
             </div>
@@ -114,7 +115,7 @@
     </div>
 </div>
 
-<!-- Modal Editar Cuenta -->
+<!-- modal pa editar cuentas -->
 <div class="modal fade modal-idealo" id="modalEditarCuenta" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form class="finanzas-form" action="index.php?controller=Finanzas" method="POST">
@@ -141,7 +142,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </div>
@@ -156,8 +158,6 @@
 <script src="assets/js/finanzas.js"></script>
 
 <script>
-
-
 function cargarDatosEdicionCuenta(id, titular, ident, tipo, metodo) {
     document.getElementById('edit_cta_id').value = id;
     document.getElementById('edit_cta_titular').value = titular;

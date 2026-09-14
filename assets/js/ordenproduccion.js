@@ -28,6 +28,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function confirmarAccion(titulo, texto) {
+        if (typeof Swal === 'undefined') {
+            return window.confirm(texto);
+        }
+
+        const resultado = await Swal.fire({
+            icon: 'warning',
+            title: titulo,
+            text: texto,
+            showCancelButton: true,
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        });
+
+        return resultado.isConfirmed;
+    }
+
     async function enviarFormulario(form, modalElement) {
         if (!form) return;
 
@@ -125,6 +143,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         : 'bg-secondary text-white';
 
             // Se actualizaron las variables a id_produccion, fecha_terminado y descripcion_pedido
+            const botonInactivar = estado.toLowerCase() !== 'inactiva'
+                ? `
+                    <button type="button" class="btn btn-sm btn-danger btnInactivarOrden"
+                        data-id_produccion="${orden.id_produccion}"
+                        title="Inactivar orden">
+                        <i class="bi bi-x-circle"></i>
+                    </button>`
+                : '';
+
             fila.innerHTML = `
                 <td><strong>#${orden.id_produccion}</strong></td>
                 <td>${orden.fecha_de_inicio || 'N/A'}</td>
@@ -140,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         data-estado="${orden.estado_de_produccion}">
                         <i class="bi bi-pencil-square"></i>
                     </button>
+                    ${botonInactivar}
                 </td>
             `;
             tablaBody.appendChild(fila);
@@ -184,8 +212,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (formEditarOrden) {
-        formEditarOrden.addEventListener('submit', function (event) {
+        formEditarOrden.addEventListener('submit', async function (event) {
             event.preventDefault();
+
+            const estado = document.getElementById('edit_estado_de_produccion')?.value;
+            const esInactivacion = estado === 'Inactiva';
+            const confirmado = await confirmarAccion(
+                esInactivacion ? '¿Seguro que desea inactivar esta orden?' : '¿Seguro que desea editar esta orden?',
+                esInactivacion
+                    ? 'La orden dejará de aparecer entre las órdenes activas.'
+                    : 'Se guardarán los cambios realizados en la orden.'
+            );
+
+            if (!confirmado) return;
             enviarFormulario(formEditarOrden, modalEditarOrdenElement);
         });
     }
@@ -244,6 +283,38 @@ document.addEventListener('DOMContentLoaded', function () {
         // 4. Finalmente, abrimos el modal ya con los datos cargados
         const modal = new bootstrap.Modal(document.getElementById('modalEditarOrden'));
         modal.show();
+    });
+
+    document.addEventListener('click', async function (event) {
+        const target = event.target.closest('.btnInactivarOrden');
+        if (!target) return;
+
+        const idProduccion = target.getAttribute('data-id_produccion');
+        const confirmado = await confirmarAccion(
+            '¿Seguro que desea inactivar esta orden?',
+            'La orden dejará de aparecer entre las órdenes activas.'
+        );
+
+        if (!confirmado) return;
+
+        try {
+            const response = await fetch(`index.php?url=ordenproduccion/listarordenproduccion&accion=eliminar&id=${encodeURIComponent(idProduccion)}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarAlerta('success', 'Operación exitosa', data.message || 'Orden inactivada correctamente.');
+                fetchOrdenes();
+            } else {
+                mostrarAlerta('error', 'Error', data.message || 'No se pudo inactivar la orden.');
+            }
+        } catch (error) {
+            console.error('Error al inactivar la orden:', error);
+            mostrarAlerta('error', 'Error', 'No se pudo conectar con el servidor.');
+        }
     });
 
     const btnGenerarReporte = document.getElementById('btnGenerarReporte');

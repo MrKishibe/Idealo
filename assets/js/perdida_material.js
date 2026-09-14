@@ -7,16 +7,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnGenerarReporte = document.getElementById('btnGenerarReporte');
 
     let perdidas = [];
+    let tablaPerdidas;
 
-    // Esta es la función que genera la alerta. 
-    // Si SweetAlert2 está en tu HTML, se verá como en el video.
     function mostrarAlerta(tipo, titulo, texto) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 icon: tipo,
                 title: titulo,
                 text: texto,
-                timer: 2200,
+                timer: 1500,
                 showConfirmButton: false,
                 timerProgressBar: true
             });
@@ -52,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', 'Operación exitosa', data.message || 'Guardado correctamente.');
+                mostrarAlerta('success', '¡Éxito!', data.message || 'Guardado correctamente.');
                 
                 if (modalElement) {
                     const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
@@ -99,6 +98,10 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderizarTabla() {
         if (!tablaBody) return;
 
+        if (tablaPerdidas) {
+            tablaPerdidas.destroy();
+        }
+
         tablaBody.innerHTML = '';
 
         if (!Array.isArray(perdidas)) {
@@ -122,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>$${perdida.costo_unitario || '0.00'}</td>
                 <td>${produccionLabel}</td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-warning btnEditarPerdida" 
+                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarPerdida" 
                         data-id_perdida="${perdida.id_perdida_material}" 
                         data-cantidad="${perdida.cantidad_perdida}" 
                         data-fecha="${perdida.fecha_de_registro}" 
@@ -136,11 +139,26 @@ document.addEventListener('DOMContentLoaded', function () {
             tablaBody.appendChild(fila);
         });
 
-        if (perdidas.length === 0) {
-            const fila = document.createElement('tr');
-            fila.innerHTML = '<td colspan="7" class="text-center text-muted py-4">No hay pérdidas registradas para mostrar.</td>';
-            tablaBody.appendChild(fila);
-        }
+        tablaPerdidas = $('#tablaPerdidasMaterial').DataTable({
+            language: {
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sSearch": "Buscar:",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                }
+            },
+            pageLength: 10,
+            responsive: true
+        });
     }
 
     if (formRegistrarPerdida) {

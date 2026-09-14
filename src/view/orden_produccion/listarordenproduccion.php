@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Gestión de Órdenes de Producción</title>
+    
+    <!-- Rutas de fuentes e íconos actualizadas basadas en el módulo de pedidos -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
     <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <!-- Se reemplazó la ruta antigua por la correcta local -->
     <link rel="stylesheet" href="assets/css/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
@@ -40,8 +44,7 @@
             </header>
 
             <div class="table-container p-3">
-                <!-- Se agregó max-height y overflow-y para el scroll -->
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <div class="table-responsive">
                     <table class="custom-table" id="tablaOrdenProduccion" style="width: 100%;">
                         <thead>
                             <tr>
@@ -54,6 +57,7 @@
                             </tr>
                         </thead>
                         <tbody id="tbodyOrdenProduccion">
+                            <!-- Filas dinámicas -->
                         </tbody>
                     </table>
                 </div>
@@ -61,6 +65,7 @@
         </div>
     </main>
 
+    <!-- Modal Registrar Orden -->
     <div class="modal fade modal-idealo" id="modalRegistrarOrden" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -102,7 +107,6 @@
                                 </select>
                             </div>
                             
-                            <!-- Nuevo bloque: Asignar Trabajadores -->
                             <div class="col-12">
                                 <label class="form-label">Asignar Trabajadores</label>
                                 <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
@@ -120,7 +124,6 @@
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <!-- Fin del nuevo bloque -->
                             
                         </div>
                     </div>
@@ -133,6 +136,7 @@
         </div>
     </div>
 
+    <!-- Modal Editar Orden -->
     <div class="modal fade modal-idealo" id="modalEditarOrden" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -174,8 +178,7 @@
                                     <option value="Inactiva">Inactiva</option>
                                 </select>
 
-                                <!-- Bloque: Editar Trabajadores Asignados -->
-                            <div class="col-12">
+                            <div class="col-12 mt-3">
                                 <label class="form-label">Modificar Trabajadores Asignados</label>
                                 <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
                                     <?php if (!empty($empleados)): ?>
@@ -192,7 +195,6 @@
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <!-- Fin del bloque -->
                              
                             </div>
                         </div>
@@ -211,6 +213,8 @@
     <script src="assets/js/jquery.dataTables.min.js"></script>
     <script src="assets/js/dataTables.bootstrap5.min.js"></script>
     <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/modulos-tablas.js"></script>
+    <script src="assets/js/ordenproduccion.js"></script>
 
     <script>
         function toggleMenu(id) {
@@ -225,9 +229,6 @@
             container.classList.toggle('open');
         }
     </script>
-
-    <script src="assets/js/ordenproduccion.js"></script>
-
 </body>
 
 </html>

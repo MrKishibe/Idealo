@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalEditarConsumoElement = document.getElementById('modalEditarConsumo');
 
     let consumos = [];
+    let tablaConsumos;
 
     function mostrarAlerta(tipo, titulo, texto) {
         if (typeof Swal !== 'undefined') {
@@ -13,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 icon: tipo,
                 title: titulo,
                 text: texto,
-                timer: 2200,
+                timer: 1500,
                 showConfirmButton: false,
                 timerProgressBar: true
             });
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', 'Operación exitosa', data.message || 'Guardado correctamente.');
+                mostrarAlerta('success', '¡Éxito!', data.message || 'Guardado correctamente.');
                 if (modalElement) {
                     const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
                     modalInstance.hide();
@@ -94,14 +95,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderizarTabla() {
         if (!tablaBody) return;
 
+        if (tablaConsumos) {
+            tablaConsumos.destroy();
+        }
+
         tablaBody.innerHTML = '';
 
-        if (!Array.isArray(consumos) || consumos.length === 0) {
-            const fila = document.createElement('tr');
-            fila.innerHTML = '<td colspan="7" class="text-center text-muted py-4">No hay consumos registrados para mostrar.</td>';
-            tablaBody.appendChild(fila);
-            return;
-        }
+        if (!Array.isArray(consumos)) consumos = [];
 
         consumos.forEach(consumo => {
             const costoTotal = (Number(consumo.costo_unitario || 0) * Number(consumo.cantidad_usada || 0)).toFixed(2);
@@ -133,6 +133,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 </td>
             `;
             tablaBody.appendChild(fila);
+        });
+
+        tablaConsumos = $('#tablaConsumos').DataTable({
+            language: {
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sSearch": "Buscar:",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                }
+            },
+            pageLength: 10,
+            responsive: true
         });
     }
 

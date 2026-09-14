@@ -53,13 +53,13 @@
                     <li>
                         <a href="index.php?controller=tipoMateriaPrima&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/tags.svg" alt="Tipo de Material" class="menu-icon">
-                            <span>Tipo de Material</span>
+                            <span>Tipo Materia Prima</span>
                         </a>
                     </li>
                     <li>
                         <a href="index.php?controller=producto&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/tags.svg" alt="Catálogo Productos" class="menu-icon">
-                            <span>Catálogo Productos</span>
+                            <span> Productos</span> 
                         </a>
                     </li>
                 </ul>
@@ -77,19 +77,19 @@
                     <li>
                         <a href="index.php?controller=pedido&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/receipt.svg" alt="Ver Pedidos" class="menu-icon">
-                            <span>Ver Pedidos</span>
+                            <span> Pedido</span>
                         </a>
                     </li>
                     <li>
                         <a href="index.php?controller=servicio&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/wrench-adjustable.svg" alt="Servicios Extra" class="menu-icon">
-                            <span>Servicios Extra</span>
+                            <span>Servicio </span>
                         </a>
                     </li>
                     <li>
                         <a href="index.php?controller=tipoPedido&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/clipboard-check-fill.svg" alt="Tipo Pedido" class="menu-icon">
-                            <span>Tipo Pedido</span>
+                            <span>Tipo De Pedido</span>
                         </a>
                     </li>
                 </ul>
@@ -107,7 +107,7 @@
                     <li>
                         <a href="index.php?controller=cliente&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/person-gear.svg" alt="Gestión de Clientes" class="menu-icon">
-                            <span>Gestión de Clientes</span>
+                            <span>Gestionar Clientes</span>
                         </a>
                     </li>
                 </ul>
@@ -125,7 +125,7 @@
                     <li>
                         <a href="index.php?controller=Ordenproduccion&action=listarordenproduccion" class="menu-item">
                             <img src="assets/Img/Iconos/activity.svg" alt="Órdenes Activas" class="menu-icon">
-                            <span>Órdenes Activas</span>
+                            <span>Órdenen De Producción</span>
                         </a>
                     </li>
                     <li>
@@ -137,7 +137,7 @@
                     <li>
                         <a href="index.php?controller=perdidaMaterial&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/trash3.svg" alt="Pérdidas" class="menu-icon">
-                            <span>Pérdidas</span>
+                            <span>Pérdida De Material</span>
                         </a>
                     </li>
                 </ul>
@@ -155,19 +155,19 @@
                     <li>
                         <a href="index.php?controller=finanzas&action=pagos" class="menu-item">
                             <img src="assets/Img/Iconos/cash-stack.svg" alt="Control de Pagos" class="menu-icon">
-                            <span>Control de Pagos</span>
+                            <span>Pagos</span>
                         </a>
                     </li>
                     <li>
                         <a href="index.php?controller=finanzas&action=cuentas" class="menu-item">
                             <img src="assets/Img/Iconos/bank.svg" alt="Cuentas Bancarias" class="menu-icon">
-                            <span>Cuentas Bancarias</span>
+                            <span>Cuenta De Empresa</span>
                         </a>
                     </li>
                     <li>
                         <a href="index.php?controller=finanzas&action=metodos" class="menu-item">
                             <img src="assets/Img/Iconos/credit-card.svg" alt="Métodos de Pago" class="menu-icon">
-                            <span>Métodos de Pago</span>
+                            <span>Método de Pago</span>
                         </a>
                     </li>
                 </ul>

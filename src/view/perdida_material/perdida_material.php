@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Pérdidas de Material</title> 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
 </head>
@@ -26,7 +25,7 @@
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                 </button>
                 
-                <button type="button" class="btn btn-danger px-4" data-bs-toggle="modal" data-bs-target="#modalRegistrarPerdida" style="border-radius: 12px; font-weight: 600;">
+                <button type="button" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#modalRegistrarPerdida" style="border-radius: 12px; font-weight: 600;">
                     <i class="bi bi-trash3-fill me-1"></i> Registrar Pérdida
                 </button>
             </header>
@@ -68,7 +67,7 @@
                                     <td class="px-4 py-3"><?php echo htmlspecialchars($produccionLabel); ?></td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="d-flex justify-content-center gap-2">
-                                            <button class="btn btn-sm btn-light border btnEditarPerdida" data-bs-toggle="modal" data-bs-target="#modalEditarPerdida"
+                                            <button class="btn btn-sm btn-outline-primary btnEditarPerdida" data-bs-toggle="modal" data-bs-target="#modalEditarPerdida"
                                                 data-id_perdida="<?php echo htmlspecialchars($perdida['id_perdida_material'] ?? ''); ?>"
                                                 data-cantidad="<?php echo htmlspecialchars($perdida['cantidad_perdida'] ?? ''); ?>"
                                                 data-fecha="<?php echo htmlspecialchars($perdida['fecha_de_registro'] ?? ''); ?>"
@@ -76,9 +75,6 @@
                                                 data-id_produccion="<?php echo htmlspecialchars($perdida['id_produccion'] ?? ''); ?>"
                                                 data-motivo="<?php echo htmlspecialchars($perdida['motivo'] ?? ''); ?>">
                                                 <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" type="button">
-                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -159,7 +155,7 @@
                     </div>
                     <div class="modal-footer px-4 pb-4 pt-3 border-0">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger">Registrar</button>
+                        <button type="submit" class="btn btn-success">Registrar</button>
                     </div>
                 </form>
             </div>
@@ -239,8 +235,8 @@
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/jquery.dataTables.min.js"></script>
     <script src="assets/js/dataTables.bootstrap5.min.js"></script>
-    
     <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/modulos-tablas.js"></script>
 
     <script src="assets/js/perdida_material.js"></script>
 </body>

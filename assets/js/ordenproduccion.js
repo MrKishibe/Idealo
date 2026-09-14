@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let verInactivas = false;
     let ordenes = [];
+    let tablaOrdenes;
 
     const formRegistrarOrden = document.getElementById('formRegistrarOrden');
     const formEditarOrden = document.getElementById('formEditarOrden');
@@ -19,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 icon: tipo,
                 title: titulo,
                 text: texto,
-                timer: 2200,
+                timer: 1500,
                 showConfirmButton: false,
                 timerProgressBar: true
             });
@@ -34,13 +35,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const resultado = await Swal.fire({
-            icon: 'warning',
             title: titulo,
             text: texto,
+            icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Sí, continuar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Confirmar',
+            cancelButtonText: 'Cancelar'
         });
 
         return resultado.isConfirmed;
@@ -73,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', 'Operación exitosa', data.message || 'Guardado correctamente.');
+                mostrarAlerta('success', '¡Éxito!', data.message || 'Guardado correctamente.');
                 if (modalElement) {
                     const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
                     modalInstance.hide();
@@ -119,21 +120,20 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderizarTabla() {
         if (!tablaBody) return;
 
+        if (tablaOrdenes) {
+            tablaOrdenes.destroy();
+        }
+
         tablaBody.innerHTML = '';
 
         if (!Array.isArray(ordenes)) {
             ordenes = [];
         }
 
-        const filtradas = ordenes.filter(orden => {
-            const estado = String(orden.estado_de_produccion ?? '').toLowerCase();
-            const esInactiva = estado === 'inactiva';
-            return verInactivas ? esInactiva : !esInactiva;
-        });
-
-        filtradas.forEach(orden => {
+        ordenes.forEach(orden => {
             const fila = document.createElement('tr');
             const estado = String(orden.estado_de_produccion ?? '');
+            const estadoNormalizado = estado.toLowerCase() === 'inactiva' ? 'inhabilitado' : 'activo';
             const estadoClase = estado.toLowerCase() === 'finalizado'
                 ? 'bg-success text-white'
                 : estado.toLowerCase() === 'en proceso'
@@ -142,13 +142,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         ? 'bg-danger text-white'
                         : 'bg-secondary text-white';
 
-            // Se actualizaron las variables a id_produccion, fecha_terminado y descripcion_pedido
+            fila.setAttribute('data-estado', estadoNormalizado);
+
             const botonInactivar = estado.toLowerCase() !== 'inactiva'
                 ? `
-                    <button type="button" class="btn btn-sm btn-danger btnInactivarOrden"
+                    <button type="button" class="btn btn-sm btn-outline-danger btnInactivarOrden"
                         data-id_produccion="${orden.id_produccion}"
                         title="Inactivar orden">
-                        <i class="bi bi-x-circle"></i>
+                        <i class="bi bi-trash-fill"></i>
                     </button>`
                 : '';
 
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${orden.descripcion_pedido || 'Sin descripción'} (Cant: ${orden.cantidad || 0})</td>
                 <td><span class="badge ${estadoClase}">${estado || 'Sin estado'}</span></td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-warning btnEditarOrden" 
+                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarOrden" 
                         data-id_produccion="${orden.id_produccion}" 
                         data-fecha_inicio="${orden.fecha_de_inicio}" 
                         data-fecha_terminado="${orden.fecha_terminado}" 
@@ -173,18 +174,43 @@ document.addEventListener('DOMContentLoaded', function () {
             tablaBody.appendChild(fila);
         });
 
-        if (filtradas.length === 0) {
-            const fila = document.createElement('tr');
-            fila.innerHTML = '<td colspan="6" class="text-center text-muted py-4">No hay órdenes de producción para mostrar.</td>';
-            tablaBody.appendChild(fila);
-        }
+        tablaOrdenes = $('#tablaOrdenProduccion').DataTable({
+            language: {
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sSearch": "Buscar:",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                }
+            },
+            pageLength: 10,
+            responsive: true
+        });
+
+        tablaOrdenes.draw();
     }
+
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        if (settings.nTable.id !== 'tablaOrdenProduccion') return true;
+
+        const fila = settings.aoData[dataIndex].nTr;
+        const estado = fila.getAttribute('data-estado');
+        return verInactivas ? estado === 'inhabilitado' : estado !== 'inhabilitado';
+    });
 
     if (btnAlternarEstado) {
         btnAlternarEstado.addEventListener('click', function () {
             verInactivas = !verInactivas;
             if (verInactivas) {
-                btnAlternarEstado.setAttribute('data-vista', 'inactivas');
+                btnAlternarEstado.setAttribute('data-vista', 'inhabilitados');
                 btnAlternarEstado.classList.remove('btn-outline-secondary');
                 btnAlternarEstado.classList.add('btn-secondary');
                 iconoEstado.classList.remove('bi-eye-slash-fill');
@@ -200,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 txtBotonEstado.textContent = 'Ver inactivas';
                 tituloVista.textContent = 'Gestión de Órdenes de Producción';
             }
-            renderizarTabla();
+            if (tablaOrdenes) tablaOrdenes.draw();
         });
     }
 
@@ -306,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', 'Operación exitosa', data.message || 'Orden inactivada correctamente.');
+                mostrarAlerta('success', '¡Éxito!', data.message || 'Orden inactivada correctamente.');
                 fetchOrdenes();
             } else {
                 mostrarAlerta('error', 'Error', data.message || 'No se pudo inactivar la orden.');

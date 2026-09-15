@@ -19,12 +19,12 @@ $(document).ready(function () {
         if (vistaActual === 'activos') {
             tablaEmpleados.column(5).search('^Activo$', true, false).draw();
             $('#txtBotonEstado').text('Ver inhabilitados');
-            $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
+            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye-slash.svg');
             $('#tituloVista').text('Gestión de Empleados');
         } else {
             tablaEmpleados.column(5).search('^Inactivo$', true, false).draw();
             $('#txtBotonEstado').text('Ver activos');
-            $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
+            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye.svg');
             $('#tituloVista').text('Empleados Inhabilitados');
         }
     }
@@ -53,12 +53,12 @@ $(document).ready(function () {
                                 ' data-direccion="' + (emp.direccion || '') + '"' +
                                 ' data-cargo="' + (emp.cargo || '') + '"' +
                                 ' data-salario="' + (emp.salario || '') + '">' +
-                                '<i class="bi bi-pencil-square"></i>' +
+                                '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-azul" alt="Editar">' +
                             '</button>' +
                             '<button class="btn btn-sm btn-outline-danger btnCambiarEstado"' +
                                 ' data-id="' + emp.id_empleado + '"' +
                                 ' data-nombre="' + nombre + '">' +
-                                '<i class="bi bi-trash3-fill"></i>' +
+                                '<img src="assets/Img/Iconos/trash.svg" class="icono-svg icono-rojo" alt="Inhabilitar">' +
                             '</button>' +
                         '</div>';
                 } else {
@@ -67,7 +67,7 @@ $(document).ready(function () {
                             '<button class="btn btn-sm btn-outline-warning btnEditarInactivo"' +
                                 ' data-id="' + emp.id_empleado + '"' +
                                 ' data-nombre="' + nombre + '">' +
-                                '<i class="bi bi-pencil-square"></i> Editar / Reactivar' +
+                                '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo me-1" alt="Editar"> Editar / Reactivar' +
                             '</button>' +
                         '</div>';
                 }
@@ -75,7 +75,7 @@ $(document).ready(function () {
                 tablaEmpleados.row.add([
                     '<span class="fw-bold">' + emp.cedula + '</span>',
                     '<div class="fw-bold text-dark">' + nombre + '</div>' +
-                        '<small class="text-muted"><i class="bi bi-geo-alt"></i> ' + (emp.direccion || 'Sin dirección') + '</small>',
+                        '<small class="text-muted"><img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección"> ' + (emp.direccion || 'Sin dirección') + '</small>',
                     emp.telefono || 'N/A',
                     emp.cargo,
                     '<span class="text-success fw-bold">$' + parseFloat(emp.salario).toFixed(2) + '</span>',

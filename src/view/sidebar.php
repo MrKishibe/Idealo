@@ -183,7 +183,7 @@
                 </button>
                 <ul id="sub-usuarios" class="submenu">
                     <li>
-                        <a href="index.php?controller=gestionUsuario&action=listar" class="menu-item">
+                        <a href="index.php?controller=usuario&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/person-gear.svg" alt="Gestionar Usuarios" class="menu-icon">
                             <span>Gestionar Usuarios</span>
                         </a>

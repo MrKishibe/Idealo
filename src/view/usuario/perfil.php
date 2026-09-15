@@ -1,3 +1,14 @@
+<?php
+if (!isset($perfil)) {
+    $perfil = null;
+}
+
+$nombreMostrar   = $perfil['nombre_usuario'] ?? 'Usuario';
+$subRol          = ucfirst($perfil['tipo_de_usuario'] ?? 'Sin rol');
+$estadoReal      = strtolower($perfil['status_usuario'] ?? 'activo');
+$estadoBadge     = $estadoReal === 'activo' ? 'bg-success' : 'bg-danger';
+$tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -5,8 +16,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Usuario - Idéalo</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
+    <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
+    <link rel="stylesheet" href="assets/css/iconos.css">
     <style>
         .dashboard-layout {
             display: flex;
@@ -96,14 +109,14 @@
             transform: scale(1.03);
         }
 
-        .profile-avatar i {
-            font-size: 4.5rem;
-            color: var(--gris-mutado);
+        .profile-avatar img {
+            width: 72px;
+            height: 72px;
         }
 
         .profile-header-text {
             margin-left: 160px;
-            margin-bottom: 32px;
+            margin-bottom: 16px;
             min-height: 50px;
         }
 
@@ -112,24 +125,26 @@
             font-weight: 700;
             color: var(--azul-opaco);
             letter-spacing: -0.02em;
+            margin-bottom: 6px;
         }
 
         .profile-header-text p {
             color: var(--gris-mutado);
             font-size: 14.5px;
             margin-top: 4px;
+            margin-bottom: 8px;
             font-weight: 500;
         }
 
         .profile-separator {
             border: 0;
             border-top: 1px solid #edf2f7;
-            margin: 28px 0;
+            margin: 24px 0;
         }
 
         .profile-info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 24px;
         }
 
@@ -145,6 +160,7 @@
             color: var(--gris-mutado);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin: 0;
         }
 
         .info-value {
@@ -156,9 +172,9 @@
             font-weight: 500;
         }
 
-        .info-value i {
-            color: var(--gris-mutado);
-            font-size: 16px;
+        .info-value img {
+            width: 16px;
+            height: 16px;
         }
 
         .badge-role {
@@ -176,6 +192,7 @@
             display: flex;
             justify-content: flex-end;
             gap: 14px;
+            flex-wrap: wrap;
         }
 
         .btn-idealo-secondary {
@@ -231,6 +248,9 @@
             }
         }
     </style>
+</head>
+
+<body>
 
     <div class="dashboard-layout">
 
@@ -255,13 +275,16 @@
 
                             <div class="profile-avatar-wrapper">
                                 <div class="profile-avatar">
-                                    <i class="bi bi-person-fill"></i>
+                                    <img src="assets/Img/Iconos/person-fill.svg" class="icono-svg icono-gris" alt="Avatar">
                                 </div>
                             </div>
 
                             <div class="profile-header-text">
-                                <h2>Admin</h2>
-                                <p>Administrador de Sistema</p>
+                                <h2 id="perfilNombreH2"><?php echo htmlspecialchars($nombreMostrar); ?></h2>
+                                <p id="perfilSubtitulo">
+                                    <?php echo htmlspecialchars($subRol); ?>
+                                    <span class="badge <?php echo $estadoBadge; ?> ms-2"><?php echo ucfirst($estadoReal); ?></span>
+                                </p>
                             </div>
 
                             <hr class="profile-separator">
@@ -269,26 +292,57 @@
                             <div class="profile-info-grid">
 
                                 <div class="info-group">
-                                    <label>Cedula</label>
+                                    <label>Nombre de Usuario</label>
                                     <div class="info-value">
-                                        <i class="bi bi-envelope"></i>
-                                        <span>1234567777</span>
+                                        <img src="assets/Img/Iconos/person-badge.svg" class="icono-svg icono-gris" alt="Nombre de usuario">
+                                        <span id="perfilNombreUsuario"><?php echo htmlspecialchars($perfil['nombre_usuario'] ?? 'N/A'); ?></span>
                                     </div>
                                 </div>
+
+                                <?php if ($tieneEmpleado): ?>
+                                    <div class="info-group">
+                                        <label>Nombre Completo</label>
+                                        <div class="info-value">
+                                            <img src="assets/Img/Iconos/person-lines-fill.svg" class="icono-svg icono-gris" alt="Nombre completo">
+                                            <span><?php echo htmlspecialchars(trim(($perfil['nombres'] ?? '') . ' ' . ($perfil['apellidos'] ?? ''))); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="info-group">
+                                        <label>Cédula</label>
+                                        <div class="info-value">
+                                            <img src="assets/Img/Iconos/credit-card.svg" class="icono-svg icono-gris" alt="Cédula">
+                                            <span><?php echo htmlspecialchars($perfil['cedula'] ?? 'N/A'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="info-group">
+                                        <label>Teléfono</label>
+                                        <div class="info-value">
+                                            <img src="assets/Img/Iconos/telephone.svg" class="icono-svg icono-gris" alt="Teléfono">
+                                            <span><?php echo htmlspecialchars($perfil['telefono'] ?? 'N/A'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="info-group">
+                                        <label>Cargo</label>
+                                        <div class="info-value">
+                                            <img src="assets/Img/Iconos/briefcase.svg" class="icono-svg icono-gris" alt="Cargo">
+                                            <span><?php echo htmlspecialchars($perfil['cargo'] ?? 'N/A'); ?></span>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
 
                                 <div class="info-group">
                                     <label>Rol de Usuario</label>
                                     <div class="info-value">
-                                        <i class="bi bi-shield-lock"></i>
-                                        <span class="badge-role">Admin</span>
+                                        <img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-gris" alt="Rol">
+                                        <span class="badge-role"><?php echo htmlspecialchars($subRol); ?></span>
                                     </div>
                                 </div>
 
                                 <div class="info-group">
-                                    <label>Fecha de Registro</label>
+                                    <label>ID de Usuario</label>
                                     <div class="info-value">
-                                        <i class="bi bi-calendar3"></i>
-                                        <span>4 de Junio, 2026</span>
+                                        <img src="assets/Img/Iconos/hash.svg" class="icono-svg icono-gris" alt="ID">
+                                        <span>#<?php echo htmlspecialchars($perfil['id_usuario'] ?? ''); ?></span>
                                     </div>
                                 </div>
 
@@ -297,11 +351,11 @@
                             <hr class="profile-separator">
 
                             <div class="profile-actions">
-                                <button class="btn-idealo-secondary">
-                                    <i class="bi bi-key"></i> Cambiar Contraseña
+                                <button class="btn-idealo-secondary" data-bs-toggle="modal" data-bs-target="#modalCambiarContrasena">
+                                    <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-gris" alt="Cambiar contraseña"> Cambiar Contraseña
                                 </button>
-                                <button class="btn-idealo-success">
-                                    <i class="bi bi-pencil-square"></i> Editar Perfil
+                                <button class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalEditarPerfil" onclick="cargarPerfilEdicion()">
+                                    <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-blanco" alt="Editar perfil"> Editar Perfil
                                 </button>
                             </div>
 
@@ -313,3 +367,79 @@
         </main>
 
     </div>
+
+    <!-- MODAL CAMBIAR CONTRASEÑA -->
+    <div class="modal fade modal-idealo" id="modalCambiarContrasena" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-sm icono-gris" alt="Cambiar contraseña">
+                        <span>Cambiar Contraseña</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formCambiarContrasena" class="needs-validation" novalidate>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Contraseña Actual</label>
+                                <input type="password" class="form-control" id="contrasena_actual" name="contrasena_actual" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Nueva Contraseña</label>
+                                <input type="password" class="form-control" id="contrasena_nueva" name="contrasena_nueva" minlength="6" placeholder="Mínimo 6 caracteres" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Confirmar Nueva Contraseña</label>
+                                <input type="password" class="form-control" id="confirmar_contrasena_nueva" minlength="6" placeholder="Repite la nueva contraseña" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Actualizar Contraseña</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR PERFIL -->
+    <div class="modal fade modal-idealo" id="modalEditarPerfil" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-sm icono-gris" alt="Editar perfil">
+                        <span>Editar Perfil</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarPerfil" class="needs-validation" novalidate>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nombre de Usuario</label>
+                                <input type="text" class="form-control" id="perfil_nombre_usuario" name="nombre_usuario" maxlength="20" required>
+                                <small class="text-muted">Entre 3 y 20 caracteres (letras, números o guiones bajos).</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/jquery-3.7.0.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/perfil.js"></script>
+
+</body>
+
+</html>

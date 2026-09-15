@@ -1,0 +1,117 @@
+/* ==========================================================================
+   ICONOS.CSS - Estilos Globales para Iconos Locales SVG del Sistema Idéalo
+   Compatible con cualquier vista y módulo
+   ========================================================================== */
+
+/* Regla base para imágenes SVG locales */
+.icono-svg {
+    display: inline-block;
+    vertical-align: middle;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+/* Tamaños de iconos */
+.icono-xs { width: 12px; height: 12px; }
+.icono-sm { width: 16px; height: 16px; }
+.icono-md { width: 20px; height: 20px; }
+.icono-lg { width: 24px; height: 24px; }
+.icono-xl { width: 32px; height: 32px; }
+
+/* Filtros de color para etiquetas <img> con SVGs */
+.icono-blanco {
+    filter: brightness(0) invert(1);
+}
+
+.icono-azul {
+    filter: invert(36%) sepia(93%) saturate(1476%) hue-rotate(203deg) brightness(98%) contrast(97%);
+}
+
+.icono-rojo {
+    filter: invert(24%) sepia(86%) saturate(4897%) hue-rotate(352deg) brightness(93%) contrast(92%);
+}
+
+.icono-verde {
+    filter: invert(27%) sepia(45%) saturate(762%) hue-rotate(88deg) brightness(96%) contrast(92%);
+}
+
+.icono-gris {
+    filter: invert(41%) sepia(11%) saturate(541%) hue-rotate(178deg) brightness(94%) contrast(89%);
+}
+
+.icono-amarillo {
+    filter: invert(65%) sepia(74%) saturate(1500%) hue-rotate(12deg) brightness(100%) contrast(95%);
+}
+
+/* ==========================================================================
+   Botones de acción cuadrados con bordes
+   ========================================================================== */
+.btn-accion-edit {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid #3b82f6 !important;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-accion-edit:hover {
+    background-color: #eff6ff;
+}
+
+.btn-accion-edit .icono-svg,
+.btn-accion-edit img {
+    width: 15px;
+    height: 15px;
+    filter: invert(36%) sepia(93%) saturate(1476%) hue-rotate(203deg) brightness(98%) contrast(97%);
+}
+
+.btn-accion-delete {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid #ef4444 !important;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-accion-delete:hover {
+    background-color: #fef2f2;
+}
+
+.btn-accion-delete .icono-svg,
+.btn-accion-delete img {
+    width: 15px;
+    height: 15px;
+    filter: invert(24%) sepia(86%) saturate(4897%) hue-rotate(352deg) brightness(93%) contrast(92%);
+}
+
+.btn-accion-reactivar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #f59e0b !important;
+    color: #d97706 !important;
+    background-color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-accion-reactivar:hover {
+    background-color: #fffbeb;
+}

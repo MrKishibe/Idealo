@@ -1,18 +1,50 @@
+// Configuración de tallas fijas según el tipo
+const CONFIG_TALLAS = {
+    "Ropa": {
+        tallas: ["s", "m", "l", "xl", "xxl"],
+        lblPrenda: "Tipo de Prenda",
+        placeholderPrenda: "Ej: Camiseta, Camisa, Pantalón",
+        placeholderMaterial: "Ej: Algodón, Poliéster, Lino",
+        lblTalla: "Tallas disponibles (Ropa)"
+    },
+    "Accesorio": {
+        tallas: ["pequeño", "mediano", "grande", "extragrande"],
+        lblPrenda: "Tipo de Accesorio",
+        placeholderPrenda: "Ej: Bolso, Gorra, Mochila, Cartera",
+        placeholderMaterial: "Ej: Cuero, Lona, Sintético, Metal",
+        lblTalla: "Tamaños / Medidas (Accesorio)"
+    }
+};
+
+let tablaProductos = null;
+
 document.addEventListener("DOMContentLoaded", function () {
     if ($.fn.DataTable.isDataTable('#tablaProductos')) {
         $('#tablaProductos').DataTable().destroy();
     }
 
-    const tabla = $('#tablaProductos').DataTable({
+    // Configuración exacta del DataTables con idioma en español
+    tablaProductos = $('#tablaProductos').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            lengthMenu: "Mostrar _MENU_ registros",
+            zeroRecords: "No se encontraron resultados",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            infoEmpty: "Mostrando 0 a 0 de 0 registros",
+            infoFiltered: "(filtrado de un total de _MAX_ registros)",
+            search: "Buscar:",
+            paginate: {
+                first: "Primero",
+                last: "Último",
+                next: "Siguiente",
+                previous: "Anterior"
+            }
         },
         pageLength: 10,
         responsive: true,
         order: [[0, 'desc']]
     });
 
-    // LÓGICA DE FILTRADO IGUAL A CUENTA EMPRESARIAL
+    // BOTÓN VER INHABILITADOS / ACTIVOS CON CAMBIO DE ICONO LOCAL
     const btnAlternarEstado = document.getElementById("btnAlternarEstado");
     if (btnAlternarEstado) {
         btnAlternarEstado.addEventListener("click", function () {
@@ -25,99 +57,301 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.setAttribute("data-vista", "inhabilitados");
                 this.classList.replace("btn-outline-secondary", "btn-secondary");
                 txtBoton.innerText = "Ver Activos";
-                icono.classList.replace("bi-eye-slash-fill", "bi-eye-fill");
-                titulo.innerText = "Productos Inhabilitados";
+                if (icono) icono.src = "assets/Img/Iconos/eye.svg";
+                if (titulo) titulo.innerText = "Productos Inhabilitados";
                 
-                // Filtramos la columna 3 (Estado) buscando la palabra inactivo
-                tabla.column(3).search("inactivo").draw();
+                // Columna 7 es ESTADO
+                tablaProductos.column(7).search("inactivo").draw();
             } else {
                 this.setAttribute("data-vista", "activos");
                 this.classList.replace("btn-secondary", "btn-outline-secondary");
                 txtBoton.innerText = "Ver inhabilitados";
-                icono.classList.replace("bi-eye-fill", "bi-eye-slash-fill");
-                titulo.innerText = "Catálogo de Productos";
+                if (icono) icono.src = "assets/Img/Iconos/eye-slash.svg";
+                if (titulo) titulo.innerText = "Catálogo de Productos";
                 
-                // Filtramos la columna 3 (Estado) buscando la palabra activo
-                tabla.column(3).search("activo").draw();
+                // Columna 7 es ESTADO
+                tablaProductos.column(7).search("activo").draw();
             }
         });
 
-        // Al cargar el módulo, filtra automáticamente para ver solo los activos
-        tabla.column(3).search("activo").draw();
+        // Filtrar activos al cargar
+        tablaProductos.column(7).search("activo").draw();
     }
 
+    // CAMBIO DE TIPO EN REGISTRO
+    const regTipo = document.getElementById('reg_tipo_de_producto');
+    if (regTipo) {
+        regTipo.addEventListener('change', function () {
+            actualizarCamposPorTipo('reg', this.value);
+        });
+    }
+
+    // CAMBIO DE TIPO EN EDICIÓN ACTIVO
+    const editTipo = document.getElementById('edit_activo_tipo_de_producto');
+    if (editTipo) {
+        editTipo.addEventListener('change', function () {
+            const seleccionadas = obtenerTallasSeleccionadas('edit');
+            actualizarCamposPorTipo('edit', this.value, seleccionadas);
+        });
+    }
+
+    // BOTÓN EDITAR ACTIVO (DELEGACIÓN DE EVENTOS)
+    $(document).on('click', '.btnEditarActivo', function () {
+        const id = $(this).data('id');
+        const nombre = $(this).data('nombre');
+        const tipo = $(this).data('tipo') || 'Ropa';
+        const prenda = $(this).data('prenda');
+        const material = $(this).data('material');
+        const color = $(this).data('color');
+        const tallasStr = $(this).data('tallas') || '';
+        const tallasArray = tallasStr ? tallasStr.toString().split(',').map(s => s.trim()) : [];
+
+        $('#edit_activo_id_producto').val(id);
+        $('#edit_activo_nombre_producto').val(nombre);
+        $('#edit_activo_tipo_de_producto').val(tipo);
+        $('#edit_activo_tipo_de_prenda').val(prenda);
+        $('#edit_activo_detalle_material').val(material);
+        $('#edit_activo_color').val(color);
+        $('#edit_activo_status_producto').val('activo');
+
+        actualizarCamposPorTipo('edit', tipo, tallasArray);
+
+        $('#modalEditarActivo').modal('show');
+    });
+
+    // BOTÓN EDITAR INACTIVO / REACTIVAR (DELEGACIÓN DE EVENTOS)
+    $(document).on('click', '.btnEditarInactivo', function () {
+        const id = $(this).data('id');
+        const nombre = $(this).data('nombre');
+
+        $('#edit_inactivo_id_producto').val(id);
+        $('#edit_inactivo_nombre').val(nombre);
+        $('#edit_inactivo_status').val('inactivo');
+
+        $('#modalEditarInactivo').modal('show');
+    });
+
+    // GUARDAR REACTIVACIÓN EN MODAL INACTIVO
+    const btnGuardarInactivo = document.getElementById('btnGuardarEdicionInactivo');
+    if (btnGuardarInactivo) {
+        btnGuardarInactivo.addEventListener('click', function () {
+            const id = $('#edit_inactivo_id_producto').val();
+            const nuevoEstado = $('#edit_inactivo_status').val();
+
+            if (nuevoEstado === 'inactivo') {
+                $('#modalEditarInactivo').modal('hide');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('id_producto', id);
+            formData.append('status_producto', nuevoEstado);
+
+            fetch('index.php?controller=producto&action=cambiarEstado', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    $('#modalEditarInactivo').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Reactivado!',
+                        text: data.message,
+                        confirmButtonColor: '#1e5631'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
+        });
+    }
+
+    // BOTÓN INACTIVAR (CAMBIAR ESTADO DESDE LA TABLA)
+    $(document).on('click', '.btnCambiarEstado', function () {
+        const id = $(this).data('id');
+        const nombre = $(this).data('nombre');
+
+        Swal.fire({
+            title: '¿Inactivar producto?',
+            text: `El producto "${nombre}" y sus variantes pasarán a la sección de inhabilitados.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, inactivar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const formData = new FormData();
+                formData.append('id_producto', id);
+                formData.append('status_producto', 'inactivo');
+
+                fetch('index.php?controller=producto&action=cambiarEstado', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Inactivado!',
+                            text: data.message,
+                            confirmButtonColor: '#1e5631'
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                    }
+                })
+                .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
+            }
+        });
+    });
+
+    // SUBMIT FORMULARIO REGISTRAR
     const formRegistrar = document.getElementById('formRegistrarProducto');
     if (formRegistrar) {
         formRegistrar.addEventListener('submit', function (e) {
             e.preventDefault();
-            fetch('index.php?controller=producto&action=guardar', { method: 'POST', body: new FormData(formRegistrar) })
+
+            const tallas = obtenerTallasSeleccionadas('reg');
+            if (tallas.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Talla requerida',
+                    text: 'Debe seleccionar al menos una talla o medida para el producto.'
+                });
+                return;
+            }
+
+            fetch('index.php?controller=producto&action=guardar', {
+                method: 'POST',
+                body: new FormData(formRegistrar)
+            })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
                     $('#modalRegistrarProducto').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message, confirmButtonColor: '#10b981' }).then(() => location.reload());
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Registrado!',
+                        text: data.message,
+                        confirmButtonColor: '#1e5631'
+                    }).then(() => location.reload());
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#dc2626' });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
-            }).catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
         });
     }
 
-    const formEditar = document.getElementById('formEditarProducto');
+    // SUBMIT FORMULARIO EDITAR ACTIVO
+    const formEditar = document.getElementById('formEditarActivo');
     if (formEditar) {
         formEditar.addEventListener('submit', function (e) {
             e.preventDefault();
-            fetch('index.php?controller=producto&action=guardar', { method: 'POST', body: new FormData(formEditar) })
+
+            const tallas = obtenerTallasSeleccionadas('edit');
+            if (tallas.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Talla requerida',
+                    text: 'Debe seleccionar al menos una talla o medida para el producto.'
+                });
+                return;
+            }
+
+            fetch('index.php?controller=producto&action=guardar', {
+                method: 'POST',
+                body: new FormData(formEditar)
+            })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    $('#modalEditarProducto').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Actualizado!', text: data.message, confirmButtonColor: '#2b4c7e' }).then(() => location.reload());
+                    $('#modalEditarActivo').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Actualizado!',
+                        text: data.message,
+                        confirmButtonColor: '#1e5631'
+                    }).then(() => location.reload());
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#dc2626' });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
-            }).catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
         });
     }
+
+    // Inicializar formulario de registro
+    limpiarFormularioCrear();
 });
+
+function actualizarCamposPorTipo(prefix, tipo, tallasSeleccionadas = []) {
+    const tipoKey = (tipo.toLowerCase().includes('accesorio')) ? 'Accesorio' : 'Ropa';
+    const config = CONFIG_TALLAS[tipoKey];
+
+    const lblPrenda = document.getElementById(`${prefix}_lbl_subtipo`);
+    const inputPrenda = document.getElementById(`${prefix}_tipo_de_prenda`);
+    const inputMaterial = document.getElementById(`${prefix}_detalle_material`);
+    const lblTalla = document.getElementById(`${prefix}_lbl_talla`);
+    const contenedorTallas = document.getElementById(`${prefix}_contenedor_tallas`);
+
+    if (lblPrenda) lblPrenda.innerText = config.lblPrenda;
+    if (inputPrenda) inputPrenda.placeholder = config.placeholderPrenda;
+    if (inputMaterial) inputMaterial.placeholder = config.placeholderMaterial;
+    if (lblTalla) lblTalla.innerText = config.lblTalla;
+
+    if (contenedorTallas) {
+        contenedorTallas.innerHTML = '';
+        config.tallas.forEach((talla, index) => {
+            const idCheck = `${prefix}_talla_${index}_${talla}`;
+            const estaMarcada = tallasSeleccionadas.some(t => t.toLowerCase() === talla.toLowerCase());
+
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <input type="checkbox" class="btn-check" name="tallas[]" id="${idCheck}" value="${talla}" ${estaMarcada ? 'checked' : ''} autocomplete="off">
+                <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="${idCheck}">
+                    ${talla.toUpperCase()}
+                </label>
+            `;
+            contenedorTallas.appendChild(div);
+        });
+    }
+}
+
+function obtenerTallasSeleccionadas(prefix) {
+    const contenedor = document.getElementById(`${prefix}_contenedor_tallas`);
+    if (!contenedor) return [];
+    const checks = contenedor.querySelectorAll('input[name="tallas[]"]:checked');
+    return Array.from(checks).map(c => c.value);
+}
+
+function seleccionarTodasTallas(prefix) {
+    const contenedor = document.getElementById(`${prefix}_contenedor_tallas`);
+    if (contenedor) {
+        contenedor.querySelectorAll('input[name="tallas[]"]').forEach(c => c.checked = true);
+    }
+}
+
+function deseleccionarTodasTallas(prefix) {
+    const contenedor = document.getElementById(`${prefix}_contenedor_tallas`);
+    if (contenedor) {
+        contenedor.querySelectorAll('input[name="tallas[]"]').forEach(c => c.checked = false);
+    }
+}
 
 function limpiarFormularioCrear() {
     const form = document.getElementById('formRegistrarProducto');
     if (form) form.reset();
-}
 
-function cargarDatosEditar(prod) {
-    document.getElementById('edit_id_producto').value = prod.id_producto || '';
-    document.getElementById('edit_nombre_producto').value = prod.nombre_producto || '';
-    document.getElementById('edit_tipo_de_producto').value = prod.tipo_de_producto || '';
-    document.getElementById('edit_status_producto').value = prod.status_producto || 'activo';
-}
-
-function alternarEstadoProducto(idProducto, estadoActual) {
-    const nuevoEstado = (estadoActual === 'activo') ? 'inactivo' : 'activo';
-    const tituloAlerta = (nuevoEstado === 'inactivo') ? '¿Inactivar producto?' : '¿Reactivar producto?';
-    const textoAlerta = (nuevoEstado === 'inactivo') ? 'El producto se ocultará de esta lista y pasará a la sección de inhabilitados.' : 'El producto volverá al catálogo activo.';
-    const colorBoton = (nuevoEstado === 'inactivo') ? '#dc2626' : '#10b981';
-
-    Swal.fire({
-        title: tituloAlerta, text: textoAlerta, icon: 'warning', showCancelButton: true,
-        confirmButtonColor: colorBoton, cancelButtonColor: '#64748b',
-        confirmButtonText: (nuevoEstado === 'inactivo') ? 'Sí, inactivar' : 'Sí, activar', cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('id_producto', idProducto);
-            formData.append('status_producto', nuevoEstado);
-
-            fetch('index.php?controller=producto&action=cambiarEstado', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({ icon: 'success', title: '¡Completado!', text: data.message, confirmButtonColor: '#10b981' }).then(() => location.reload());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#dc2626' });
-                }
-            }).catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' }));
-        }
-    });
+    const regTipo = document.getElementById('reg_tipo_de_producto');
+    if (regTipo) {
+        regTipo.value = "Ropa";
+        actualizarCamposPorTipo('reg', 'Ropa');
+    }
 }

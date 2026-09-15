@@ -86,14 +86,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (vistaActual === "activos") {
                 this.setAttribute("data-vista", "inhabilitados");
-                this.classList.replace("btn-outline-secondary", "btn-secondary");
                 txtBoton.innerText = "Ver Activos";
                 if (icono) icono.src = "assets/Img/Iconos/eye.svg";
                 if (titulo) titulo.innerText = "Productos Inhabilitados";
                 filtrarPorEstado("inactivo");
             } else {
                 this.setAttribute("data-vista", "activos");
-                this.classList.replace("btn-secondary", "btn-outline-secondary");
                 txtBoton.innerText = "Ver inhabilitados";
                 if (icono) icono.src = "assets/Img/Iconos/eye-slash.svg";
                 if (titulo) titulo.innerText = "Catálogo de Productos";

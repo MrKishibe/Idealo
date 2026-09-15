@@ -163,18 +163,10 @@ if (!isset($productos)) {
                                 <label class="form-label">Color</label>
                                 <input type="text" class="form-control" id="reg_color" name="color" placeholder="Ej. Negro, Azul, Blanco" required>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Estado</label>
-                                <select class="form-select" name="status_producto">
-                                    <option value="activo" selected>Activo</option>
-                                    <option value="inactivo">Inactivo</option>
-                                </select>
-                            </div>
-
                             <!-- TALLAS MÚLTIPLES -->
-                            <div class="col-12 mt-2">
-                                <div class="p-3 bg-light border rounded">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="col-md-6 mt-md-0 mt-3">
+                                <div class="p-2 bg-light border rounded mt-2">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
                                         <label class="form-label fw-bold mb-0 text-dark" id="reg_lbl_talla">Tallas disponibles (Ropa)</label>
                                         <div>
                                             <button type="button" class="btn btn-sm btn-link p-0 me-2 text-decoration-none" onclick="seleccionarTodasTallas('reg')">Seleccionar todas</button>
@@ -184,7 +176,6 @@ if (!isset($productos)) {
                                     <div class="d-flex flex-wrap gap-2" id="reg_contenedor_tallas">
                                         <!-- Opciones generadas según el tipo -->
                                     </div>
-                                    <small class="text-muted d-block mt-2">Selecciona las tallas disponibles para este producto.</small>
                                 </div>
                             </div>
                         </div>

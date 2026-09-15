@@ -41,21 +41,21 @@ class CuentaEmpresaModel extends Database {
     
     protected function validar(array &$datos, bool $esEdicion = false): void {
         if ($esEdicion && empty($datos['id_cuenta'])) {
-            throw new Exception("❌ El ID de cuenta es obligatorio para editar.");
+            throw new Exception("El ID de cuenta es obligatorio para editar.");
         }
         
         if (!preg_match(self::REGEX_TITULAR, $datos['titular'] ?? '')) {
-            throw new Exception("❌ El nombre del titular contiene caracteres inválidos o no cumple la longitud esperada.");
+            throw new Exception("El nombre del titular contiene caracteres inválidos o no cumple la longitud esperada.");
         }
 
         if (!preg_match(self::REGEX_IDENTIFICADOR, $datos['identificador'] ?? '')) {
-            throw new Exception("❌ El número de cuenta debe tener exactamente 20 dígitos numéricos.");
+            throw new Exception("El número de cuenta debe tener exactamente 20 dígitos numéricos.");
         }
 
         // Bloqueo por doble existencia en DB
         $id_excluir = $esEdicion ? $datos['id_cuenta'] : null;
         if ($this->existeCuenta($datos['identificador'], $id_excluir)) {
-            throw new Exception("❌ Ya existe una cuenta registrada con este número.");
+            throw new Exception("Ya existe una cuenta registrada con este número.");
         }
     }
 

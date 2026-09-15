@@ -114,7 +114,7 @@ $(document).ready(function () {
                 try {
                     data = JSON.parse(respuestaCruda);
                 } catch (e) {
-                    console.error("%c⚠️ ERROR DETECTADO DESDE PHP (No es un JSON válido):", "color: #ff3333; font-weight: bold; font-size: 14px;");
+                    console.error("%cERROR DETECTADO DESDE PHP (No es un JSON válido):", "color: #ff3333; font-weight: bold; font-size: 14px;");
                     console.log(respuestaCruda);
                     todosLosClientes = [];
                     renderizarTabla(verEliminados ? 'eliminados' : 'activos');

@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             }
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Pérdida de material registrada con éxito.',
+                'message' => 'Pérdida de material registrada con éxito.',
                 'evento' => 'guardar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'guardar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -45,14 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             }
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Pérdida de material actualizada con éxito.',
+                'message' => 'Pérdida de material actualizada con éxito.',
                 'evento' => 'editar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'editar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()

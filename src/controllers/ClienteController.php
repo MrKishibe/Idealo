@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $model->guardar($_POST);
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Cliente registrado con éxito.',
+                'message' => 'Cliente registrado con éxito.',
                 'evento' => 'guardar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'guardar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -40,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $model->editar($_POST);
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Cliente actualizado con éxito.',
+                'message' => 'Cliente actualizado con éxito.',
                 'evento' => 'editar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'editar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -95,14 +95,14 @@ if (isset($_GET["id"]) && isset($_GET["accion"]) && $_GET["accion"] === "elimina
         $model->cambiarEstado($id, 'inactivo');
         echo json_encode([
             'success' => true, 
-            'message' => '✅ Cliente inhabilitado correctamente.',
+            'message' => 'Cliente inhabilitado correctamente.',
             'evento' => 'eliminar',
             'estado' => 'completado'
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Exception $e) {
         echo json_encode([
             'success' => false, 
-            'message' => '❌ ' . $e->getMessage(),
+            'message' => $e->getMessage(),
             'evento' => 'eliminar',
             'estado' => 'error'
         ], JSON_UNESCAPED_UNICODE);

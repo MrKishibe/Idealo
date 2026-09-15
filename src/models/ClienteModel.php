@@ -57,20 +57,20 @@ class ClienteModel extends Database
     private function validar(bool $esEdicion = false): void
     {
         if ($esEdicion && empty($this->id_cliente)) {
-            throw new Exception("❌ [Validación] El ID del cliente es obligatorio para editar.");
+            throw new Exception("[Validación] El ID del cliente es obligatorio para editar.");
         }
 
         $tiposValidos = ['natural', 'extranjero', 'juridico', 'jurídico'];
         if (!in_array(strtolower($this->tipo_de_documento), $tiposValidos)) {
             $tipoDocumentoDesc = empty($this->tipo_de_documento) ? '(vacío)' : $this->tipo_de_documento;
-            throw new Exception("❌ [Validación] El tipo de documento '{$tipoDocumentoDesc}' no es válido.");
+            throw new Exception("[Validación] El tipo de documento '{$tipoDocumentoDesc}' no es válido.");
         }
 
         if (empty($this->numero_de_documento)) {
-            throw new Exception("❌ [Validación] El número de documento es obligatorio.");
+            throw new Exception("[Validación] El número de documento es obligatorio.");
         }
         if (!preg_match(self::REGEX_DOC, $this->numero_de_documento)) {
-            throw new Exception("❌ [Validación] El número de documento '{$this->numero_de_documento}' no tiene un formato válido.");
+            throw new Exception("[Validación] El número de documento '{$this->numero_de_documento}' no tiene un formato válido.");
         }
 
         // Validación de duplicados llamando al método privado de persistencia
@@ -78,58 +78,58 @@ class ClienteModel extends Database
         if ($clienteExistente) {
             $idExistente = $clienteExistente['id_cliente'] ?? null;
             if (!$esEdicion) {
-                throw new Exception("❌ [Validación] El número de documento '{$this->numero_de_documento}' ya se encuentra registrado.");
+                throw new Exception("[Validación] El número de documento '{$this->numero_de_documento}' ya se encuentra registrado.");
             } else {
                 if ($idExistente !== null && intval($idExistente) !== $this->id_cliente) {
-                    throw new Exception("❌ [Validación] La cédula '{$this->numero_de_documento}' ya pertenece a otro cliente.");
+                    throw new Exception("[Validación] La cédula '{$this->numero_de_documento}' ya pertenece a otro cliente.");
                 }
             }
         }
 
         if (empty($this->nombre_razon_social)) {
-            throw new Exception("❌ [Validación] El nombre o razón social es obligatorio.");
+            throw new Exception("[Validación] El nombre o razón social es obligatorio.");
         }
         if (!preg_match(self::REGEX_TEXTO, $this->nombre_razon_social)) {
-            throw new Exception("❌ [Validación] El nombre '{$this->nombre_razon_social}' es inválido.");
+            throw new Exception("[Validación] El nombre '{$this->nombre_razon_social}' es inválido.");
         }
 
         $tipoDocUnificado = strtolower($this->tipo_de_documento);
         if ($tipoDocUnificado !== 'juridico' && $tipoDocUnificado !== 'jurídico') {
             if (empty($this->apellido)) {
-                throw new Exception("❌ [Validación] El apellido es obligatorio para personas naturales.");
+                throw new Exception("[Validación] El apellido es obligatorio para personas naturales.");
             }
             if (!preg_match(self::REGEX_TEXTO, $this->apellido)) {
-                throw new Exception("❌ [Validación] El apellido '{$this->apellido}' es inválido.");
+                throw new Exception("[Validación] El apellido '{$this->apellido}' es inválido.");
             }
         } else {
             $this->apellido = ''; 
         }
 
         if (empty($this->correo)) {
-            throw new Exception("❌ [Validación] El correo electrónico es obligatorio.");
+            throw new Exception("[Validación] El correo electrónico es obligatorio.");
         }
         if (!preg_match(self::REGEX_CORREO, $this->correo)) {
-            throw new Exception("❌ [Validación] El correo '{$this->correo}' tiene un formato incorrecto.");
+            throw new Exception("[Validación] El correo '{$this->correo}' tiene un formato incorrecto.");
         }
 
         if (empty($this->telefono)) {
-            throw new Exception("❌ [Validación] El teléfono es obligatorio.");
+            throw new Exception("[Validación] El teléfono es obligatorio.");
         }
         
         $telefonoSanitizado = preg_replace('/[^0-9]/', '', $this->telefono);
         if (!preg_match(self::REGEX_TELEFONO, $telefonoSanitizado)) {
-            throw new Exception("❌ [Validación] El teléfono no tiene un formato válido de Venezuela.");
+            throw new Exception("[Validación] El teléfono no tiene un formato válido de Venezuela.");
         }
         $this->telefono = $telefonoSanitizado;
 
         if (empty($this->direccion) || strlen($this->direccion) < 5) {
-            throw new Exception("❌ [Validación] La dirección es obligatoria (mínimo 5 caracteres).");
+            throw new Exception("[Validación] La dirección es obligatoria (mínimo 5 caracteres).");
         }
 
         if ($esEdicion) {
             $estadosValidos = ['activo', 'inactivo'];
             if (!in_array(strtolower($this->status_cliente), $estadosValidos)) {
-                throw new Exception("❌ [Validación] El estado proporcionado no es válido.");
+                throw new Exception("[Validación] El estado proporcionado no es válido.");
             }
         }
     }

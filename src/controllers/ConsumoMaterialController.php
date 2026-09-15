@@ -18,14 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
             echo json_encode([
                 'success' => true,
-                'message' => '✅ Consumo de material registrado con éxito.',
+                'message' => 'Consumo de material registrado con éxito.',
                 'evento' => 'guardar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false,
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'guardar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -46,14 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
             echo json_encode([
                 'success' => true,
-                'message' => '✅ Consumo de material actualizado con éxito.',
+                'message' => 'Consumo de material actualizado con éxito.',
                 'evento' => 'editar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false,
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'editar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -78,7 +78,7 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'listar') {
     } catch (\Exception $e) {
         echo json_encode([
             'success' => false,
-            'message' => '❌ ' . $e->getMessage(),
+            'message' => $e->getMessage(),
             'evento' => 'listar',
             'estado' => 'error',
             'validacion' => $e->getMessage()

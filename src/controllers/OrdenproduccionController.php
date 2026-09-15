@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $model->guardarOrden($_POST);
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Orden de producción registrada con éxito.',
+                'message' => 'Orden de producción registrada con éxito.',
                 'evento' => 'guardar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'guardar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -40,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $model->editarOrden($_POST);
             echo json_encode([
                 'success' => true, 
-                'message' => '✅ Orden de producción actualizada con éxito.',
+                'message' => 'Orden de producción actualizada con éxito.',
                 'evento' => 'editar',
                 'estado' => 'completado'
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([
                 'success' => false, 
-                'message' => '❌ ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'evento' => 'editar',
                 'estado' => 'error',
                 'validacion' => $e->getMessage()
@@ -68,14 +68,14 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "eliminar" && isset($_GET["id"
         $model->inactivarOrden($_GET["id"]);
         echo json_encode([
             'success' => true, 
-            'message' => '✅ Orden de producción inactivada con éxito.',
+            'message' => 'Orden de producción inactivada con éxito.',
             'evento' => 'inactivar',
             'estado' => 'completado'
         ], JSON_UNESCAPED_UNICODE);
     } catch (\Exception $e) {
         echo json_encode([
             'success' => false, 
-            'message' => '❌ ' . $e->getMessage(),
+            'message' => $e->getMessage(),
             'evento' => 'inactivar',
             'estado' => 'error',
             'validacion' => $e->getMessage()
@@ -98,7 +98,7 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "listar") {
     } catch (\Exception $e) {
         echo json_encode([
             'success' => false, 
-            'message' => '❌ ' . $e->getMessage(),
+            'message' => $e->getMessage(),
             'evento' => 'listar',
             'estado' => 'error',
             'validacion' => $e->getMessage()
@@ -121,7 +121,7 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "obtener_empleados" && isset($
     } catch (\Exception $e) {
         echo json_encode([
             'success' => false, 
-            'message' => '❌ ' . $e->getMessage()
+            'message' => $e->getMessage()
         ], JSON_UNESCAPED_UNICODE);
     }
     exit;

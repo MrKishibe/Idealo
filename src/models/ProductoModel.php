@@ -73,7 +73,7 @@ class ProductoModel
                 if ($this->verificarDuplicado($nombre, $id)) {
                     return array("error" => 'Ya existe un producto registrado con ese nombre.');
                 }
-                
+
                 $this->nombre_producto  = $nombre;
                 $this->tipo_de_producto = $tipo;
                 $this->status_producto  = $status;

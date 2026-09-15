@@ -7,20 +7,23 @@ use Exception;
 
 require_once dirname(__DIR__) . '/models/ProductoModel.php';
 
-class ProductoController {
+class ProductoController
+{
     private $model;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         $this->model = new ProductoModel();
     }
 
-    public function listar() {
+    public function listar()
+    {
         // Carga el catálogo completo para que DataTables pueda alternar
         $productos = $this->model->listarTodos();
-        
+
         $basePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'view' . DIRECTORY_SEPARATOR;
         if (is_dir($basePath . 'productos')) {
             $vista = $basePath . 'productos' . DIRECTORY_SEPARATOR . 'listar.php';
@@ -30,7 +33,8 @@ class ProductoController {
         require_once $vista;
     }
 
-    public function guardar() {
+    public function guardar()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Content-Type: application/json');
             try {
@@ -55,7 +59,8 @@ class ProductoController {
         }
     }
 
-    public function cambiarEstado() {
+    public function cambiarEstado()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Content-Type: application/json');
             $id = intval($_POST['id_producto'] ?? 0);

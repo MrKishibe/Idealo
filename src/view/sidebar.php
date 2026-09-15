@@ -59,7 +59,7 @@
                     <li>
                         <a href="index.php?controller=producto&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/tags.svg" alt="Catálogo Productos" class="menu-icon">
-                            <span> Productos</span> 
+                            <span> Productos</span>
                         </a>
                     </li>
                 </ul>
@@ -186,18 +186,6 @@
                         <a href="index.php?controller=gestionUsuario&action=listar" class="menu-item">
                             <img src="assets/Img/Iconos/person-gear.svg" alt="Gestionar Usuarios" class="menu-icon">
                             <span>Gestionar Usuarios</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="index.php?controller=rol&action=listar" class="menu-item">
-                            <img src="assets/Img/Iconos/person-badge.svg" alt="Roles" class="menu-icon">
-                            <span>Roles</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="index.php?controller=permiso&action=listar" class="menu-item">
-                            <img src="assets/Img/Iconos/key.svg" alt="Permisos" class="menu-icon">
-                            <span>Permisos</span>
                         </a>
                     </li>
                 </ul>

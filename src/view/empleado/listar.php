@@ -129,7 +129,7 @@ if (!isset($empleados)) {
                                     <option value="Costurero">Costurero</option>
                                     <option value="Contador">Contador</option>
                                     <option value="Cortador">Cortador</option>
-                                    <option value="Panchero">Panchero</option>
+                                    <option value="Plachero">Plachero</option>
                                     <option value="Recepcionista">Recepcionista</option>
                                     <option value="Editor">Editor</option>
                                 </select>
@@ -186,7 +186,7 @@ if (!isset($empleados)) {
                                     <option value="Costurero">Costurero</option>
                                     <option value="Contador">Contador</option>
                                     <option value="Cortador">Cortador</option>
-                                    <option value="Panchero">Panchero</option>
+                                    <option value="Plachero">Plachero</option>
                                     <option value="Recepcionista">Recepcionista</option>
                                     <option value="Editor">Editor</option>
                                 </select>

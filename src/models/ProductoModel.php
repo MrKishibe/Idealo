@@ -52,7 +52,7 @@ class ProductoModel extends Database
                     FROM producto p
                     LEFT JOIN producto_caracteristica pc 
                         ON p.id_producto = pc.id_producto 
-                        AND pc.status_producto_caracteristica = 'activo'
+                        AND (p.status_producto = 'inactivo' OR pc.status_producto_caracteristica = 'activo')
                     LEFT JOIN caracteristica c 
                         ON pc.id_caracteristica = c.id_caracteristica
                     GROUP BY 
@@ -97,7 +97,7 @@ class ProductoModel extends Database
                     FROM producto p
                     LEFT JOIN producto_caracteristica pc 
                         ON p.id_producto = pc.id_producto 
-                        AND pc.status_producto_caracteristica = 'activo'
+                        AND (p.status_producto = 'inactivo' OR pc.status_producto_caracteristica = 'activo')
                     LEFT JOIN caracteristica c 
                         ON pc.id_caracteristica = c.id_caracteristica
                     WHERE p.status_producto = 'activo'

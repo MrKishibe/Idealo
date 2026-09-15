@@ -1,4 +1,3 @@
-// Configuración de tallas fijas según el tipo
 const CONFIG_TALLAS = {
     "Ropa": {
         tallas: ["s", "m", "l", "xl", "xxl"],
@@ -18,12 +17,11 @@ const CONFIG_TALLAS = {
 
 let tablaProductos = null;
 
-document.addEventListener("DOMContentLoaded", function () {
+function initTablaProductos() {
     if ($.fn.DataTable.isDataTable('#tablaProductos')) {
         $('#tablaProductos').DataTable().destroy();
     }
 
-    // Configuración exacta del DataTables con idioma en español
     tablaProductos = $('#tablaProductos').DataTable({
         language: {
             lengthMenu: "Mostrar _MENU_ registros",
@@ -43,8 +41,41 @@ document.addEventListener("DOMContentLoaded", function () {
         responsive: true,
         order: [[0, 'desc']]
     });
+}
 
-    // BOTÓN VER INHABILITADOS / ACTIVOS CON CAMBIO DE ICONO LOCAL
+function filtrarPorEstado(estado) {
+    const patron = '(^|[\\s\\-])' + estado + '([\\s\\-]|$)';
+    tablaProductos.column(7).search(patron, true, false).draw();
+}
+
+function aplicarFiltroEstado() {
+    const btnEstado = document.getElementById("btnAlternarEstado");
+    const vista = btnEstado ? btnEstado.getAttribute("data-vista") : "activos";
+    filtrarPorEstado(vista === "inhabilitados" ? "inactivo" : "activo");
+}
+
+function recargarTabla() {
+    fetch(window.location.href)
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevoTbody = doc.querySelector('#tablaProductos tbody');
+            const tbodyActual = document.querySelector('#tablaProductos tbody');
+
+            if (nuevoTbody && tbodyActual) {
+                tablaProductos.destroy();
+                tbodyActual.innerHTML = nuevoTbody.innerHTML;
+                initTablaProductos();
+                aplicarFiltroEstado();
+            }
+        })
+        .catch(() => location.reload());
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    initTablaProductos();
+
     const btnAlternarEstado = document.getElementById("btnAlternarEstado");
     if (btnAlternarEstado) {
         btnAlternarEstado.addEventListener("click", function () {
@@ -59,26 +90,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 txtBoton.innerText = "Ver Activos";
                 if (icono) icono.src = "assets/Img/Iconos/eye.svg";
                 if (titulo) titulo.innerText = "Productos Inhabilitados";
-                
-                // Columna 7 es ESTADO
-                tablaProductos.column(7).search("inactivo").draw();
+                filtrarPorEstado("inactivo");
             } else {
                 this.setAttribute("data-vista", "activos");
                 this.classList.replace("btn-secondary", "btn-outline-secondary");
                 txtBoton.innerText = "Ver inhabilitados";
                 if (icono) icono.src = "assets/Img/Iconos/eye-slash.svg";
                 if (titulo) titulo.innerText = "Catálogo de Productos";
-                
-                // Columna 7 es ESTADO
-                tablaProductos.column(7).search("activo").draw();
+                filtrarPorEstado("activo");
             }
         });
 
-        // Filtrar activos al cargar
-        tablaProductos.column(7).search("activo").draw();
+        filtrarPorEstado("activo");
     }
 
-    // CAMBIO DE TIPO EN REGISTRO
     const regTipo = document.getElementById('reg_tipo_de_producto');
     if (regTipo) {
         regTipo.addEventListener('change', function () {
@@ -86,7 +111,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // CAMBIO DE TIPO EN EDICIÓN ACTIVO
     const editTipo = document.getElementById('edit_activo_tipo_de_producto');
     if (editTipo) {
         editTipo.addEventListener('change', function () {
@@ -95,7 +119,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // BOTÓN EDITAR ACTIVO (DELEGACIÓN DE EVENTOS)
     $(document).on('click', '.btnEditarActivo', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
@@ -119,7 +142,6 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#modalEditarActivo').modal('show');
     });
 
-    // BOTÓN EDITAR INACTIVO / REACTIVAR (DELEGACIÓN DE EVENTOS)
     $(document).on('click', '.btnEditarInactivo', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
@@ -131,7 +153,6 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#modalEditarInactivo').modal('show');
     });
 
-    // GUARDAR REACTIVACIÓN EN MODAL INACTIVO
     const btnGuardarInactivo = document.getElementById('btnGuardarEdicionInactivo');
     if (btnGuardarInactivo) {
         btnGuardarInactivo.addEventListener('click', function () {
@@ -160,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         title: '¡Reactivado!',
                         text: data.message,
                         confirmButtonColor: '#1e5631'
-                    }).then(() => location.reload());
+                    }).then(() => recargarTabla());
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
@@ -169,7 +190,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // BOTÓN INACTIVAR (CAMBIAR ESTADO DESDE LA TABLA)
     $(document).on('click', '.btnCambiarEstado', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
@@ -201,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             title: '¡Inactivado!',
                             text: data.message,
                             confirmButtonColor: '#1e5631'
-                        }).then(() => location.reload());
+                        }).then(() => recargarTabla());
                     } else {
                         Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                     }
@@ -211,7 +231,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // SUBMIT FORMULARIO REGISTRAR
     const formRegistrar = document.getElementById('formRegistrarProducto');
     if (formRegistrar) {
         formRegistrar.addEventListener('submit', function (e) {
@@ -240,7 +259,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         title: '¡Registrado!',
                         text: data.message,
                         confirmButtonColor: '#1e5631'
-                    }).then(() => location.reload());
+                    }).then(() => recargarTabla());
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
@@ -249,7 +268,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // SUBMIT FORMULARIO EDITAR ACTIVO
     const formEditar = document.getElementById('formEditarActivo');
     if (formEditar) {
         formEditar.addEventListener('submit', function (e) {
@@ -278,7 +296,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         title: '¡Actualizado!',
                         text: data.message,
                         confirmButtonColor: '#1e5631'
-                    }).then(() => location.reload());
+                    }).then(() => recargarTabla());
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
@@ -287,7 +305,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Inicializar formulario de registro
     limpiarFormularioCrear();
 });
 

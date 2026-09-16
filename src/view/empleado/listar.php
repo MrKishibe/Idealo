@@ -92,7 +92,7 @@ if (!isset($empleados)) {
                                                     <button class="btn btn-sm btn-outline-warning btnEditarInactivo"
                                                         data-id="<?php echo $emp['id_empleado']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo me-1" alt="Editar"> Editar / Reactivar
+                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">
                                                     </button>
                                                 <?php endif; ?>
                                             </div>

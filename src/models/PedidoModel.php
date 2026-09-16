@@ -12,18 +12,46 @@ require_once __DIR__ . '/../../config/Database.php';
 
 class PedidoModel extends Database
 {
+    
     private PDO $pdo;
+
+    private int $idPedido = 0;
+
+    private string $fechaCreacion = '';
+
+    private ?string $fechaEntrega = null;
+
+    private int $idCliente = 0;
+
+    private int $idTipoPedido = 0;
+
+    private ?string $descripcion = null;
+
+    private float $descuentoDivisa = 0.0;
+
+    private string $estadoPedido = 'pendiente';
+
+    private float $montoTotal = 0.0;
+
+    private int $idProductoCaracteristica = 0;
+
+    private int $idServicio = 0;
+
+    private int $cantidad = 1;
+
+    private float $costoManoObra = 0.0;
+
+    private float $costoMateriales = 0.0;
+
+    private float $descuentoProducto = 0.0;
+
+    private ?string $metodoServicio = null;
 
     public function __construct()
     {
         $this->pdo = self::connect();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Listar pedidos activos o inhabilitados
-    |--------------------------------------------------------------------------
-    */
     public function listarPedidos(
         string $filtro = 'activos'
     ): array {
@@ -86,19 +114,21 @@ class PedidoModel extends Database
                     pc.id_caracteristica
 
             LEFT JOIN producto pr
-                ON pr.id_producto = pc.id_producto
+                ON pr.id_producto =
+                    pc.id_producto
 
             LEFT JOIN servicio s
-                ON s.id_servicio = dp.id_servicio
+                ON s.id_servicio =
+                    dp.id_servicio
         ";
 
         if ($filtro === 'inhabilitados') {
             $sql .= "
-                WHERE p.estado_pedido = 'inhabilitado'
+                WHERE LOWER(p.estado_pedido) = 'inhabilitado'
             ";
         } else {
             $sql .= "
-                WHERE p.estado_pedido <> 'inhabilitado'
+                WHERE LOWER(p.estado_pedido) <> 'inhabilitado'
             ";
         }
 
@@ -107,7 +137,9 @@ class PedidoModel extends Database
         ";
 
         try {
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = $this->pdo->prepare(
+                $sql
+            );
 
             $stmt->execute();
 
@@ -123,11 +155,6 @@ class PedidoModel extends Database
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener un pedido completo para editar o mostrar detalle
-    |--------------------------------------------------------------------------
-    */
     public function obtenerPedido(
         int $idPedido
     ): ?array {
@@ -162,7 +189,8 @@ class PedidoModel extends Database
                 FROM pedido p
 
                 INNER JOIN cliente c
-                    ON c.id_cliente = p.id_cliente
+                    ON c.id_cliente =
+                        p.id_cliente
 
                 INNER JOIN tipo_de_pedido tp
                     ON tp.id_tipo_pedido =
@@ -248,7 +276,8 @@ class PedidoModel extends Database
                 PDO::FETCH_ASSOC
             );
 
-            $pedido['detalle'] = $detalle ?: [];
+            $pedido['detalle'] =
+                $detalle ?: [];
 
             return $pedido;
 
@@ -260,26 +289,20 @@ class PedidoModel extends Database
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Guardar pedido
-    |--------------------------------------------------------------------------
-    */
     public function guardarPedido(
         array $datos
     ): int {
-        $this->validarDatosPedido($datos);
+        $this->asignarDatosPedido(
+            $datos
+        );
+
+        $this->validarDatosPedido();
 
         try {
             $this->pdo->beginTransaction();
 
-            $pedido = $datos['pedido'];
-            $detalle = $datos['detalle'];
-
-            $montoTotal = $this->calcularMontoTotal(
-                $pedido,
-                $detalle
-            );
+            $this->montoTotal =
+                $this->calcularMontoTotal();
 
             $sqlPedido = "
                 INSERT INTO pedido
@@ -312,50 +335,45 @@ class PedidoModel extends Database
 
             $stmtPedido->execute([
                 ':fecha_creacion' =>
-                    $pedido['fecha_creacion'],
+                    $this->fechaCreacion,
 
                 ':fecha_entrega' =>
-                    $pedido['fecha_entrega'] !== ''
-                        ? $pedido['fecha_entrega']
-                        : null,
+                    $this->fechaEntrega,
 
                 ':id_cliente' =>
-                    $pedido['id_cliente'],
+                    $this->idCliente,
 
                 ':id_tipo_pedido' =>
-                    $pedido['id_tipo_pedido'],
+                    $this->idTipoPedido,
 
                 ':descripcion' =>
-                    $pedido['descripcion'] !== ''
-                        ? $pedido['descripcion']
-                        : null,
+                    $this->descripcion,
 
                 ':descuento_divisa' =>
-                    $pedido['descuento_divisa'],
+                    $this->descuentoDivisa,
 
                 ':estado_pedido' =>
-                    $pedido['estado_pedido'],
+                    $this->estadoPedido,
 
                 ':monto_total' =>
-                    $montoTotal
+                    $this->montoTotal
             ]);
 
-            $idPedido = (int) $this->pdo->lastInsertId();
+            $this->idPedido = (int) (
+                $this->pdo->lastInsertId()
+            );
 
-            if ($idPedido <= 0) {
+            if ($this->idPedido <= 0) {
                 throw new Exception(
                     'No se pudo obtener el identificador del pedido.'
                 );
             }
 
-            $this->guardarDetallePedido(
-                $idPedido,
-                $detalle
-            );
+            $this->guardarDetallePedido();
 
             $this->pdo->commit();
 
-            return $idPedido;
+            return $this->idPedido;
 
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -366,36 +384,26 @@ class PedidoModel extends Database
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Editar pedido y su detalle
-    |--------------------------------------------------------------------------
-    */
     public function editarPedido(
         array $datos
     ): void {
-        $idPedido = (int) (
-            $datos['id_pedido'] ?? 0
+        $this->asignarDatosPedido(
+            $datos
         );
 
-        if ($idPedido <= 0) {
+        if ($this->idPedido <= 0) {
             throw new Exception(
                 'El identificador del pedido no es válido.'
             );
         }
 
-        $this->validarDatosPedido($datos);
+        $this->validarDatosPedido();
 
         try {
             $this->pdo->beginTransaction();
 
-            $pedido = $datos['pedido'];
-            $detalle = $datos['detalle'];
-
-            $montoTotal = $this->calcularMontoTotal(
-                $pedido,
-                $detalle
-            );
+            $this->montoTotal =
+                $this->calcularMontoTotal();
 
             $sqlPedido = "
                 UPDATE pedido
@@ -417,35 +425,31 @@ class PedidoModel extends Database
 
             $stmtPedido->execute([
                 ':fecha_creacion' =>
-                    $pedido['fecha_creacion'],
+                    $this->fechaCreacion,
 
                 ':fecha_entrega' =>
-                    $pedido['fecha_entrega'] !== ''
-                        ? $pedido['fecha_entrega']
-                        : null,
+                    $this->fechaEntrega,
 
                 ':id_cliente' =>
-                    $pedido['id_cliente'],
+                    $this->idCliente,
 
                 ':id_tipo_pedido' =>
-                    $pedido['id_tipo_pedido'],
+                    $this->idTipoPedido,
 
                 ':descripcion' =>
-                    $pedido['descripcion'] !== ''
-                        ? $pedido['descripcion']
-                        : null,
+                    $this->descripcion,
 
                 ':descuento_divisa' =>
-                    $pedido['descuento_divisa'],
+                    $this->descuentoDivisa,
 
                 ':estado_pedido' =>
-                    $pedido['estado_pedido'],
+                    $this->estadoPedido,
 
                 ':monto_total' =>
-                    $montoTotal,
+                    $this->montoTotal,
 
                 ':id_pedido' =>
-                    $idPedido
+                    $this->idPedido
             ]);
 
             $sqlEliminarDetalle = "
@@ -453,18 +457,17 @@ class PedidoModel extends Database
                 WHERE id_pedido = :id_pedido
             ";
 
-            $stmtEliminarDetalle = $this->pdo->prepare(
-                $sqlEliminarDetalle
-            );
+            $stmtEliminarDetalle =
+                $this->pdo->prepare(
+                    $sqlEliminarDetalle
+                );
 
             $stmtEliminarDetalle->execute([
-                ':id_pedido' => $idPedido
+                ':id_pedido' =>
+                    $this->idPedido
             ]);
 
-            $this->guardarDetallePedido(
-                $idPedido,
-                $detalle
-            );
+            $this->guardarDetallePedido();
 
             $this->pdo->commit();
 
@@ -477,11 +480,6 @@ class PedidoModel extends Database
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Inhabilitar pedido
-    |--------------------------------------------------------------------------
-    */
     public function inhabilitarPedido(
         int $idPedido
     ): void {
@@ -508,23 +506,20 @@ class PedidoModel extends Database
 
             if ($stmt->rowCount() === 0) {
                 throw new Exception(
-                    'No se encontró el pedido o ya está inhabilitado.'
+                    'No se encontró el pedido o ya está anulado.'
                 );
             }
 
-        } catch (PDOException $e) {
+        } catch (Throwable $e) {
             throw new Exception(
-                'No se pudo inhabilitar el pedido: ' .
-                $e->getMessage()
+                'No se pudo anular el pedido: ' .
+                $e->getMessage(),
+                (int) $e->getCode(),
+                $e
             );
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener clientes activos
-    |--------------------------------------------------------------------------
-    */
     public function obtenerClientes(): array
     {
         $sql = "
@@ -538,22 +533,25 @@ class PedidoModel extends Database
             ORDER BY nombre_razon_social ASC
         ";
 
-        $stmt = $this->pdo->prepare(
-            $sql
-        );
+        try {
+            $stmt = $this->pdo->prepare(
+                $sql
+            );
 
-        $stmt->execute();
+            $stmt->execute();
 
-        return $stmt->fetchAll(
-            PDO::FETCH_ASSOC
-        );
+            return $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+        } catch (PDOException $e) {
+            throw new Exception(
+                'No se pudieron obtener los clientes: ' .
+                $e->getMessage()
+            );
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener tipos de pedido activos
-    |--------------------------------------------------------------------------
-    */
     public function obtenerTiposPedido(): array
     {
         $sql = "
@@ -565,22 +563,25 @@ class PedidoModel extends Database
             ORDER BY nombre_tipo_pedido ASC
         ";
 
-        $stmt = $this->pdo->prepare(
-            $sql
-        );
+        try {
+            $stmt = $this->pdo->prepare(
+                $sql
+            );
 
-        $stmt->execute();
+            $stmt->execute();
 
-        return $stmt->fetchAll(
-            PDO::FETCH_ASSOC
-        );
+            return $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+        } catch (PDOException $e) {
+            throw new Exception(
+                'No se pudieron obtener los tipos de pedido: ' .
+                $e->getMessage()
+            );
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener productos activos
-    |--------------------------------------------------------------------------
-    */
     public function obtenerProductosActivos(): array
     {
         $sql = "
@@ -593,22 +594,25 @@ class PedidoModel extends Database
             ORDER BY nombre_producto ASC
         ";
 
-        $stmt = $this->pdo->prepare(
-            $sql
-        );
+        try {
+            $stmt = $this->pdo->prepare(
+                $sql
+            );
 
-        $stmt->execute();
+            $stmt->execute();
 
-        return $stmt->fetchAll(
-            PDO::FETCH_ASSOC
-        );
+            return $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+        } catch (PDOException $e) {
+            throw new Exception(
+                'No se pudieron obtener los productos: ' .
+                $e->getMessage()
+            );
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener servicios activos
-    |--------------------------------------------------------------------------
-    */
     public function obtenerServicios(): array
     {
         $sql = "
@@ -620,22 +624,25 @@ class PedidoModel extends Database
             ORDER BY nombre_servicio ASC
         ";
 
-        $stmt = $this->pdo->prepare(
-            $sql
-        );
+        try {
+            $stmt = $this->pdo->prepare(
+                $sql
+            );
 
-        $stmt->execute();
+            $stmt->execute();
 
-        return $stmt->fetchAll(
-            PDO::FETCH_ASSOC
-        );
+            return $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+        } catch (PDOException $e) {
+            throw new Exception(
+                'No se pudieron obtener los servicios: ' .
+                $e->getMessage()
+            );
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener características activas por producto
-    |--------------------------------------------------------------------------
-    */
     public function obtenerCaracteristicasPorProducto(
         int $idProducto
     ): array {
@@ -673,7 +680,8 @@ class PedidoModel extends Database
             );
 
             $stmt->execute([
-                ':id_producto' => $idProducto
+                ':id_producto' =>
+                    $idProducto
             ]);
 
             return $stmt->fetchAll(
@@ -688,15 +696,134 @@ class PedidoModel extends Database
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Guardar detalle privado
-    |--------------------------------------------------------------------------
-    */
-    private function guardarDetallePedido(
-        int $idPedido,
-        array $detalle
+    private function asignarDatosPedido(
+        array $datos
     ): void {
+        $pedido =
+            $datos['pedido'] ?? [];
+
+        $detalle =
+            $datos['detalle'] ?? [];
+
+        $this->idPedido = (int) (
+            $datos['id_pedido'] ??
+            0
+        );
+
+        $this->fechaCreacion =
+            trim(
+                (string) (
+                    $pedido['fecha_creacion'] ??
+                    ''
+                )
+            );
+
+        $fechaEntrega =
+            trim(
+                (string) (
+                    $pedido['fecha_entrega'] ??
+                    ''
+                )
+            );
+
+        $this->fechaEntrega =
+            $fechaEntrega !== ''
+                ? $fechaEntrega
+                : null;
+
+        $this->idCliente = (int) (
+            $pedido['id_cliente'] ??
+            0
+        );
+
+        $this->idTipoPedido = (int) (
+            $pedido['id_tipo_pedido'] ??
+            0
+        );
+
+        $descripcion =
+            trim(
+                (string) (
+                    $pedido['descripcion'] ??
+                    ''
+                )
+            );
+
+        $this->descripcion =
+            $descripcion !== ''
+                ? $descripcion
+                : null;
+
+        $this->descuentoDivisa = (float) (
+            $pedido['descuento_divisa'] ??
+            0
+        );
+
+        $estado =
+            strtolower(
+                trim(
+                    (string) (
+                        $pedido['estado_pedido'] ??
+                        'pendiente'
+                    )
+                )
+            );
+
+        $this->estadoPedido =
+            $estado !== ''
+                ? $estado
+                : 'pendiente';
+
+        $this->idProductoCaracteristica =
+            (int) (
+                $detalle['id_producto_caracteristica'] ??
+                0
+            );
+
+        $this->idServicio = (int) (
+            $detalle['id_servicio'] ??
+            0
+        );
+
+        $this->cantidad = (int) (
+            $detalle['cantidad'] ??
+            0
+        );
+
+        $this->costoManoObra = (float) (
+            $detalle['costo_mano_de_obra'] ??
+            0
+        );
+
+        $this->costoMateriales = (float) (
+            $detalle['costo_materiales'] ??
+            0
+        );
+
+        $this->descuentoProducto = (float) (
+            $detalle['descuento_producto'] ??
+            0
+        );
+
+        $metodoServicio =
+            trim(
+                (string) (
+                    $detalle['metodo_servicio'] ??
+                    ''
+                )
+            );
+
+        $this->metodoServicio =
+            $metodoServicio !== ''
+                ? $metodoServicio
+                : null;
+
+        $this->montoTotal =
+            $this->calcularMontoTotal();
+    }
+
+    private function guardarDetallePedido(): void
+    {
         $sql = "
             INSERT INTO detalle_pedido
             (
@@ -728,72 +855,42 @@ class PedidoModel extends Database
 
         $stmt->execute([
             ':id_pedido' =>
-                $idPedido,
+                $this->idPedido,
 
             ':id_producto_caracteristica' =>
-                (int) $detalle['id_producto_caracteristica'],
+                $this->idProductoCaracteristica,
 
             ':id_servicio' =>
-                (int) $detalle['id_servicio'],
+                $this->idServicio,
 
             ':cantidad' =>
-                (int) $detalle['cantidad'],
+                $this->cantidad,
 
             ':costo_mano_de_obra' =>
-                (float) $detalle['costo_mano_de_obra'],
+                $this->costoManoObra,
 
             ':costo_materiales' =>
-                (float) $detalle['costo_materiales'],
+                $this->costoMateriales,
 
             ':descuento_producto' =>
-                (float) $detalle['descuento_producto'],
+                $this->descuentoProducto,
 
             ':metodo_servicio' =>
-                trim(
-                    (string) (
-                        $detalle['metodo_servicio'] ?? ''
-                    )
-                ) !== ''
-                    ? trim(
-                        (string) $detalle['metodo_servicio']
-                    )
-                    : null
+                $this->metodoServicio
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Calcular total privado
-    |--------------------------------------------------------------------------
-    */
-    private function calcularMontoTotal(
-        array $pedido,
-        array $detalle
-    ): float {
-        $cantidad = (float) (
-            $detalle['cantidad'] ?? 0
-        );
-
-        $manoObra = (float) (
-            $detalle['costo_mano_de_obra'] ?? 0
-        );
-
-        $materiales = (float) (
-            $detalle['costo_materiales'] ?? 0
-        );
-
-        $descuentoProducto = (float) (
-            $detalle['descuento_producto'] ?? 0
-        );
-
-        $descuentoGeneral = (float) (
-            $pedido['descuento_divisa'] ?? 0
-        );
-
+    private function calcularMontoTotal(): float
+    {
         $total = (
-            ($manoObra + $materiales) *
-            $cantidad
-        ) - $descuentoProducto - $descuentoGeneral;
+            (
+                $this->costoManoObra +
+                $this->costoMateriales
+            ) *
+            $this->cantidad
+        ) -
+        $this->descuentoProducto -
+        $this->descuentoDivisa;
 
         return max(
             0,
@@ -801,113 +898,76 @@ class PedidoModel extends Database
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validar datos del pedido privado
-    |--------------------------------------------------------------------------
-    */
-    private function validarDatosPedido(
-        array $datos
-    ): void {
-        $pedido = $datos['pedido'] ?? [];
-        $detalle = $datos['detalle'] ?? [];
-
-        if (empty($pedido['fecha_creacion'])) {
+    private function validarDatosPedido(): void
+    {
+        if ($this->fechaCreacion === '') {
             throw new Exception(
                 'La fecha de creación es obligatoria.'
             );
         }
 
         if (
-            !empty($pedido['fecha_entrega']) &&
-            $pedido['fecha_entrega'] <
-            $pedido['fecha_creacion']
+            $this->fechaEntrega !== null &&
+            $this->fechaEntrega <
+            $this->fechaCreacion
         ) {
             throw new Exception(
                 'La fecha de entrega no puede ser anterior a la fecha de creación.'
             );
         }
 
-        if (
-            empty($pedido['id_cliente']) ||
-            (int) $pedido['id_cliente'] <= 0
-        ) {
+        if ($this->idCliente <= 0) {
             throw new Exception(
                 'Debe seleccionar un cliente válido.'
             );
         }
 
-        if (
-            empty($pedido['id_tipo_pedido']) ||
-            (int) $pedido['id_tipo_pedido'] <= 0
-        ) {
+        if ($this->idTipoPedido <= 0) {
             throw new Exception(
                 'Debe seleccionar un tipo de pedido válido.'
             );
         }
 
         if (
-            empty($detalle['id_producto_caracteristica']) ||
-            (int) $detalle['id_producto_caracteristica'] <= 0
+            $this->idProductoCaracteristica <=
+            0
         ) {
             throw new Exception(
                 'Debe seleccionar una característica del producto.'
             );
         }
 
-        if (
-            empty($detalle['id_servicio']) ||
-            (int) $detalle['id_servicio'] <= 0
-        ) {
+        if ($this->idServicio <= 0) {
             throw new Exception(
                 'Debe seleccionar un servicio válido.'
             );
         }
 
-        if (
-            empty($detalle['cantidad']) ||
-            (int) $detalle['cantidad'] <= 0
-        ) {
+        if ($this->cantidad <= 0) {
             throw new Exception(
                 'La cantidad debe ser mayor que cero.'
             );
         }
 
-        if (
-            (float) (
-                $pedido['descuento_divisa'] ?? 0
-            ) < 0
-        ) {
+        if ($this->descuentoDivisa < 0) {
             throw new Exception(
                 'El descuento general no puede ser negativo.'
             );
         }
 
-        if (
-            (float) (
-                $detalle['costo_mano_de_obra'] ?? 0
-            ) < 0
-        ) {
+        if ($this->costoManoObra < 0) {
             throw new Exception(
                 'El costo de mano de obra no puede ser negativo.'
             );
         }
 
-        if (
-            (float) (
-                $detalle['costo_materiales'] ?? 0
-            ) < 0
-        ) {
+        if ($this->costoMateriales < 0) {
             throw new Exception(
                 'El costo de materiales no puede ser negativo.'
             );
         }
 
-        if (
-            (float) (
-                $detalle['descuento_producto'] ?? 0
-            ) < 0
-        ) {
+        if ($this->descuentoProducto < 0) {
             throw new Exception(
                 'El descuento del producto no puede ser negativo.'
             );
@@ -923,14 +983,7 @@ class PedidoModel extends Database
 
         if (
             !in_array(
-                strtolower(
-                    trim(
-                        (string) (
-                            $pedido['estado_pedido'] ??
-                            ''
-                        )
-                    )
-                ),
+                $this->estadoPedido,
                 $estadosPermitidos,
                 true
             )

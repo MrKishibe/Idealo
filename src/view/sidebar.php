@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="assets/css/sidebar.css">
+<link rel="stylesheet" href="assets/libs/css/sidebar.css">
 <aside class="sidebar">
     <div class="sidebar-header">
         <i>

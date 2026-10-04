@@ -22,6 +22,10 @@
                     <p>Registra y administra el consumo de materia prima en las órdenes de producción.</p>
                 </div>
                 <div>
+                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                    </button>
+
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarConsumo">
                         <i class="bi bi-clipboard-plus me-1"></i> Registrar Consumo
                     </button>

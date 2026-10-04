@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const formEditarConsumo = document.getElementById('formEditarConsumo');
     const modalRegistrarConsumoElement = document.getElementById('modalRegistrarConsumo');
     const modalEditarConsumoElement = document.getElementById('modalEditarConsumo');
+    const btnGenerarReporte = document.getElementById('btnGenerarReporte');
 
     let consumos = [];
     let tablaConsumos;
@@ -168,6 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
         formEditarConsumo.addEventListener('submit', function (event) {
             event.preventDefault();
             enviarFormulario(formEditarConsumo, modalEditarConsumoElement);
+        });
+    }
+
+    if (btnGenerarReporte) {
+        btnGenerarReporte.addEventListener('click', function () {
+            window.open('index.php?controller=consumoMaterial&action=listar&accion=reporte', '_blank');
         });
     }
 

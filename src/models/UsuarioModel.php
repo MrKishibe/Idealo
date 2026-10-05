@@ -250,6 +250,18 @@ class UsuarioModel extends Database
         ];
     }
 
+    public function cambiarContrasenaSimple(int $idUsuario, string $contrasena): bool
+    {
+        $this->validarContrasena($contrasena);
+        $hash = password_hash($contrasena, PASSWORD_BCRYPT);
+        $sql = "UPDATE usuario SET contrasena = :contrasena WHERE id_usuario = :id_usuario";
+        $stmt = $this->conex->prepare($sql);
+        return $stmt->execute([
+            ':contrasena' => $hash,
+            ':id_usuario' => $idUsuario
+        ]);
+    }
+
     public function cambiarNombreUsuario(int $idUsuario, string $nuevoNombre): array
     {
         $nuevoNombre = trim($nuevoNombre);
@@ -325,6 +337,15 @@ class UsuarioModel extends Database
         return (bool)$stmt->fetch();
     }
 
+    public function obtenerUsuarioPorCorreo(string $correo): ?array
+    {
+        $sql = "SELECT id_usuario, nombre_usuario, correo FROM usuario WHERE correo = :correo AND status_usuario = 'activo' LIMIT 1";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([':correo' => $correo]);
+        $resultado = $stmt->fetch();
+        return $resultado ?: null;
+    }
+
     private function rolExiste(int $idRol): bool
     {
         if ($idRol <= 0) {
@@ -350,3 +371,4 @@ class UsuarioModel extends Database
         }
     }
 }
+

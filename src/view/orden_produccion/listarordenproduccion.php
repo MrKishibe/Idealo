@@ -10,10 +10,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
-    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">    
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/libs/css/bootstrap-icons.css">
-    <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">    
+    <link rel="stylesheet" href="assets/libs/css/iconos.css">
+    <link rel="stylesheet" href="assets/libs/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 

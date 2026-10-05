@@ -18,10 +18,11 @@
 
 
     <!-- Hojas de estilo locales según tu estructura exacta de carpetas -->
-    <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/img/iconos/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="assets/css/estilo.css">
+    <link rel="stylesheet" href="assets/libs/css/estilo.css">
 
 
     <style>
@@ -1335,24 +1336,25 @@
 
 
 <!-- 1. jQuery (Nombre exacto de tu carpeta: jquery-3.7.0.min.js) -->
-    <script src="assets/js/jquery-3.7.0.min.js"></script>
+    <script src="assets/libs/jquery-4.0.0.min.js"></script>
+    <script src="assets/js/helpers/expresiones.js"></script>
 
 
     <!-- 2. Bootstrap JS -->
-    <script src="assets/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 
 
     <!-- 3. DataTables -->
-    <script src="assets/js/jquery.dataTables.min.js"></script>
-    <script src="assets/js/dataTables.bootstrap5.min.js"></script>
+    <script src="assets/libs/jquery.dataTables.min.js"></script>
+    <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 
 
     <!-- 4. SweetAlert2 (Nombre exacto de tu carpeta: sweetalert2.all.min.js) -->
-    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/libs/sweetalert2.all.min.js"></script>
 
 
     <!-- 5. Tu script de pedidos -->
-    <script src="assets/js/pedido.js"></script>
+    <script src="assets/js/pedido.js"></script> 
 
 
 </body>

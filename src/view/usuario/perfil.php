@@ -17,9 +17,10 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Usuario - Idéalo</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap">
-    <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/estilo.css">
-    <link rel="stylesheet" href="assets/css/iconos.css">
+    <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/libs/css/estilo.css">
+    <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <style>
         .dashboard-layout {
             display: flex;
@@ -435,9 +436,10 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
         </div>
     </div>
 
-    <script src="assets/js/jquery-3.7.0.min.js"></script>
-    <script src="assets/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/libs/jquery-4.0.0.min.js"></script>
+    <script src="assets/js/helpers/expresiones.js"></script>
+    <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script src="assets/js/perfil.js"></script>
 
 </body>

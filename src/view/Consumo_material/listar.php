@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Consumo de Material</title>
-    <link rel="stylesheet" href="assets/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="assets/css/estilo.css">
+    <link rel="stylesheet" href="assets/libs/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
 <body>
@@ -215,12 +216,12 @@
         </div>
     </div>
 
-    <script src="assets/js/jquery-3.7.0.min.js"></script>
-    <script src="assets/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/jquery.dataTables.min.js"></script>
-    <script src="assets/js/dataTables.bootstrap5.min.js"></script>
-    <script src="assets/js/sweetalert2.all.min.js"></script>
-    <script src="assets/js/modulos-tablas.js"></script>
+    <script src="assets/libs/jquery-4.0.0.min.js"></script>
+    <script src="assets/js/helpers/expresiones.js"></script>
+    <script src="assets/libs/bootstrap.bundle.min.js"></script>
+    <script src="assets/libs/jquery.dataTables.min.js"></script>
+    <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
+    <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script src="assets/js/consumo_material.js"></script>
 </body>
 

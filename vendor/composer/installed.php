@@ -3,7 +3,7 @@
         'name' => 'idealo/idealo',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '4681eb132b2f7652e433936128b5ef50f8321b7e',
+        'reference' => '3bd67d5894c9a4444b7d4b154e1967ee32fcc9f6',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'idealo/idealo' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '4681eb132b2f7652e433936128b5ef50f8321b7e',
+            'reference' => '3bd67d5894c9a4444b7d4b154e1967ee32fcc9f6',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

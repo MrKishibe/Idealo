@@ -25,14 +25,14 @@ class AuthController
                 $usuario_input = $_POST['cedula_usuario'] ?? $_POST['nombre_usuario'] ?? '';
                 $contrasena = $_POST['contrasena'] ?? '';
 
-                $sql = "SELECT u.id_usuario, u.nombre_usuario, u.contrasena, u.id_rol, 
+                $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.id_rol, 
                                r.tipo_de_usuario 
                         FROM usuario u 
                         LEFT JOIN roles r ON u.id_rol = r.id_rol 
-                        WHERE u.nombre_usuario = ? AND u.status_usuario = 'activo'";
+                        WHERE (u.nombre_usuario = ? OR u.correo = ?) AND u.status_usuario = 'activo'";
 
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$usuario_input]);
+                $stmt->execute([$usuario_input, $usuario_input]);
                 $usuario = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                 if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {

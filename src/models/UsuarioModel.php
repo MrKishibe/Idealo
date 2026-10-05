@@ -33,6 +33,7 @@ class UsuarioModel extends Database
     {
         $sql = "SELECT u.id_usuario,
                        u.nombre_usuario,
+                       u.correo,
                        u.status_usuario,
                        u.id_rol,
                        r.tipo_de_usuario
@@ -48,10 +49,18 @@ class UsuarioModel extends Database
     {
         $nombreUsuario = trim($datos['nombre_usuario'] ?? '');
         $contrasena    = $datos['contrasena'] ?? '';
+        $correo        = trim($datos['correo'] ?? '');
         $idRol         = intval($datos['id_rol'] ?? 0);
 
         $this->validarNombreUsuario($nombreUsuario);
         $this->validarContrasena($contrasena);
+
+        if (empty($correo)) {
+            throw new Exception("[Validación] El correo electrónico es obligatorio.");
+        }
+        if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("[Validación] El correo electrónico no es válido.");
+        }
 
         if (!$this->rolExiste($idRol)) {
             throw new Exception("[Validación] El rol seleccionado no es válido.");
@@ -60,14 +69,18 @@ class UsuarioModel extends Database
         if ($this->existeNombreUsuario($nombreUsuario)) {
             throw new Exception("[Validación] El nombre de usuario '{$nombreUsuario}' ya está registrado.");
         }
+        if ($this->existeCorreo($correo)) {
+            throw new Exception("[Validación] El correo electrónico '{$correo}' ya está registrado.");
+        }
 
         $hash = password_hash($contrasena, PASSWORD_BCRYPT);
 
-        $sql = "INSERT INTO usuario (nombre_usuario, contrasena, status_usuario, id_rol)
-                VALUES (:nombre_usuario, :contrasena, 'activo', :id_rol)";
+        $sql = "INSERT INTO usuario (nombre_usuario, correo, contrasena, status_usuario, id_rol)
+                VALUES (:nombre_usuario, :correo, :contrasena, 'activo', :id_rol)";
         $stmt = $this->conex->prepare($sql);
         $stmt->execute([
             ':nombre_usuario' => $nombreUsuario,
+            ':correo'         => $correo,
             ':contrasena'     => $hash,
             ':id_rol'         => $idRol
         ]);
@@ -84,6 +97,7 @@ class UsuarioModel extends Database
         $idUsuario     = intval($datos['id_usuario'] ?? 0);
         $nombreUsuario = trim($datos['nombre_usuario'] ?? '');
         $contrasena    = $datos['contrasena'] ?? '';
+        $correo        = trim($datos['correo'] ?? '');
         $idRol         = intval($datos['id_rol'] ?? 0);
 
         if ($idUsuario <= 0) {
@@ -92,6 +106,13 @@ class UsuarioModel extends Database
 
         $this->validarNombreUsuario($nombreUsuario);
 
+        if (empty($correo)) {
+            throw new Exception("[Validación] El correo electrónico es obligatorio.");
+        }
+        if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("[Validación] El correo electrónico no es válido.");
+        }
+
         if (!$this->rolExiste($idRol)) {
             throw new Exception("[Validación] El rol seleccionado no es válido.");
         }
@@ -99,17 +120,22 @@ class UsuarioModel extends Database
         if ($this->existeNombreUsuario($nombreUsuario, $idUsuario)) {
             throw new Exception("[Validación] El nombre de usuario '{$nombreUsuario}' ya está registrado.");
         }
+        if ($this->existeCorreo($correo, $idUsuario)) {
+            throw new Exception("[Validación] El correo electrónico '{$correo}' ya está registrado.");
+        }
 
         if (!empty($contrasena)) {
             $this->validarContrasena($contrasena);
             $hash = password_hash($contrasena, PASSWORD_BCRYPT);
             $sql = "UPDATE usuario
                     SET nombre_usuario = :nombre_usuario,
+                        correo = :correo,
                         contrasena = :contrasena,
                         id_rol = :id_rol
                     WHERE id_usuario = :id_usuario";
             $params = [
                 ':nombre_usuario' => $nombreUsuario,
+                ':correo'         => $correo,
                 ':contrasena'     => $hash,
                 ':id_rol'         => $idRol,
                 ':id_usuario'     => $idUsuario
@@ -117,10 +143,12 @@ class UsuarioModel extends Database
         } else {
             $sql = "UPDATE usuario
                     SET nombre_usuario = :nombre_usuario,
+                        correo = :correo,
                         id_rol = :id_rol
                     WHERE id_usuario = :id_usuario";
             $params = [
                 ':nombre_usuario' => $nombreUsuario,
+                ':correo'         => $correo,
                 ':id_rol'         => $idRol,
                 ':id_usuario'     => $idUsuario
             ];
@@ -267,6 +295,31 @@ class UsuarioModel extends Database
                     LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':nombre' => $nombre]);
+        }
+
+        return (bool)$stmt->fetch();
+    }
+
+    public function existeCorreo(string $correo, ?int $exceptuarId = null): bool
+    {
+        if ($exceptuarId !== null && $exceptuarId > 0) {
+            $sql = "SELECT id_usuario
+                    FROM usuario
+                    WHERE correo = :correo
+                      AND id_usuario <> :id
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':correo' => $correo,
+                ':id'     => $exceptuarId
+            ]);
+        } else {
+            $sql = "SELECT id_usuario
+                    FROM usuario
+                    WHERE correo = :correo
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':correo' => $correo]);
         }
 
         return (bool)$stmt->fetch();

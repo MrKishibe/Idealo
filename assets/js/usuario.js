@@ -28,7 +28,11 @@ function initTablaUsuarios() {
 
 function filtrarPorEstado(estado) {
     const patron = '(^|[\\s\\-])' + estado + '([\\s\\-]|$)';
-    tablaUsuarios.column(3).search(patron, true, false).draw();
+    if (tablaUsuarios.column(4).length) {
+        tablaUsuarios.column(4).search(patron, true, false).draw();
+    } else if (tablaUsuarios.column(3).length) {
+        tablaUsuarios.column(3).search(patron, true, false).draw();
+    }
 }
 
 function aplicarFiltroEstado() {
@@ -94,9 +98,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
         const rol = $(this).data('rol');
+        const correo = $(this).data('correo');
 
         $('#edit_activo_id_usuario').val(id);
         $('#edit_activo_nombre_usuario').val(nombre);
+        $('#edit_activo_correo').val(correo);
         $('#edit_activo_id_rol').val(rol);
         $('#edit_activo_contrasena').val('');
         $('#edit_activo_confirmar_contrasena').val('');
@@ -210,9 +216,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            const formDataReg = new FormData(formRegistrar);
             fetch('index.php?controller=usuario&action=guardar', {
                 method: 'POST',
-                body: new FormData(formRegistrar)
+                body: formDataReg
             })
             .then(res => res.json())
             .then(data => {

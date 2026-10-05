@@ -118,6 +118,7 @@ class UsuarioController
             try {
                 $datos = [
                     'nombre_usuario' => $_POST['nombre_usuario'] ?? '',
+                    'correo'         => $_POST['correo'] ?? '',
                     'contrasena'     => $_POST['contrasena'] ?? '',
                     'id_rol'         => $_POST['id_rol'] ?? 0
                 ];
@@ -149,6 +150,7 @@ class UsuarioController
                 $datos = [
                     'id_usuario'     => $_POST['id_usuario'] ?? 0,
                     'nombre_usuario' => $_POST['nombre_usuario'] ?? '',
+                    'correo'         => $_POST['correo'] ?? '',
                     'contrasena'     => $_POST['contrasena'] ?? '',
                     'id_rol'         => $_POST['id_rol'] ?? 0
                 ];

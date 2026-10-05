@@ -152,6 +152,8 @@ CREATE TABLE usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nombre_usuario VARCHAR(20) NOT NULL UNIQUE,
     contrasena VARCHAR(255) NOT NULL,
+    correo VARCHAR(100) UNIQUE,
+    imagen VARCHAR(255),
     status_usuario VARCHAR(20) NOT NULL DEFAULT 'activo',
     id_rol INT NOT NULL,
     FOREIGN KEY (id_rol) REFERENCES roles(id_rol) ON DELETE CASCADE

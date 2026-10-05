@@ -244,6 +244,12 @@
             </div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['reset']) && $_GET['reset'] === 'ok'): ?>
+            <div class="alert alert-success p-2 mb-3 text-center" style="font-size: 14px;">
+                <i class="bi bi-check-circle-fill"></i> Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($error_login)): ?>
             <div class="alert alert-danger p-2 mb-3 text-center" style="font-size: 14px;">
                 <i class="bi bi-exclamation-circle-fill"></i> <?php echo htmlspecialchars($error_login); ?>
@@ -252,10 +258,10 @@
 
         <form action="index.php?controller=auth&action=login" method="POST">
             <div class="mb-3">
-                <label for="cedula_usuario" class="form-label fw-semibold">Nombre de Usuario</label>
+                <label for="cedula_usuario" class="form-label fw-semibold">Usuario o Correo Electrónico</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="cedula_usuario" placeholder="Ej: admin" required autocomplete="off">
+                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="cedula_usuario" placeholder="Usuario o correo electrónico" required autocomplete="off">
                 </div>
             </div>
 
@@ -268,6 +274,12 @@
             </div>
 
             <button type="submit" class="btn-idealo-submit">Ingresar al Sistema</button>
+            
+            <div class="text-center mt-3">
+                <a href="index.php?controller=recuperacionPassword&action=solicitar" class="text-decoration-none" style="color: var(--azul-opaco); font-size: 0.9rem; font-weight: 600;">
+                    <i class="bi bi-key"></i> ¿Olvidaste tu contraseña?
+                </a>
+            </div>
         </form>
     </div>
 

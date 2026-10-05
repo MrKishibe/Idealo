@@ -49,6 +49,7 @@ if (!isset($roles)) {
                             <tr>
                                 <th>ID</th>
                                 <th>NOMBRE DE USUARIO</th>
+                                <th>CORREO</th>
                                 <th>ROL</th>
                                 <th>ESTADO</th>
                                 <th class="text-center">ACCIONES</th>
@@ -62,6 +63,7 @@ if (!isset($roles)) {
                                     <tr id="fila-<?php echo $user['id_usuario']; ?>" data-estado="<?php echo $estadoReal; ?>">
                                         <td class="fw-bold"><code>#<?php echo htmlspecialchars($user['id_usuario']); ?></code></td>
                                         <td class="fw-bold text-dark"><?php echo htmlspecialchars($user['nombre_usuario']); ?></td>
+                                        <td class="text-muted small"><?php echo htmlspecialchars($user['correo'] ?? ''); ?></td>
                                         <td>
                                             <span class="badge bg-light text-primary border px-2 py-1" style="font-weight: 600; font-size: 12px; border-radius: 6px;">
                                                 <img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-gris me-1"><?php echo htmlspecialchars(ucfirst($user['tipo_de_usuario'] ?? 'Sin rol')); ?>
@@ -78,6 +80,8 @@ if (!isset($roles)) {
                                                     <button type="button" class="btn-accion-edit btnEditarActivo"
                                                         data-id="<?php echo $user['id_usuario']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
+                                                        data-correo="<?php echo htmlspecialchars($user['correo'] ?? ''); ?>"
+                                                        data-correo="<?php echo htmlspecialchars($user['correo'] ?? ''); ?>"
                                                         data-rol="<?php echo $user['id_rol']; ?>"
                                                         title="Editar Usuario">
                                                         <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg" alt="Editar">
@@ -127,6 +131,10 @@ if (!isset($roles)) {
                                 <input type="text" class="form-control" id="reg_nombre_usuario" name="nombre_usuario" maxlength="20" placeholder="Ej. jperez" required>
                             </div>
                             <div class="col-12">
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="reg_correo" name="correo" placeholder="ejemplo@correo.com" required>
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label">Contraseña</label>
                                 <input type="password" class="form-control" id="reg_contrasena" name="contrasena" minlength="6" placeholder="Mínimo 6 caracteres" required>
                             </div>
@@ -172,6 +180,10 @@ if (!isset($roles)) {
                             <div class="col-12">
                                 <label class="form-label">Nombre de Usuario</label>
                                 <input type="text" class="form-control" id="edit_activo_nombre_usuario" name="nombre_usuario" maxlength="20" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="edit_activo_correo" name="correo" required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Nueva Contraseña <small class="text-muted">(opcional)</small></label>

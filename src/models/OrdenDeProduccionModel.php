@@ -70,7 +70,7 @@ class OrdenDeProduccionModel extends Database {
         $sql = "SELECT dp.id_detalle_pedido, p.descripcion 
                 FROM detalle_pedido dp
                 INNER JOIN pedido p ON dp.id_pedido = p.id_pedido
-                WHERE p.estado_pedido = 'pendiente'"; 
+                WHERE p.estado_pedido IN ('pendiente', 'en proceso')";
         $stmt = $this->pdo->connect()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -151,12 +151,29 @@ class OrdenDeProduccionModel extends Database {
             throw new \InvalidArgumentException('El id de la orden de producción es obligatorio y debe ser numérico.');
         }
 
-        if (!empty($fecha_inicio) && !preg_match($regexFecha, $fecha_inicio)) {
+        if (empty($fecha_inicio)) {
+            throw new Exception('La fecha de inicio es obligatoria.');
+        }
+
+        if (!preg_match($regexFecha, $fecha_inicio)
+            || !checkdate((int) substr($fecha_inicio, 5, 2), (int) substr($fecha_inicio, 8, 2), (int) substr($fecha_inicio, 0, 4))) {
             throw new Exception('La fecha de inicio no tiene un formato válido (YYYY-MM-DD).');
         }
 
-        if (!empty($fecha_terminado) && !preg_match($regexFecha, $fecha_terminado)) {
-            throw new Exception('La fecha de finalización no tiene un formato válido (YYYY-MM-DD).');
+        $hoy = date('Y-m-d');
+        if ($fecha_inicio < $hoy) {
+            throw new Exception('La fecha de inicio no puede ser anterior a hoy.');
+        }
+
+        if (!empty($fecha_terminado)) {
+            if (!preg_match($regexFecha, $fecha_terminado)
+                || !checkdate((int) substr($fecha_terminado, 5, 2), (int) substr($fecha_terminado, 8, 2), (int) substr($fecha_terminado, 0, 4))) {
+                throw new Exception('La fecha de finalización no tiene un formato válido (YYYY-MM-DD).');
+            }
+
+            if ($fecha_terminado <= $hoy) {
+                throw new Exception('La fecha de finalización debe ser posterior a hoy.');
+            }
         }
 
         if (!empty($estado) && !preg_match($regexEstado, $estado)) {
@@ -192,15 +209,19 @@ class OrdenDeProduccionModel extends Database {
         $this->setIdDetallePedido($datos['id_detalle_pedido'] ?? null);
         $this->setEstadoDeProduccion($datos['estado_de_produccion'] ?? 'Planificado');
 
-        // Guardamos la orden y capturamos su nuevo ID
-        $id_produccion = $this->registrarOrdenProduccion();
+        $conn = $this->pdo->connect();
+        $conn->beginTransaction();
 
-        if ($id_produccion) {
-            $this->actualizarEstadoPedido($this->id_detalle_pedido, 'pendiente');
+        try {
+            $id_produccion = $this->registrarOrdenProduccion();
+            if (!$id_produccion) {
+                $conn->rollBack();
+                return false;
+            }
 
-            // Si el usuario seleccionó empleados, los guardamos en la tabla puente
+            $this->actualizarEstadoPedido($this->id_detalle_pedido, $this->estado_de_produccion);
+
             if (!empty($datos['empleados']) && is_array($datos['empleados'])) {
-                $conn = $this->pdo->connect();
                 $sqlAsig = "INSERT INTO asignacion_produccion (id_produccion, id_empleado) VALUES (:id_produccion, :id_empleado)";
                 $stmtAsig = $conn->prepare($sqlAsig);
                 
@@ -211,9 +232,15 @@ class OrdenDeProduccionModel extends Database {
                     ]);
                 }
             }
+
+            $conn->commit();
             return true;
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            throw $e;
         }
-        return false;
     }
 
    public function editarOrden(array $datos): bool {
@@ -231,23 +258,21 @@ class OrdenDeProduccionModel extends Database {
         $this->setIdDetallePedido($datos['id_detalle_pedido'] ?? null);
         $this->setEstadoDeProduccion($datos['estado_de_produccion'] ?? null);
 
-        // 1. Ejecutamos tu función original para actualizar los datos básicos
-        $editado = $this->editarOrdenProduccion($id_produccion);
+        $conn = $this->pdo->connect();
+        $conn->beginTransaction();
 
-        // 2. Si la tabla principal se actualizó bien, procedemos con los trabajadores
-        if ($editado) {
-            if ($this->estado_de_produccion === 'Finalizado') {
-                $this->actualizarEstadoPedido($this->id_detalle_pedido, 'completado');
+        try {
+            if (!$this->editarOrdenProduccion($id_produccion)) {
+                $conn->rollBack();
+                return false;
             }
 
-            $conn = $this->pdo->connect();
+            $this->actualizarEstadoPedido($this->id_detalle_pedido, $this->estado_de_produccion);
 
-            // Limpiamos los trabajadores antiguos de la tabla puente
             $sqlDelete = "DELETE FROM asignacion_produccion WHERE id_produccion = :id_produccion";
             $stmtDelete = $conn->prepare($sqlDelete);
             $stmtDelete->execute([':id_produccion' => $id_produccion]);
 
-            // Insertamos los nuevos trabajadores seleccionados (si hay alguno marcado)
             if (!empty($datos['empleados']) && is_array($datos['empleados'])) {
                 $sqlInsert = "INSERT INTO asignacion_produccion (id_produccion, id_empleado) VALUES (:id_produccion, :id_empleado)";
                 $stmtInsert = $conn->prepare($sqlInsert);
@@ -259,10 +284,15 @@ class OrdenDeProduccionModel extends Database {
                     ]);
                 }
             }
-            return true;
-        }
 
-        return false;
+            $conn->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function inactivarOrden(int $id_produccion): bool {

@@ -2,6 +2,7 @@
 use Idealo\Models\OrdenDeProduccionModel;
 $model = new OrdenDeProduccionModel();
 $rutaVista  = __DIR__ . '/../view/orden_produccion/listarordenproduccion.php';
+$estadosProduccion = ['Planificado', 'En Proceso', 'Finalizado', 'Inactiva', 'en espera'];
 
 // ==========================================
 // 1. CONTROL DE PETICIONES POST (Guardar, Editar)
@@ -133,22 +134,65 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "obtener_empleados" && isset($
 if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     if (ob_get_length()) ob_clean(); 
     
-    // NOTA: Ajusta esta ruta si te dice que no encuentra el autoload.php
     require_once __DIR__ . '/../../vendor/autoload.php';
 
-    $estadoFiltro = $_GET['estado'] ?? 'activas';
-    $verInactivas = ($estadoFiltro === 'inactivas');
+    $fechaDesde = $_GET['fecha_desde'] ?? '';
+    $fechaHasta = $_GET['fecha_hasta'] ?? '';
+    if (!is_string($fechaDesde) || !is_string($fechaHasta)) {
+        http_response_code(400);
+        header('Content-Type: text/plain; charset=utf-8');
+        exit('El rango de fechas no es válido.');
+    }
+    $fechaDesde = trim($fechaDesde);
+    $fechaHasta = trim($fechaHasta);
+    $esFechaValida = static function (string $fecha): bool {
+        if ($fecha === '') {
+            return true;
+        }
 
-    // Reutilizamos el modelo para traer las órdenes
+        $fechaParseada = \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+        return $fechaParseada !== false && $fechaParseada->format('Y-m-d') === $fecha;
+    };
+
+    if (!$esFechaValida($fechaDesde) || !$esFechaValida($fechaHasta) ||
+        ($fechaDesde !== '' && $fechaHasta !== '' && $fechaDesde > $fechaHasta)) {
+        http_response_code(400);
+        header('Content-Type: text/plain; charset=utf-8');
+        exit('El rango de fechas no es válido.');
+    }
+
+    $estadosSolicitados = $_GET['estados'] ?? $estadosProduccion;
+    if (!is_array($estadosSolicitados)) {
+        $estadosSolicitados = [$estadosSolicitados];
+    }
+
+    $estadosPermitidos = array_fill_keys(array_map('strtolower', $estadosProduccion), true);
+    $estadosFiltrados = [];
+    foreach ($estadosSolicitados as $estadoSolicitado) {
+        if (!is_string($estadoSolicitado)) {
+            http_response_code(400);
+            header('Content-Type: text/plain; charset=utf-8');
+            exit('El estado seleccionado no es válido.');
+        }
+        $estadoNormalizado = strtolower(trim($estadoSolicitado));
+        if (!isset($estadosPermitidos[$estadoNormalizado])) {
+            http_response_code(400);
+            header('Content-Type: text/plain; charset=utf-8');
+            exit('El estado seleccionado no es válido.');
+        }
+        $estadosFiltrados[$estadoNormalizado] = true;
+    }
+
     $todasLasOrdenes = $model->listarOrdenProduccion();
+    $ordenesFiltradas = array_filter($todasLasOrdenes, function ($orden) use ($estadosFiltrados, $fechaDesde, $fechaHasta) {
+        $estado = strtolower(trim($orden['estado_de_produccion'] ?? ''));
+        $fechaInicio = $orden['fecha_de_inicio'] ?? '';
 
-    // Filtramos
-    $ordenesFiltradas = array_filter($todasLasOrdenes, function($orden) use ($verInactivas) {
-        $esInactiva = (strtolower($orden['estado_de_produccion'] ?? '') === 'inactiva');
-        return $verInactivas ? $esInactiva : !$esInactiva;
+        return isset($estadosFiltrados[$estado])
+            && ($fechaDesde === '' || $fechaInicio >= $fechaDesde)
+            && ($fechaHasta === '' || $fechaInicio <= $fechaHasta);
     });
 
-    // Inicializamos TCPDF
     $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     
     $pdf->SetCreator('TCPDF');
@@ -160,9 +204,23 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $pdf->AddPage();
 
     $pdf->SetFont('helvetica', 'B', 16);
-    $tituloReporte = $verInactivas ? 'Reporte de Órdenes Inactivas' : 'Reporte de Órdenes Activas';
-    $pdf->Cell(0, 10, $tituloReporte, 0, 1, 'C');
-    $pdf->Ln(5); 
+    $pdf->Cell(0, 10, 'Reporte de Órdenes de Producción', 0, 1, 'C');
+    $pdf->SetFont('helvetica', '', 10);
+    $etiquetaEstados = count($estadosFiltrados) === count($estadosProduccion)
+        ? 'Todos'
+        : implode(', ', array_map(static function ($estado) use ($estadosProduccion) {
+            foreach ($estadosProduccion as $estadoDisponible) {
+                if (strtolower($estadoDisponible) === $estado) {
+                    return $estadoDisponible;
+                }
+            }
+            return $estado;
+        }, array_keys($estadosFiltrados)));
+    $rangoFechas = ($fechaDesde !== '' ? date('d/m/Y', strtotime($fechaDesde)) : 'Sin límite')
+        . ' - '
+        . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
+    $pdf->MultiCell(0, 6, 'Estados: ' . $etiquetaEstados . "\nFecha de inicio: " . $rangoFechas, 0, 'L');
+    $pdf->Ln(3);
 
     // Construimos la tabla
     $html = '<table border="1" cellpadding="5">
@@ -198,7 +256,6 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $pdf->SetFont('helvetica', '', 10);
     $pdf->writeHTML($html, true, false, true, false, '');
 
-    // Imprime el PDF en la pestaña
     $pdf->Output('Reporte_Produccion.pdf', 'I'); 
     exit;
 }

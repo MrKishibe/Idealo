@@ -21,7 +21,7 @@
                     <h1 class="fw-bold text-dark mb-1">Pérdidas de Material</h1>
                     <p class="text-muted mb-0">Registra y gestiona las pérdidas o desmarques del material en producción.</p>
                 </div>
-               <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+               <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalFiltrosReportePerdida">
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                 </button>
                 
@@ -30,20 +30,21 @@
                 </button>
             </header>
 
-            <div class="table-responsive shadow-sm" style="background:#fff; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden;">
-                <table class="table table-hover mb-0 align-middle" id="tablaPerdidasMaterial" style="width:100%;">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3">ID</th>
-                            <th class="px-4 py-3">Cantidad</th>
-                            <th class="px-4 py-3">Fecha</th>
-                            <th class="px-4 py-3">Motivo</th>
-                            <th class="px-4 py-3">Costo Unitario</th>
-                            <th class="px-4 py-3">Producción</th>
-                            <th class="px-4 py-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyPerdidaMaterial">
+            <div class="table-container p-3">
+                <div class="table-responsive">
+                    <table class="custom-table" id="tablaPerdidasMaterial" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cantidad</th>
+                                <th>Fecha</th>
+                                <th>Motivo</th>
+                                <th>Costo Unitario</th>
+                                <th>Producción</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPerdidaMaterial">
                         <?php $perdidas = $perdidas ?? []; ?>
                         <?php if (!empty($perdidas)): ?>
                             <?php foreach ($perdidas as $perdida): ?>
@@ -88,11 +89,57 @@
                                 </td>
                             </tr>
                         <?php endif; ?>
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
+
+    <div class="modal fade modal-idealo" id="modalFiltrosReportePerdida" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="formFiltrosReportePerdida">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Filtrar reporte de pérdidas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset class="mb-3">
+                            <legend class="form-label">Rango por fecha de registro</legend>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="reporteFechaDesde">Desde</label>
+                                    <input type="date" class="form-control" id="reporteFechaDesde">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="reporteFechaHasta">Hasta</label>
+                                    <input type="date" class="form-control" id="reporteFechaHasta">
+                                </div>
+                            </div>
+                            <small class="text-muted">Las fechas elegidas se incluyen en el reporte. Déjalas vacías para no limitar por fecha.</small>
+                        </fieldset>
+                        <div class="mb-3">
+                            <label class="form-label" for="reporteEstadoProduccion">Estado de producción</label>
+                            <select class="form-select" id="reporteEstadoProduccion">
+                                <option value="">Todos los estados</option>
+                                <option value="activas">Activas (cualquier estado excepto Inactiva)</option>
+                                <?php foreach ($estadosProduccion as $estado): ?>
+                                    <option value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars(strtolower($estado) === 'en espera' ? 'Pendiente (En espera)' : $estado, ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Generar PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="modalRegistrarPerdida" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">

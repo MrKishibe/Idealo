@@ -1,360 +1,331 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const tablaBody = document.getElementById('tbodyOrdenProduccion');
-    const btnAlternarEstado = document.getElementById('btnAlternarEstado');
-    const txtBotonEstado = document.getElementById('txtBotonEstado');
-    const iconoEstado = document.getElementById('iconoEstado');
-    const tituloVista = document.getElementById('tituloVista');
+$(document).ready(function () {
+    const urlControlador = 'index.php?url=ordenproduccion/listarordenproduccion';
 
-    let verInactivas = false;
-    let ordenes = [];
-    let tablaOrdenes;
 
-    const formRegistrarOrden = document.getElementById('formRegistrarOrden');
-    const formEditarOrden = document.getElementById('formEditarOrden');
-    const modalRegistrarOrdenElement = document.getElementById('modalRegistrarOrden');
-    const modalEditarOrdenElement = document.getElementById('modalEditarOrden');
+    let tablaOrdenes = $('#tablaOrdenProduccion').DataTable({
+        ajax: {
+            url: urlControlador,
+            type: 'GET',
+            data: { accion: 'listar' },
+            dataSrc: function (json) {
+                return json.success ? json.data : [];
+            }
+        },
+        columns: [
+            { data: 'id_produccion' },
+            { data: 'fecha_de_inicio' },
+            { data: 'fecha_terminado', defaultContent: 'No definida' },
+            { data: 'descripcion_pedido' },
+            { data: 'estado_de_produccion' },
+            {
+                data: null,
+                orderable: false,
+                render: function (data, type, row) {
+                    return `
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" class="btn btn-sm btn-primary btn-editar" data-orden='${JSON.stringify(row)}'>
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger btn-eliminar" data-id="${row.id_produccion}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        ],
+        language: {
+            emptyTable: 'Ningún dato disponible en esta tabla',
+            info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+            infoEmpty: 'Mostrando registros del 0 al 0 de un total de 0 registros',
+            infoFiltered: '(filtrado de un total de _MAX_ registros)',
+            lengthMenu: 'Mostrar _MENU_ registros',
+            loadingRecords: 'Cargando...',
+            processing: 'Procesando...',
+            search: 'Buscar:',
+            zeroRecords: 'No se encontraron resultados',
+            paginate: {
+                first: 'Primero',
+                last: 'Último',
+                next: 'Siguiente',
+                previous: 'Anterior'
+            }
+        },
+        responsive: true
+    });
 
-    function mostrarAlerta(tipo, titulo, texto) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: tipo,
-                title: titulo,
-                text: texto,
-                timer: 1500,
-                showConfirmButton: false,
-                timerProgressBar: true
-            });
+    
+    function validarCampo(input, patron, obligatorio = true) {
+        let valor = input.val().trim();
+        
+        
+        if (!obligatorio && valor === '') {
+            marcarCampo(input, true);
+            return true;
+        }
+
+        
+        let esValido = $.expresionesRegulares.validar(patron, valor);
+        marcarCampo(input, esValido);
+        return esValido;
+    }
+
+    function marcarCampo(input, esValido) {
+        if (esValido) {
+            input.removeClass('is-invalid').addClass('is-valid');
+            input.css({ 'border-color': 'green', 'box-shadow': '0 0 5px green' });
         } else {
-            alert(titulo + '\n' + texto);
+            input.removeClass('is-valid').addClass('is-invalid');
+            input.css({ 'border-color': 'red', 'box-shadow': '0 0 5px red' });
         }
     }
 
-    async function confirmarAccion(titulo, texto) {
-        if (typeof Swal === 'undefined') {
-            return window.confirm(texto);
+    function obtenerFechaLocalISO(diasDesdeHoy = 0) {
+        const fecha = new Date();
+        fecha.setHours(0, 0, 0, 0);
+        fecha.setDate(fecha.getDate() + diasDesdeHoy);
+        const anio = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        return `${anio}-${mes}-${dia}`;
+    }
+
+    function validarFecha(input, obligatoria, diasMinimosDesdeHoy) {
+        const formatoValido = validarCampo(input, 'fechaISO', obligatoria);
+        const valor = input.val().trim();
+
+        if (!formatoValido || valor === '') {
+            return formatoValido;
         }
 
-        const resultado = await Swal.fire({
+        const esValida = valor >= obtenerFechaLocalISO(diasMinimosDesdeHoy);
+        marcarCampo(input, esValida);
+        return esValida;
+    }
+
+    
+    $('#fecha_de_inicio').on('input change', function() { validarFecha($(this), true, 0); });
+    $('#fecha_terminado').on('input change', function() { validarFecha($(this), false, 1); });
+    $('#id_detalle_pedido').on('change', function() { validarCampo($(this), 'enteroPositivo'); });
+    
+    
+    $('#edit_fecha_de_inicio').on('input change', function() { validarFecha($(this), true, 0); });
+    $('#edit_fecha_terminado').on('input change', function() { validarFecha($(this), false, 1); });
+    $('#edit_id_detalle_pedido').on('change', function() { validarCampo($(this), 'enteroPositivo'); });
+
+
+    async function confirmarAccion(titulo, texto) {
+        return await Swal.fire({
             title: titulo,
             text: texto,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            confirmButtonText: 'Confirmar',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, continuar',
             cancelButtonText: 'Cancelar'
         });
-
-        return resultado.isConfirmed;
     }
 
-    async function enviarFormulario(form, modalElement) {
-        if (!form) return;
+    async function mostrarAlertaInformativa(titulo, texto, icono) {
+        return await Swal.fire({
+            title: titulo,
+            text: texto,
+            icon: icono,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
 
-        const submitButton = form.querySelector('button[type="submit"]');
-        const textoOriginal = submitButton ? submitButton.textContent : '';
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.textContent = 'Enviando...';
+
+    $('#formRegistrarOrden').on('submit', async function (e) {
+        e.preventDefault();
+
+        
+        let v1 = validarFecha($('#fecha_de_inicio'), true, 0);
+        let v2 = validarFecha($('#fecha_terminado'), false, 1);
+        let v3 = validarCampo($('#id_detalle_pedido'), 'enteroPositivo');
+
+        if (!v1 || !v2 || !v3) {
+            await mostrarAlertaInformativa('Error', 'Por favor, corrija los campos en rojo.', 'error');
+            return;
         }
 
+        let confirmacion = await confirmarAccion('¿Registrar Orden?', 'Se creará una nueva orden de producción.');
+        if (!confirmacion.isConfirmed) return;
+
+        let formData = new FormData(this);
+
         try {
-            const actionUrl = form.getAttribute('action') || form.action;
-            if (!actionUrl) {
-                throw new Error('URL de acción del formulario no encontrada.');
-            }
-
-            const response = await fetch(actionUrl, {
+            let response = await fetch(urlControlador, {
                 method: 'POST',
-                body: new FormData(form),
-                headers: {
-                    'Accept': 'application/json'
-                }
+                body: formData
             });
-
-            const data = await response.json();
+            let data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', '¡Éxito!', data.message || 'Guardado correctamente.');
-                if (modalElement) {
-                    const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                    modalInstance.hide();
-                }
-                form.reset();
-                fetchOrdenes();
+                await mostrarAlertaInformativa('¡Éxito!', data.message, 'success');
+                $('#modalRegistrarOrden').modal('hide');
+                $('#formRegistrarOrden')[0].reset();
+                $('.is-valid, .is-invalid').removeClass('is-valid is-invalid').removeAttr('style');
+                tablaOrdenes.ajax.reload();
             } else {
-                mostrarAlerta('error', 'Error', data.message || 'No se pudo procesar la solicitud.');
+                await mostrarAlertaInformativa('Error', data.message, 'error');
             }
         } catch (error) {
-            console.error('Error al enviar el formulario:', error);
-            mostrarAlerta('error', 'Error', 'No se pudo conectar con el servidor.');
-        } finally {
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.textContent = textoOriginal;
-            }
+            await mostrarAlertaInformativa('Error crítico', 'Fallo al procesar la solicitud.', 'error');
         }
-    }
-
-    function fetchOrdenes() {
-        // Se agregó '&accion=listar' para que el controlador de PHP detecte la petición y devuelva el JSON
-        fetch('index.php?url=ordenproduccion/listarordenproduccion&accion=listar')
-            .then(response => response.json())
-            .then(data => {
-                // El controlador PHP devuelve la data dentro del atributo 'data'
-                if (data.success && Array.isArray(data.data)) {
-                    ordenes = data.data;
-                } else if (Array.isArray(data)) {
-                    ordenes = data; // Respaldo por si cambia la estructura
-                } else {
-                    ordenes = [];
-                }
-                renderizarTabla();
-            })
-            .catch(error => {
-                console.error('Error al cargar las órdenes de producción:', error);
-                ordenes = [];
-                renderizarTabla();
-            });
-    }
-
-    function renderizarTabla() {
-        if (!tablaBody) return;
-
-        if (tablaOrdenes) {
-            tablaOrdenes.destroy();
-        }
-
-        tablaBody.innerHTML = '';
-
-        if (!Array.isArray(ordenes)) {
-            ordenes = [];
-        }
-
-        ordenes.forEach(orden => {
-            const fila = document.createElement('tr');
-            const estado = String(orden.estado_de_produccion ?? '');
-            const estadoNormalizado = estado.toLowerCase() === 'inactiva' ? 'inhabilitado' : 'activo';
-            const estadoClase = estado.toLowerCase() === 'finalizado'
-                ? 'bg-success text-white'
-                : estado.toLowerCase() === 'en proceso'
-                    ? 'bg-warning text-dark'
-                    : estado.toLowerCase() === 'inactiva'
-                        ? 'bg-danger text-white'
-                        : 'bg-secondary text-white';
-
-            fila.setAttribute('data-estado', estadoNormalizado);
-
-            const botonInactivar = estado.toLowerCase() !== 'inactiva'
-                ? `
-                    <button type="button" class="btn btn-sm btn-outline-danger btnInactivarOrden"
-                        data-id_produccion="${orden.id_produccion}"
-                        title="Inactivar orden">
-                        <i class="bi bi-trash-fill"></i>
-                    </button>`
-                : '';
-
-            fila.innerHTML = `
-                <td><strong>#${orden.id_produccion}</strong></td>
-                <td>${orden.fecha_de_inicio || 'N/A'}</td>
-                <td>${orden.fecha_terminado || 'N/A'}</td>
-                <td>${orden.descripcion_pedido || 'Sin descripción'} (Cant: ${orden.cantidad || 0})</td>
-                <td><span class="badge ${estadoClase}">${estado || 'Sin estado'}</span></td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarOrden" 
-                        data-id_produccion="${orden.id_produccion}" 
-                        data-fecha_inicio="${orden.fecha_de_inicio}" 
-                        data-fecha_terminado="${orden.fecha_terminado}" 
-                        data-id_detalle_pedido="${orden.id_detalle_pedido}" 
-                        data-estado="${orden.estado_de_produccion}">
-                        <i class="bi bi-pencil-square"></i>
-                    </button>
-                    ${botonInactivar}
-                </td>
-            `;
-            tablaBody.appendChild(fila);
-        });
-
-        tablaOrdenes = $('#tablaOrdenProduccion').DataTable({
-            language: {
-                "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ registros",
-                "sZeroRecords": "No se encontraron resultados",
-                "sEmptyTable": "Ningún dato disponible en esta tabla",
-                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
-                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
-                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
-                "sSearch": "Buscar:",
-                "oPaginate": {
-                    "sFirst": "Primero",
-                    "sLast": "Último",
-                    "sNext": "Siguiente",
-                    "sPrevious": "Anterior"
-                }
-            },
-            pageLength: 10,
-            responsive: true
-        });
-
-        tablaOrdenes.draw();
-    }
-
-    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-        if (settings.nTable.id !== 'tablaOrdenProduccion') return true;
-
-        const fila = settings.aoData[dataIndex].nTr;
-        const estado = fila.getAttribute('data-estado');
-        return verInactivas ? estado === 'inhabilitado' : estado !== 'inhabilitado';
     });
 
-    if (btnAlternarEstado) {
-        btnAlternarEstado.addEventListener('click', function () {
-            verInactivas = !verInactivas;
-            if (verInactivas) {
-                btnAlternarEstado.setAttribute('data-vista', 'inhabilitados');
-                btnAlternarEstado.classList.remove('btn-outline-secondary');
-                btnAlternarEstado.classList.add('btn-secondary');
-                iconoEstado.classList.remove('bi-eye-slash-fill');
-                iconoEstado.classList.add('bi-eye-fill');
-                txtBotonEstado.textContent = 'Ver Activas';
-                tituloVista.textContent = 'Órdenes Inactivas';
-            } else {
-                btnAlternarEstado.setAttribute('data-vista', 'activos');
-                btnAlternarEstado.classList.remove('btn-secondary');
-                btnAlternarEstado.classList.add('btn-outline-secondary');
-                iconoEstado.classList.remove('bi-eye-fill');
-                iconoEstado.classList.add('bi-eye-slash-fill');
-                txtBotonEstado.textContent = 'Ver inactivas';
-                tituloVista.textContent = 'Gestión de Órdenes de Producción';
-            }
-            if (tablaOrdenes) tablaOrdenes.draw();
-        });
-    }
 
-    if (formRegistrarOrden) {
-        formRegistrarOrden.addEventListener('submit', function (event) {
-            event.preventDefault();
-            enviarFormulario(formRegistrarOrden, modalRegistrarOrdenElement);
-        });
-    }
-
-    if (formEditarOrden) {
-        formEditarOrden.addEventListener('submit', async function (event) {
-            event.preventDefault();
-
-            const estado = document.getElementById('edit_estado_de_produccion')?.value;
-            const esInactivacion = estado === 'Inactiva';
-            const confirmado = await confirmarAccion(
-                esInactivacion ? '¿Seguro que desea inactivar esta orden?' : '¿Seguro que desea editar esta orden?',
-                esInactivacion
-                    ? 'La orden dejará de aparecer entre las órdenes activas.'
-                    : 'Se guardarán los cambios realizados en la orden.'
-            );
-
-            if (!confirmado) return;
-            enviarFormulario(formEditarOrden, modalEditarOrdenElement);
-        });
-    }
-
-    document.addEventListener('click', async function (event) { // <-- OJO: agregamos 'async'
-        const target = event.target.closest('.btnEditarOrden');
-        if (!target) return;
-
-        // Capturamos los datos actualizados según la base de datos
-        const id_produccion = target.getAttribute('data-id_produccion') || '';
-        const id_detalle_pedido = target.getAttribute('data-id_detalle_pedido') || '';
-        const fechaInicio = target.getAttribute('data-fecha_inicio') || '';
-        const fechaTerminado = target.getAttribute('data-fecha_terminado') || '';
-        const estado = target.getAttribute('data-estado') || '';
-
-        // Buscamos los elementos del DOM en el modal de edición
-        const editId = document.getElementById('edit_id_orden'); // El que corregimos ayer
-        const editIdDetallePedido = document.getElementById('edit_id_detalle_pedido'); 
-        const editFechaInicio = document.getElementById('edit_fecha_de_inicio');
-        const editFechaTerminado = document.getElementById('edit_fecha_terminado'); 
-        const editEstado = document.getElementById('edit_estado_de_produccion');
-
-        // Asignamos los valores a los inputs del modal
-        if (editId) editId.value = id_produccion;
-        if (editIdDetallePedido) editIdDetallePedido.value = id_detalle_pedido;
-        if (editFechaInicio) editFechaInicio.value = fechaInicio;
-        if (editFechaTerminado) editFechaTerminado.value = fechaTerminado;
-        if (editEstado) editEstado.value = estado;
-
-        // --- NUEVO: LÓGICA PARA MARCAR LOS TRABAJADORES ---
+    $('#tablaOrdenProduccion tbody').on('click', '.btn-editar', async function () {
+        let orden = $(this).data('orden');
         
-        // 1. Limpiamos todos los checkboxes por si quedó alguno marcado de una edición anterior
-        document.querySelectorAll('.check-edit-empleado').forEach(checkbox => {
-            checkbox.checked = false;
-        });
+        
+        $('#edit_id_orden').val(orden.id_produccion);
+        $('#edit_fecha_de_inicio').val(orden.fecha_de_inicio);
+        $('#edit_fecha_terminado').val(orden.fecha_terminado || '');
+        $('#edit_id_detalle_pedido').val(orden.id_detalle_pedido);
+        $('#edit_estado_de_produccion').val(orden.estado_de_produccion);
+        
+        
+        $('.is-valid, .is-invalid').removeClass('is-valid is-invalid').removeAttr('style');
+        
+        
+        $('.check-edit-empleado').prop('checked', false);
 
-        // 2. Buscamos los asignados en la base de datos usando fetch
+        
         try {
-            const response = await fetch(`index.php?url=ordenproduccion/listarordenproduccion&accion=obtener_empleados&id=${id_produccion}`);
-            const data = await response.json();
+            let response = await fetch(`${urlControlador}&accion=obtener_empleados&id=${orden.id_produccion}`);
+            let data = await response.json();
             
-            if (data.success && data.data) {
-                // 3. Marcamos solo los que nos devuelve el backend
+            if (data.success && data.data.length > 0) {
+                
                 data.data.forEach(id_empleado => {
-                    const checkbox = document.getElementById(`edit_emp_${id_empleado}`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
+                    $(`#edit_emp_${id_empleado}`).prop('checked', true);
                 });
             }
         } catch (error) {
-            console.error("Error al cargar los empleados asignados:", error);
+            console.error('Error obteniendo trabajadores asignados:', error);
         }
-        // ----------------------------------------------------
 
-        // 4. Finalmente, abrimos el modal ya con los datos cargados
-        const modal = new bootstrap.Modal(document.getElementById('modalEditarOrden'));
-        modal.show();
+        $('#modalEditarOrden').modal('show');
     });
 
-    document.addEventListener('click', async function (event) {
-        const target = event.target.closest('.btnInactivarOrden');
-        if (!target) return;
+    $('#formEditarOrden').on('submit', async function (e) {
+        e.preventDefault();
 
-        const idProduccion = target.getAttribute('data-id_produccion');
-        const confirmado = await confirmarAccion(
-            '¿Seguro que desea inactivar esta orden?',
-            'La orden dejará de aparecer entre las órdenes activas.'
-        );
+        
+        let v1 = validarFecha($('#edit_fecha_de_inicio'), true, 0);
+        let v2 = validarFecha($('#edit_fecha_terminado'), false, 1);
+        let v3 = validarCampo($('#edit_id_detalle_pedido'), 'enteroPositivo');
 
-        if (!confirmado) return;
+        if (!v1 || !v2 || !v3) {
+            await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
+            return;
+        }
+
+        let confirmacion = await confirmarAccion('¿Guardar Cambios?', 'Se actualizarán los datos de la orden de producción.');
+        if (!confirmacion.isConfirmed) return;
+
+        let formData = new FormData(this);
 
         try {
-            const response = await fetch(`index.php?url=ordenproduccion/listarordenproduccion&accion=eliminar&id=${encodeURIComponent(idProduccion)}`, {
-                headers: {
-                    'Accept': 'application/json'
-                }
+            let response = await fetch(urlControlador, {
+                method: 'POST',
+                body: formData
             });
-            const data = await response.json();
+            let data = await response.json();
 
             if (data.success) {
-                mostrarAlerta('success', '¡Éxito!', data.message || 'Orden inactivada correctamente.');
-                fetchOrdenes();
+                await mostrarAlertaInformativa('Actualizado', data.message, 'success');
+                $('#modalEditarOrden').modal('hide');
+                tablaOrdenes.ajax.reload();
             } else {
-                mostrarAlerta('error', 'Error', data.message || 'No se pudo inactivar la orden.');
+                await mostrarAlertaInformativa('Error', data.message, 'error');
             }
         } catch (error) {
-            console.error('Error al inactivar la orden:', error);
-            mostrarAlerta('error', 'Error', 'No se pudo conectar con el servidor.');
+            await mostrarAlertaInformativa('Error de red', 'No se pudo contactar con el servidor.', 'error');
         }
     });
 
-    const btnGenerarReporte = document.getElementById('btnGenerarReporte');
-    
-    if (btnGenerarReporte) {
-        btnGenerarReporte.addEventListener('click', function() {
-            // Pasamos un parámetro por la URL para saber si el reporte es de activas o inactivas
-            const estadoFiltro = verInactivas ? 'inactivas' : 'activas';
-            
-            // Abrimos la ruta del generador de reportes en una nueva pestaña
-            const urlReporte = `index.php?url=ordenproduccion/listarordenproduccion&accion=generar_reporte&estado=${estadoFiltro}`;
-            window.open(urlReporte, '_blank');
-        });
-    }
 
-    fetchOrdenes();
+    $('#tablaOrdenProduccion tbody').on('click', '.btn-eliminar', async function () {
+        let id = $(this).data('id');
+
+        let confirmacion = await confirmarAccion('¿Inactivar orden?', 'Esta orden pasará a estado Inactivo.');
+        
+        if (confirmacion.isConfirmed) {
+            try {
+                let response = await fetch(`${urlControlador}&accion=eliminar&id=${id}`);
+                let data = await response.json();
+
+                if (data.success) {
+                    await mostrarAlertaInformativa('Inactivada', data.message, 'success');
+                    tablaOrdenes.ajax.reload();
+                } else {
+                    await mostrarAlertaInformativa('Error', data.message, 'error');
+                }
+            } catch (error) {
+                await mostrarAlertaInformativa('Error', 'Fallo al procesar la solicitud.', 'error');
+            }
+        }
+    });
+
+
+    $('#btnAlternarEstado').on('click', function () {
+        let estadoActual = $(this).attr('data-vista');
+        
+        if (estadoActual === 'activos') {
+            
+            tablaOrdenes.column(4).search('Inactiva').draw();
+            $(this).attr('data-vista', 'inactivos');$('#txtBotonEstado').text('Ver activas');
+            $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
+        } else {
+            
+            tablaOrdenes.column(4).search('').draw();
+            $(this).attr('data-vista', 'activos');$('#txtBotonEstado').text('Ver inactivas');
+            $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
+        }
+    });
+
+    $('#reporteSeleccionarTodos').on('change', function () {
+        $('.check-estado-reporte').prop('checked', this.checked);
+    });
+
+    $('.check-estado-reporte').on('change', function () {
+        $('#reporteSeleccionarTodos').prop(
+            'checked',
+            $('.check-estado-reporte').length === $('.check-estado-reporte:checked').length
+        );
+    });
+
+    $('#formReporteOrdenes').on('submit', function (e) {
+        e.preventDefault();
+
+        const fechaDesde = $('#reporteFechaDesde').val();
+        const fechaHasta = $('#reporteFechaHasta').val();
+        const estados = $('.check-estado-reporte:checked').map(function () {
+            return this.value;
+        }).get();
+
+        if (estados.length === 0) {
+            mostrarAlertaInformativa('Seleccione un estado', 'Elija al menos un estado de producción para el reporte.', 'warning');
+            return;
+        }
+
+        if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+            mostrarAlertaInformativa('Rango de fechas inválido', 'La fecha inicial no puede ser posterior a la fecha final.', 'warning');
+            return;
+        }
+
+        const parametros = new URLSearchParams();
+        parametros.set('accion', 'generar_reporte');
+        estados.forEach(estado => parametros.append('estados[]', estado));
+        if (fechaDesde) parametros.set('fecha_desde', fechaDesde);
+        if (fechaHasta) parametros.set('fecha_hasta', fechaHasta);
+
+        window.open(`${urlControlador}&${parametros.toString()}`, '_blank');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReporteOrdenes')).hide();
+    });
 });

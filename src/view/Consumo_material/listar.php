@@ -23,7 +23,7 @@
                     <p>Registra y administra el consumo de materia prima en las órdenes de producción.</p>
                 </div>
                 <div>
-                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalFiltrosReporteConsumo">
                         <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                     </button>
 
@@ -95,6 +95,48 @@
         </div>
     </main>
 
+    <div class="modal fade modal-idealo" id="modalFiltrosReporteConsumo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="formFiltrosReporteConsumo">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Filtrar reporte de consumo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="reporteMateriaPrima">Materia prima</label>
+                            <select class="form-select" id="reporteMateriaPrima">
+                                <option value="">Todas las materias primas</option>
+                                <?php foreach ($materiasReporte as $idMateria => $materia): ?>
+                                    <option value="<?= htmlspecialchars($idMateria, ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars($materia['nombre'] . ($materia['unidad'] !== '' ? ' (' . $materia['unidad'] . ')' : ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="reporteEstadoProduccion">Estado de producción</label>
+                            <select class="form-select" id="reporteEstadoProduccion">
+                                <option value="">Todos los estados</option>
+                                <option value="activas">Activas (cualquier estado excepto Inactiva)</option>
+                                <?php foreach ($estadosProduccionReporte as $estado): ?>
+                                    <option value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars(strtolower($estado) === 'en espera' ? 'Pendiente (En espera)' : $estado, ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Generar PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalRegistrarConsumo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -113,9 +155,13 @@
                                     <option value="">Seleccione una materia prima</option>
                                     <?php $materias = $materias ?? []; ?>
                                     <?php foreach ($materias as $materia): ?>
-                                        <option value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>">
+                                        <option value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>"
+                                            <?php echo (float) ($materia['stock_actual'] ?? 0) <= 0 ? 'disabled' : ''; ?>>
                                             <?php echo htmlspecialchars($materia['nombre_materia_prima']); ?>
                                             (<?php echo htmlspecialchars($materia['unidad_de_medida']); ?>)
+                                            <?php if ((float) ($materia['stock_actual'] ?? 0) <= 0): ?>
+                                                - Sin stock
+                                            <?php endif; ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

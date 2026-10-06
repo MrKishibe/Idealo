@@ -1,156 +1,206 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const tablaBody = document.getElementById('tbodyConsumos');
-    const formRegistrarConsumo = document.getElementById('formRegistrarConsumo');
-    const formEditarConsumo = document.getElementById('formEditarConsumo');
-    const modalRegistrarConsumoElement = document.getElementById('modalRegistrarConsumo');
-    const modalEditarConsumoElement = document.getElementById('modalEditarConsumo');
-    const btnGenerarReporte = document.getElementById('btnGenerarReporte');
+$(document).ready(function () {
+    const $tablaBody = $('#tbodyConsumos');
+    const $formRegistrarConsumo = $('#formRegistrarConsumo');
+    const $formEditarConsumo = $('#formEditarConsumo');
 
     let consumos = [];
     let tablaConsumos;
 
-    function mostrarAlerta(tipo, titulo, texto) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: tipo,
-                title: titulo,
-                text: texto,
-                timer: 1500,
-                showConfirmButton: false,
-                timerProgressBar: true
+    function marcarCampo($campo, esValido) {
+        $campo.removeClass('is-valid is-invalid')
+            .addClass(esValido ? 'is-valid' : 'is-invalid')
+            .css({
+                'border-color': esValido ? 'green' : 'red',
+                'box-shadow': esValido ? '0 0 5px green' : '0 0 5px red'
             });
-        } else {
-            alert(titulo + '\n' + texto);
-        }
     }
 
-    async function enviarFormulario(form, modalElement) {
-        if (!form) return;
+    function validarCampo($campo) {
+        const valor = String($campo.val() || '').trim();
+        let esValido = $campo[0].checkValidity();
 
-        const submitButton = form.querySelector('button[type="submit"]');
-        const textoOriginal = submitButton ? submitButton.textContent : '';
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.textContent = 'Enviando...';
+        if (esValido && $campo.attr('name') === 'descripcion_de_consumo' && valor !== '') {
+            esValido = $.expresionesRegulares.validar('descripcion', valor);
         }
 
-        try {
-            const actionUrl = form.getAttribute('action') || form.action;
-            if (!actionUrl) {
-                throw new Error('URL de acción del formulario no encontrada.');
+        marcarCampo($campo, esValido);
+        return esValido;
+    }
+
+    function validarFormulario($form) {
+        let formularioValido = true;
+
+        $form.find('input:not([type="hidden"]), select, textarea').each(function () {
+            if (!validarCampo($(this))) formularioValido = false;
+        });
+
+        return formularioValido;
+    }
+
+    function limpiarValidaciones($form) {
+        $form.find('.is-valid, .is-invalid')
+            .removeClass('is-valid is-invalid')
+            .removeAttr('style');
+    }
+
+    async function confirmarAccion(titulo, texto) {
+        return await Swal.fire({
+            title: titulo,
+            text: texto,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar'
+        });
+    }
+
+    async function mostrarAlertaInformativa(titulo, texto, icono) {
+        return await Swal.fire({
+            title: titulo,
+            text: texto,
+            icon: icono,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+
+    function enviarFormulario($form, $modal) {
+        if (!$form.length) return;
+
+        const $submitButton = $form.find('button[type="submit"]').first();
+        const textoOriginal = $submitButton.text();
+        const actionUrl = $form.attr('action');
+
+        if (!actionUrl) {
+            mostrarAlertaInformativa('Error', 'URL de acción del formulario no encontrada.', 'error');
+            return;
+        }
+
+        $submitButton.prop('disabled', true).text('Enviando...');
+
+        $.ajax({
+            url: actionUrl,
+            type: 'POST',
+            data: new FormData($form[0]),
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                Accept: 'application/json'
             }
-
-            const response = await fetch(actionUrl, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
+        }).done(async function (data) {
             if (data.success) {
-                mostrarAlerta('success', '¡Éxito!', data.message || 'Guardado correctamente.');
-                if (modalElement) {
-                    const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                    modalInstance.hide();
-                }
-                form.reset();
+                await mostrarAlertaInformativa('¡Éxito!', data.message || 'Guardado correctamente.', 'success');
+                if ($modal.length) $modal.modal('hide');
+                $form[0].reset();
+                limpiarValidaciones($form);
                 fetchConsumos();
             } else {
-                mostrarAlerta('error', 'Error', data.message || 'No se pudo procesar la solicitud.');
+                await mostrarAlertaInformativa('Error', data.message || 'No se pudo procesar la solicitud.', 'error');
             }
-        } catch (error) {
-            console.error('Error al enviar el formulario:', error);
-            mostrarAlerta('error', 'Error', 'No se pudo conectar con el servidor.');
-        } finally {
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.textContent = textoOriginal;
-            }
-        }
+        }).fail(async function (xhr, estado, error) {
+            console.error('Error al enviar el formulario:', error || estado);
+            await mostrarAlertaInformativa('Error de red', 'No se pudo conectar con el servidor.', 'error');
+        }).always(function () {
+            $submitButton.prop('disabled', false).text(textoOriginal);
+        });
     }
 
     function fetchConsumos() {
-        fetch('index.php?controller=consumoMaterial&action=listar&accion=listar')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && Array.isArray(data.data)) {
-                    consumos = data.data;
-                } else if (Array.isArray(data)) {
-                    consumos = data;
-                } else {
-                    consumos = [];
-                    console.warn('Respuesta inesperada al cargar los consumos:', data);
-                }
-                renderizarTabla();
-            })
-            .catch(error => {
-                console.error('Error al cargar los consumos:', error);
+        $.ajax({
+            url: 'index.php?controller=consumoMaterial&action=listar&accion=listar',
+            type: 'GET',
+            dataType: 'json'
+        }).done(function (data) {
+            if (data.success && Array.isArray(data.data)) {
+                consumos = data.data;
+            } else if (Array.isArray(data)) {
+                consumos = data;
+            } else {
                 consumos = [];
-                renderizarTabla();
-            });
+                console.warn('Respuesta inesperada al cargar los consumos:', data);
+            }
+            renderizarTabla();
+        }).fail(async function (xhr, estado, error) {
+            console.error('Error al cargar los consumos:', error || estado);
+            consumos = [];
+            renderizarTabla();
+            await mostrarAlertaInformativa('Error', 'No se pudieron cargar los consumos de material.', 'error');
+        });
     }
 
     function renderizarTabla() {
-        if (!tablaBody) return;
+        if (!$tablaBody.length) return;
 
-        if (tablaConsumos) {
-            tablaConsumos.destroy();
-        }
-
-        tablaBody.innerHTML = '';
+        if (tablaConsumos) tablaConsumos.destroy();
+        $tablaBody.empty();
 
         if (!Array.isArray(consumos)) consumos = [];
 
-        consumos.forEach(consumo => {
-            const costoTotal = (Number(consumo.costo_unitario || 0) * Number(consumo.cantidad_usada || 0)).toFixed(2);
-            const fila = document.createElement('tr');
+        consumos.forEach(function (consumo) {
+            const costoUnitario = Number(consumo.costo_unitario || 0);
+            const cantidadUsada = Number(consumo.cantidad_usada || 0);
+            const costoTotal = (costoUnitario * cantidadUsada).toFixed(2);
 
-            fila.innerHTML = `
-                <td class="fw-bold">#${consumo.id_consumo_material || ''}</td>
-                <td>
-                    <div class="fw-bold text-dark">${consumo.nombre_materia_prima || 'Sin material'}</div>
-                    <small class="text-muted"><i class="bi bi-info-circle"></i> ${consumo.descripcion_de_consumo || 'Sin descripción'}</small>
-                </td>
-                <td class="fw-bold text-muted">$${Number(consumo.costo_unitario || 0).toFixed(2)}</td>
-                <td class="fw-bold">${consumo.cantidad_usada || 0} ${consumo.unidad_de_medida || ''}</td>
-                <td class="text-success fw-bold">$${costoTotal}</td>
-                <td><span class="badge bg-secondary">OP-${String(consumo.id_produccion || 0).padStart(4, '0')}</span></td>
-                <td>
-                    <div class="text-center d-flex justify-content-center gap-1">
-                        <button type="button"
-                            class="btn btn-sm btn-outline-primary btnEditarConsumo"
-                            data-id_consumo_material="${consumo.id_consumo_material || ''}"
-                            data-id_materia_prima="${consumo.id_materia_prima || ''}"
-                            data-costo_unitario="${consumo.costo_unitario || ''}"
-                            data-cantidad_usada="${consumo.cantidad_usada || ''}"
-                            data-descripcion_de_consumo="${consumo.descripcion_de_consumo || ''}"
-                            data-id_produccion="${consumo.id_produccion || ''}">
-                            <i class="bi bi-pencil-square"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            tablaBody.appendChild(fila);
+            const $fila = $('<tr>');
+            $fila.append($('<td>', { class: 'fw-bold' }).text('#' + (consumo.id_consumo_material || '')));
+
+            const $material = $('<td>')
+                .append($('<div>', { class: 'fw-bold text-dark' }).text(consumo.nombre_materia_prima || 'Sin material'))
+                .append(
+                    $('<small>', { class: 'text-muted' })
+                        .append($('<i>', { class: 'bi bi-info-circle' }))
+                        .append(' ' + (consumo.descripcion_de_consumo || 'Sin descripción'))
+                );
+            $fila.append($material);
+
+            $fila.append($('<td>', { class: 'fw-bold text-muted' }).text('$' + costoUnitario.toFixed(2)));
+            $fila.append($('<td>', { class: 'fw-bold' }).text((consumo.cantidad_usada || 0) + ' ' + (consumo.unidad_de_medida || '')));
+            $fila.append($('<td>', { class: 'text-success fw-bold' }).text('$' + costoTotal));
+            $fila.append(
+                $('<td>').append(
+                    $('<span>', { class: 'badge bg-secondary' })
+                        .text('OP-' + String(consumo.id_produccion || 0).padStart(4, '0'))
+                )
+            );
+
+            const $botonEditar = $('<button>', {
+                type: 'button',
+                class: 'btn btn-sm btn-outline-primary btnEditarConsumo'
+            }).attr({
+                'data-id_consumo_material': consumo.id_consumo_material || '',
+                'data-id_materia_prima': consumo.id_materia_prima || '',
+                'data-costo_unitario': consumo.costo_unitario || '',
+                'data-cantidad_usada': consumo.cantidad_usada || '',
+                'data-descripcion_de_consumo': consumo.descripcion_de_consumo || '',
+                'data-id_produccion': consumo.id_produccion || ''
+            }).append($('<i>', { class: 'bi bi-pencil-square' }));
+
+            $fila.append(
+                $('<td>').append(
+                    $('<div>', { class: 'text-center d-flex justify-content-center gap-1' }).append($botonEditar)
+                )
+            );
+            $tablaBody.append($fila);
         });
 
         tablaConsumos = $('#tablaConsumos').DataTable({
             language: {
-                "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ registros",
-                "sZeroRecords": "No se encontraron resultados",
-                "sEmptyTable": "Ningún dato disponible en esta tabla",
-                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
-                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
-                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
-                "sSearch": "Buscar:",
-                "oPaginate": {
-                    "sFirst": "Primero",
-                    "sLast": "Último",
-                    "sNext": "Siguiente",
-                    "sPrevious": "Anterior"
+                sProcessing: 'Procesando...',
+                sLengthMenu: 'Mostrar _MENU_ registros',
+                sZeroRecords: 'No se encontraron resultados',
+                sEmptyTable: 'Ningún dato disponible en esta tabla',
+                sInfo: 'Mostrando del _START_ al _END_ de _TOTAL_ registros',
+                sInfoEmpty: 'Mostrando del 0 al 0 de 0 registros',
+                sInfoFiltered: '(filtrado de un total de _MAX_ registros)',
+                sSearch: 'Buscar:',
+                oPaginate: {
+                    sFirst: 'Primero',
+                    sLast: 'Último',
+                    sNext: 'Siguiente',
+                    sPrevious: 'Anterior'
                 }
             },
             pageLength: 10,
@@ -158,46 +208,63 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (formRegistrarConsumo) {
-        formRegistrarConsumo.addEventListener('submit', function (event) {
-            event.preventDefault();
-            enviarFormulario(formRegistrarConsumo, modalRegistrarConsumoElement);
+    [$formRegistrarConsumo, $formEditarConsumo].forEach(function ($form) {
+        $form.on('input change', 'input:not([type="hidden"]), select, textarea', function () {
+            validarCampo($(this));
         });
-    }
+    });
 
-    if (formEditarConsumo) {
-        formEditarConsumo.addEventListener('submit', function (event) {
-            event.preventDefault();
-            enviarFormulario(formEditarConsumo, modalEditarConsumoElement);
-        });
-    }
+    $formRegistrarConsumo.on('submit', async function (event) {
+        event.preventDefault();
+        if (!validarFormulario($(this))) {
+            await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
+            return;
+        }
 
-    if (btnGenerarReporte) {
-        btnGenerarReporte.addEventListener('click', function () {
-            window.open('index.php?controller=consumoMaterial&action=listar&accion=reporte', '_blank');
-        });
-    }
+        const confirmacion = await confirmarAccion('¿Registrar consumo?', 'Se registrará el consumo de material.');
+        if (!confirmacion.isConfirmed) return;
 
-    document.addEventListener('click', function (event) {
-        const target = event.target.closest('.btnEditarConsumo');
-        if (!target) return;
+        enviarFormulario($(this), $('#modalRegistrarConsumo'));
+    });
 
-        const editIdConsumo = document.getElementById('edit_id_consumo_material');
-        const editIdMateria = document.getElementById('edit_id_materia_prima');
-        const editIdProduccion = document.getElementById('edit_id_produccion');
-        const editCosto = document.getElementById('edit_costo_unitario');
-        const editCantidad = document.getElementById('edit_cantidad_usada');
-        const editDescripcion = document.getElementById('edit_descripcion_de_consumo');
+    $formEditarConsumo.on('submit', async function (event) {
+        event.preventDefault();
+        if (!validarFormulario($(this))) {
+            await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
+            return;
+        }
 
-        if (editIdConsumo) editIdConsumo.value = target.dataset.id_consumo_material || '';
-        if (editIdMateria) editIdMateria.value = target.dataset.id_materia_prima || '';
-        if (editIdProduccion) editIdProduccion.value = target.dataset.id_produccion || '';
-        if (editCosto) editCosto.value = target.dataset.costo_unitario || '';
-        if (editCantidad) editCantidad.value = target.dataset.cantidad_usada || '';
-        if (editDescripcion) editDescripcion.value = target.dataset.descripcion_de_consumo || '';
+        const confirmacion = await confirmarAccion('¿Guardar cambios?', 'Se actualizarán los datos del consumo de material.');
+        if (!confirmacion.isConfirmed) return;
 
-        const modal = new bootstrap.Modal(document.getElementById('modalEditarConsumo'));
-        modal.show();
+        enviarFormulario($(this), $('#modalEditarConsumo'));
+    });
+
+    $('#formFiltrosReporteConsumo').on('submit', async function (event) {
+        event.preventDefault();
+
+        const parametros = new URLSearchParams({ accion: 'reporte' });
+        const idMateriaPrima = $('#reporteMateriaPrima').val();
+        const estadoProduccion = $('#reporteEstadoProduccion').val();
+        if (idMateriaPrima) parametros.set('id_materia_prima', idMateriaPrima);
+        if (estadoProduccion) parametros.set('estado_produccion', estadoProduccion);
+
+        window.open(`index.php?controller=consumoMaterial&action=listar&${parametros.toString()}`, '_blank');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFiltrosReporteConsumo')).hide();
+    });
+
+    $('#tablaConsumos tbody').on('click', '.btnEditarConsumo', function () {
+        const $boton = $(this);
+
+        $('#edit_id_consumo_material').val($boton.attr('data-id_consumo_material') || '');
+        $('#edit_id_materia_prima').val($boton.attr('data-id_materia_prima') || '');
+        $('#edit_id_produccion').val($boton.attr('data-id_produccion') || '');
+        $('#edit_costo_unitario').val($boton.attr('data-costo_unitario') || '');
+        $('#edit_cantidad_usada').val($boton.attr('data-cantidad_usada') || '');
+        $('#edit_descripcion_de_consumo').val($boton.attr('data-descripcion_de_consumo') || '');
+
+        validarFormulario($formEditarConsumo);
+        $('#modalEditarConsumo').modal('show');
     });
 
     fetchConsumos();

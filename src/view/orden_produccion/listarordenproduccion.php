@@ -32,7 +32,7 @@
                     <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
                         <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inactivas</span>
                     </button>
-                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;">
+                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalReporteOrdenes">
                         <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                     </button>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarOrden">
@@ -62,6 +62,56 @@
             </div>
         </div>
     </main>
+
+    <div class="modal fade modal-idealo" id="modalReporteOrdenes" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="formReporteOrdenes">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf me-2"></i>Filtrar reporte de producción</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset class="mb-3">
+                            <legend class="form-label">Estados de producción</legend>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="reporteSeleccionarTodos" checked>
+                                <label class="form-check-label fw-semibold" for="reporteSeleccionarTodos">Seleccionar todos</label>
+                            </div>
+                            <div class="row">
+                                <?php foreach ($estadosProduccion as $indice => $estado): ?>
+                                    <div class="col-sm-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input check-estado-reporte" type="checkbox" name="estados[]" value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>" id="reporteEstado<?= $indice ?>" checked>
+                                            <label class="form-check-label" for="reporteEstado<?= $indice ?>"><?= htmlspecialchars(ucfirst($estado), ENT_QUOTES, 'UTF-8') ?></label>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend class="form-label">Rango por fecha de inicio</legend>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="reporteFechaDesde">Desde</label>
+                                    <input type="date" class="form-control" id="reporteFechaDesde">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="reporteFechaHasta">Hasta</label>
+                                    <input type="date" class="form-control" id="reporteFechaHasta">
+                                </div>
+                            </div>
+                            <small class="text-muted">Las fechas elegidas se incluyen en el reporte. Déjalas vacías para no limitar por fecha.</small>
+                        </fieldset>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Generar PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Registrar Orden -->
     <div class="modal fade modal-idealo" id="modalRegistrarOrden" tabindex="-1" aria-hidden="true">

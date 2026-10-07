@@ -87,6 +87,26 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'listar') {
     exit;
 }
 
+if (isset($_GET['accion']) && $_GET['accion'] === 'obtenerCostoMateriaPrima') {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $costoUnitario = $model->obtenerCostoMateriaPrima($_GET['id_materia_prima'] ?? null);
+        echo json_encode([
+            'success' => true,
+            'costo_unitario' => $costoUnitario
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
 if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
     if (ob_get_length()) ob_clean();
     

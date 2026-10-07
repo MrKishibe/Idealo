@@ -151,7 +151,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" required>
+                                <select class="form-select" name="id_materia_prima" id="registrar_id_materia_prima" required>
                                     <option value="">Seleccione una materia prima</option>
                                     <?php $materias = $materias ?? []; ?>
                                     <?php foreach ($materias as $materia): ?>
@@ -181,7 +181,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Costo unitario</label>
-                                <input type="number" class="form-control" name="costo_unitario" step="0.01" min="0" required placeholder="Ej. 12.50">
+                                <input type="number" class="form-control" name="costo_unitario" id="registrar_costo_unitario" step="0.01" min="0" required readonly placeholder="Se completa al seleccionar la materia prima">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Cantidad usada</label>
@@ -241,7 +241,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Costo unitario</label>
-                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" required>
+                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" required readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Cantidad usada</label>

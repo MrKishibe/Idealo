@@ -2,9 +2,12 @@ $(document).ready(function () {
     const $tablaBody = $('#tbodyConsumos');
     const $formRegistrarConsumo = $('#formRegistrarConsumo');
     const $formEditarConsumo = $('#formEditarConsumo');
+    const $materiaPrimaRegistrar = $('#registrar_id_materia_prima');
+    const $costoUnitarioRegistrar = $('#registrar_costo_unitario');
 
     let consumos = [];
     let tablaConsumos;
+    let solicitudCostoMateriaPrima;
 
     function marcarCampo($campo, esValido) {
         $campo.removeClass('is-valid is-invalid')
@@ -18,6 +21,10 @@ $(document).ready(function () {
     function validarCampo($campo) {
         const valor = String($campo.val() || '').trim();
         let esValido = $campo[0].checkValidity();
+
+        if ($campo.attr('name') === 'costo_unitario' && valor === '') {
+            esValido = false;
+        }
 
         if (esValido && $campo.attr('name') === 'descripcion_de_consumo' && valor !== '') {
             esValido = $.expresionesRegulares.validar('descripcion', valor);
@@ -63,6 +70,36 @@ $(document).ready(function () {
             icon: icono,
             timer: 2000,
             showConfirmButton: false
+        });
+    }
+
+    function cargarCostoMateriaPrima(idMateriaPrima) {
+        if (solicitudCostoMateriaPrima) solicitudCostoMateriaPrima.abort();
+        $costoUnitarioRegistrar.val('');
+
+        if (!idMateriaPrima) return;
+
+        solicitudCostoMateriaPrima = $.ajax({
+            url: 'index.php?controller=consumoMaterial&action=listar',
+            type: 'GET',
+            data: {
+                accion: 'obtenerCostoMateriaPrima',
+                id_materia_prima: idMateriaPrima
+            },
+            dataType: 'json'
+        }).done(function (data) {
+            if (data.success && data.costo_unitario !== undefined) {
+                $costoUnitarioRegistrar.val(Number(data.costo_unitario).toFixed(2));
+                return;
+            }
+
+            mostrarAlertaInformativa('Error', data.message || 'No se pudo obtener el costo actual de la materia prima.', 'error');
+        }).fail(function (xhr, estado, error) {
+            if (estado === 'abort') return;
+            console.error('Error al obtener el costo de la materia prima:', error || estado);
+            mostrarAlertaInformativa('Error', 'No se pudo obtener el costo actual de la materia prima.', 'error');
+        }).always(function () {
+            solicitudCostoMateriaPrima = null;
         });
     }
 
@@ -225,6 +262,14 @@ $(document).ready(function () {
         if (!confirmacion.isConfirmed) return;
 
         enviarFormulario($(this), $('#modalRegistrarConsumo'));
+    });
+
+    $materiaPrimaRegistrar.on('change', function () {
+        cargarCostoMateriaPrima($(this).val());
+    });
+
+    $('#modalRegistrarConsumo').on('shown.bs.modal', function () {
+        cargarCostoMateriaPrima($materiaPrimaRegistrar.val());
     });
 
     $formEditarConsumo.on('submit', async function (event) {

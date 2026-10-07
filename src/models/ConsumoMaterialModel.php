@@ -98,6 +98,28 @@ class ConsumoMaterialModel extends Database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function obtenerCostoMateriaPrima($id_materia_prima) {
+        if (!is_numeric($id_materia_prima) || (int) $id_materia_prima <= 0) {
+            throw new InvalidArgumentException('Debe seleccionar una materia prima válida.');
+        }
+
+        $sql = "SELECT costo_unitario
+                FROM materia_prima
+                WHERE id_materia_prima = :id_materia_prima
+                    AND status_materia_prima = 'Activo'
+                    AND stock_actual > 0";
+
+        $stmt = $this->pdo->connect()->prepare($sql);
+        $stmt->execute([':id_materia_prima' => (int) $id_materia_prima]);
+        $costoUnitario = $stmt->fetchColumn();
+
+        if ($costoUnitario === false) {
+            throw new InvalidArgumentException('La materia prima no existe, está inactiva o no tiene stock.');
+        }
+
+        return $costoUnitario;
+    }
+
     private function registrarConsumoMaterial(): bool {
         $sql = "INSERT INTO consumo_material (costo_unitario, descripcion_de_consumo, cantidad_usada, id_materia_prima, id_produccion)
                 VALUES (:costo_unitario, :descripcion_de_consumo, :cantidad_usada, :id_materia_prima, :id_produccion)";
@@ -176,19 +198,23 @@ class ConsumoMaterialModel extends Database {
         try {
             $conn->beginTransaction();
 
-            $sqlStock = "SELECT stock_actual FROM materia_prima WHERE id_materia_prima = :id_materia_prima FOR UPDATE";
+            $sqlStock = "SELECT stock_actual, costo_unitario
+                         FROM materia_prima
+                         WHERE id_materia_prima = :id_materia_prima
+                         FOR UPDATE";
             $stmtStock = $conn->prepare($sqlStock);
             $stmtStock->execute([':id_materia_prima' => (int) $this->id_materia_prima]);
-            $stockActual = $stmtStock->fetchColumn();
+            $materiaPrima = $stmtStock->fetch(PDO::FETCH_ASSOC);
 
-            if ($stockActual === false) {
+            if ($materiaPrima === false) {
                 throw new Exception('La materia prima seleccionada no existe.');
             }
 
-            if ((float) $stockActual < (float) $this->cantidad_usada) {
+            if ((float) $materiaPrima['stock_actual'] < (float) $this->cantidad_usada) {
                 throw new Exception('No hay suficiente stock para registrar ese consumo.');
             }
 
+            $this->setCostoUnitario($materiaPrima['costo_unitario']);
             $guardado = $this->registrarConsumoMaterial();
             if (!$guardado) {
                 throw new Exception('No se pudo registrar el consumo de material.');

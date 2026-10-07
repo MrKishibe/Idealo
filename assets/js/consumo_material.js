@@ -132,6 +132,7 @@ $(document).ready(function () {
                 await mostrarAlertaInformativa('¡Éxito!', data.message || 'Guardado correctamente.', 'success');
                 if ($modal.length) $modal.modal('hide');
                 $form[0].reset();
+                actualizarProductoAsociado($form);
                 limpiarValidaciones($form);
                 fetchConsumos();
             } else {
@@ -192,8 +193,11 @@ $(document).ready(function () {
                         .append(' ' + (consumo.descripcion_de_consumo || 'Sin descripción'))
                 );
             $fila.append($material);
+                $fila.append(
+                    $('<td>').text(consumo.producto_asociado || 'Producto no disponible')
+                );
 
-            $fila.append($('<td>', { class: 'fw-bold text-muted' }).text('$' + costoUnitario.toFixed(2)));
+                $fila.append($('<td>', { class: 'fw-bold text-muted' }).text('$' + costoUnitario.toFixed(2)));
             $fila.append($('<td>', { class: 'fw-bold' }).text((consumo.cantidad_usada || 0) + ' ' + (consumo.unidad_de_medida || '')));
             $fila.append($('<td>', { class: 'text-success fw-bold' }).text('$' + costoTotal));
             $fila.append(
@@ -244,6 +248,22 @@ $(document).ready(function () {
             responsive: true
         });
     }
+
+    function actualizarProductoAsociado($form) {
+        const $orden = $form.find('[name="id_produccion"] option:selected');
+        const producto = $orden.attr('data-producto') || '';
+        const selectorProducto = $form.is($formRegistrarConsumo)
+            ? '#registrar_producto_asociado'
+            : '#edit_producto_asociado';
+
+        $form.find(selectorProducto).val(producto);
+    }
+
+    [$formRegistrarConsumo, $formEditarConsumo].forEach(function ($form) {
+        $form.on('change', '[name="id_produccion"]', function () {
+            actualizarProductoAsociado($form);
+        });
+    });
 
     [$formRegistrarConsumo, $formEditarConsumo].forEach(function ($form) {
         $form.on('input change', 'input:not([type="hidden"]), select, textarea', function () {
@@ -304,6 +324,7 @@ $(document).ready(function () {
         $('#edit_id_consumo_material').val($boton.attr('data-id_consumo_material') || '');
         $('#edit_id_materia_prima').val($boton.attr('data-id_materia_prima') || '');
         $('#edit_id_produccion').val($boton.attr('data-id_produccion') || '');
+        actualizarProductoAsociado($formEditarConsumo);
         $('#edit_costo_unitario').val($boton.attr('data-costo_unitario') || '');
         $('#edit_cantidad_usada').val($boton.attr('data-cantidad_usada') || '');
         $('#edit_descripcion_de_consumo').val($boton.attr('data-descripcion_de_consumo') || '');

@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
         exit('El rango de fechas no es válido.');
     }
 
-    $ordenes = $model->obtenerOrdenesProduccion();
+    $consumos = $model->obtenerConsumosMaterial();
     $estadosDisponibles = [
         'planificado' => 'Planificado',
         'en proceso' => 'En Proceso',
@@ -115,8 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
         'inactiva' => 'Inactiva',
         'en espera' => 'en espera'
     ];
-    foreach ($ordenes as $orden) {
-        $estado = trim($orden['estado_de_produccion'] ?? '');
+    foreach ($consumos as $consumo) {
+        $estado = trim($consumo['estado_de_produccion'] ?? '');
         if ($estado !== '') {
             $estadosDisponibles[strtolower($estado)] = $estado;
         }
@@ -168,26 +168,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
                 <th width="8%">ID</th>
                 <th width="9%">Cant.</th>
                 <th width="14%">Costo unit.</th>
-                <th width="24%">Producción / Pedido</th>
-                <th width="27%">Motivo</th>
-                <th width="18%">Fecha</th>
+                <th width="18%">Materia prima</th>
+                <th width="20%">Producción / Pedido</th>
+                <th width="19%">Motivo</th>
+                <th width="12%">Fecha</th>
             </tr>
         </thead>
         <tbody>';
 
     if (empty($perdidas)) {
-        $html .= '<tr><td colspan="6" style="text-align:center;">No hay pérdidas que coincidan con los filtros seleccionados.</td></tr>';
+        $html .= '<tr><td colspan="7" style="text-align:center;">No hay pérdidas que coincidan con los filtros seleccionados.</td></tr>';
     } else {
         foreach ($perdidas as $p) {
             $produccionLabel = 'Orden #' . $p['id_produccion'];
             if (!empty($p['descripcion_pedido'])) {
                 $produccionLabel .= ' - ' . $p['descripcion_pedido'];
             }
+            $materiaPrimaLabel = $p['nombre_materia_prima'] ?? 'Materia prima';
+            if (!empty($p['unidad_de_medida'])) {
+                $materiaPrimaLabel .= ' (' . $p['unidad_de_medida'] . ')';
+            }
             
             $html .= '<tr style="text-align:center;">
                         <td>' . htmlspecialchars((string) $p['id_perdida_material'], ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars((string) $p['cantidad_perdida'], ENT_QUOTES, 'UTF-8') . '</td>
                         <td>$' . number_format((float) $p['costo_unitario'], 2, '.', ',') . '</td>
+                        <td>' . htmlspecialchars($materiaPrimaLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars($produccionLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars($p['motivo'] ?? 'Sin motivo', ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars((string) $p['fecha_de_registro'], ENT_QUOTES, 'UTF-8') . '</td>
@@ -204,7 +210,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
 
 // Cargar datos para la vista siempre que se renderice la página
 $perdidas = $model->listarPerdidasMateriales();
-$ordenes = $model->obtenerOrdenesProduccion();
+$consumos = $model->obtenerConsumosMaterial();
+$ordenesPorId = [];
+$materiasPrimasPorId = [];
+foreach ($consumos as $consumo) {
+    $idProduccion = (string) $consumo['id_produccion'];
+    if (!isset($ordenesPorId[$idProduccion])) {
+        $ordenesPorId[$idProduccion] = [
+            'id_produccion' => $consumo['id_produccion'],
+            'estado_de_produccion' => $consumo['estado_de_produccion'],
+            'descripcion_pedido' => $consumo['descripcion_pedido']
+        ];
+    }
+
+    $idMateriaPrima = (string) $consumo['id_materia_prima'];
+    if (!isset($materiasPrimasPorId[$idMateriaPrima])) {
+        $materiasPrimasPorId[$idMateriaPrima] = [
+            'id_materia_prima' => $consumo['id_materia_prima'],
+            'nombre_materia_prima' => $consumo['nombre_materia_prima'],
+            'unidad_de_medida' => $consumo['unidad_de_medida']
+        ];
+    }
+}
+$ordenes = array_values($ordenesPorId);
+$materiasPrimas = array_values($materiasPrimasPorId);
+$consumosJson = htmlspecialchars(
+    json_encode(
+        $consumos,
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_THROW_ON_ERROR
+    ),
+    ENT_QUOTES,
+    'UTF-8'
+);
 $estadosProduccion = [
     'planificado' => 'Planificado',
     'en proceso' => 'En Proceso',
@@ -212,8 +249,8 @@ $estadosProduccion = [
     'inactiva' => 'Inactiva',
     'en espera' => 'en espera'
 ];
-foreach ($ordenes as $orden) {
-    $estado = trim($orden['estado_de_produccion'] ?? '');
+foreach ($consumos as $consumo) {
+    $estado = trim($consumo['estado_de_produccion'] ?? '');
     if ($estado !== '') {
         $estadosProduccion[strtolower($estado)] = $estado;
     }

@@ -107,6 +107,7 @@ $(document).ready(function () {
                 await mostrarAlertaInformativa('¡Éxito!', data.message || 'Guardado correctamente.', 'success');
                 if ($modal.length) $modal.modal('hide');
                 $form[0].reset();
+                actualizarCostoUnitario($form);
                 limpiarValidaciones($form);
                 fetchPerdidas();
             } else {
@@ -150,14 +151,11 @@ $(document).ready(function () {
         if (!Array.isArray(perdidas)) perdidas = [];
 
         perdidas.forEach(function (perdida) {
-            let produccionLabel;
-            if (perdida.descripcion_pedido) {
-                produccionLabel = perdida.cantidad_detalle
-                    ? 'Pedido de ' + perdida.cantidad_detalle + ' ' + perdida.descripcion_pedido
-                    : perdida.descripcion_pedido;
-            } else {
-                produccionLabel = 'Orden #' + (perdida.id_produccion || 'N/A');
-            }
+            const materiaPrimaLabel = perdida.nombre_materia_prima
+                ? perdida.nombre_materia_prima + (perdida.unidad_de_medida ? ' (' + perdida.unidad_de_medida + ')' : '')
+                : 'Materia prima no disponible';
+            let produccionLabel = 'Orden #' + (perdida.id_produccion || 'N/A');
+            if (perdida.descripcion_pedido) produccionLabel += ' - ' + perdida.descripcion_pedido;
 
             const $fila = $('<tr>');
             $fila.append($('<td>').append($('<strong>').text('#' + (perdida.id_perdida_material || ''))));
@@ -165,6 +163,7 @@ $(document).ready(function () {
             $fila.append($('<td>').text(perdida.fecha_de_registro || 'N/A'));
             $fila.append($('<td>').text(perdida.motivo || 'Sin motivo especificado'));
             $fila.append($('<td>').text('$' + (perdida.costo_unitario || '0.00')));
+            $fila.append($('<td>').text(materiaPrimaLabel));
             $fila.append($('<td>').text(produccionLabel));
 
             const $botonEditar = $('<button>', {
@@ -176,6 +175,7 @@ $(document).ready(function () {
                 'data-fecha': perdida.fecha_de_registro || '',
                 'data-costo': perdida.costo_unitario || '',
                 'data-id_produccion': perdida.id_produccion || '',
+                'data-id_materia_prima': perdida.id_materia_prima || '',
                 'data-motivo': perdida.motivo || ''
             }).append($('<i>', { class: 'bi bi-pencil-square' }));
 
@@ -207,6 +207,44 @@ $(document).ready(function () {
 
     const $fechaRegistro = $formRegistrarPerdida.find('[name="fecha_de_registro"]');
     $fechaRegistro.attr('min', obtenerFechaLocalISO());
+
+    function actualizarCostoUnitario($form) {
+        const idProduccion = String($form.find('[name="id_produccion"]').val() || '');
+        const idMateriaPrima = String($form.find('[name="id_materia_prima"]').val() || '');
+        const $costo = $form.find('[name="costo_unitario"]');
+        const $orden = $form.find('[name="id_produccion"]');
+        const $materiaPrima = $form.find('[name="id_materia_prima"]');
+
+        $orden[0].setCustomValidity('');
+        $materiaPrima[0].setCustomValidity('');
+        $costo.val('');
+
+        if (!idProduccion || !idMateriaPrima) return;
+
+        const consumos = JSON.parse($form.attr('data-consumos') || '[]');
+        const consumo = consumos.find(function (item) {
+            return String(item.id_produccion) === idProduccion
+                && String(item.id_materia_prima) === idMateriaPrima;
+        });
+
+        if (!consumo) {
+            const mensaje = 'No hay consumo registrado para la orden y materia prima seleccionadas.';
+            $orden[0].setCustomValidity(mensaje);
+            $materiaPrima[0].setCustomValidity(mensaje);
+            return;
+        }
+
+        $costo.val(consumo.costo_unitario);
+    }
+
+    [$formRegistrarPerdida, $formEditarPerdida].forEach(function ($form) {
+        $form.on('change', '[name="id_produccion"], [name="id_materia_prima"]', function () {
+            actualizarCostoUnitario($form);
+            validarCampo($form.find('[name="id_produccion"]'));
+            validarCampo($form.find('[name="id_materia_prima"]'));
+            validarCampo($form.find('[name="costo_unitario"]'));
+        });
+    });
 
     [$formRegistrarPerdida, $formEditarPerdida].forEach(function ($form) {
         $form.on('input change', 'input:not([type="hidden"]), select, textarea', function () {
@@ -269,6 +307,8 @@ $(document).ready(function () {
         $('#edit_fecha_de_registro').val($boton.attr('data-fecha') || '');
         $('#edit_costo_unitario').val($boton.attr('data-costo') || '');
         $('#edit_id_produccion').val($boton.attr('data-id_produccion') || '');
+        $('#edit_id_materia_prima').val($boton.attr('data-id_materia_prima') || '');
+        actualizarCostoUnitario($formEditarPerdida);
         $('#edit_motivo').val($boton.attr('data-motivo') || '');
 
         validarFormulario($formEditarPerdida);

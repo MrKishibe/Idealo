@@ -220,8 +220,8 @@ CREATE TABLE perdida_material (
     fecha_de_registro DATE NOT NULL,
     motivo TEXT,
     costo_unitario DECIMAL(10,2) NOT NULL,
-    id_produccion INT NOT NULL,
-    FOREIGN KEY (id_produccion) REFERENCES orden_de_produccion(id_produccion) ON DELETE CASCADE
+    id_consumo_material INT NOT NULL,
+    FOREIGN KEY (id_consumo_material) REFERENCES consumo_material(id_consumo_material) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish2_ci;
 
 CREATE TABLE asignacion_produccion (

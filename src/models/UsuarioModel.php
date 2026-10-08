@@ -36,9 +36,11 @@ class UsuarioModel extends Database
                        u.correo,
                        u.status_usuario,
                        u.id_rol,
-                       r.tipo_de_usuario
+                       r.tipo_de_usuario,
+                       ae.id_empleado AS id_empleado_vinculado
                 FROM usuario u
                 LEFT JOIN roles r ON u.id_rol = r.id_rol
+                LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
                 ORDER BY u.id_usuario DESC";
         $stmt = $this->conex->prepare($sql);
         $stmt->execute();
@@ -197,6 +199,7 @@ class UsuarioModel extends Database
     {
         $sql = "SELECT u.id_usuario,
                        u.nombre_usuario,
+                       u.correo,
                        u.status_usuario,
                        u.id_rol,
                        r.tipo_de_usuario,
@@ -256,7 +259,7 @@ class UsuarioModel extends Database
         $hash = password_hash($contrasena, PASSWORD_BCRYPT);
         $sql = "UPDATE usuario SET contrasena = :contrasena WHERE id_usuario = :id_usuario";
         $stmt = $this->conex->prepare($sql);
-        return $stmt->execute([
+        return (bool)$stmt->execute([
             ':contrasena' => $hash,
             ':id_usuario' => $idUsuario
         ]);
@@ -278,6 +281,50 @@ class UsuarioModel extends Database
         $stmt = $this->conex->prepare($sql);
         $stmt->execute([
             ':nombre_usuario' => $nuevoNombre,
+            ':id_usuario'     => $idUsuario
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Perfil actualizado con éxito.'
+        ];
+    }
+
+    /**
+     * Actualiza nombre de usuario y correo desde el perfil del propio usuario.
+     */
+    public function cambiarDatosPerfil(int $idUsuario, string $nuevoNombre, string $nuevoCorreo): array
+    {
+        $nuevoNombre = trim($nuevoNombre);
+        $nuevoCorreo = trim($nuevoCorreo);
+
+        if ($idUsuario <= 0) {
+            throw new Exception("[Validación] El ID del usuario es obligatorio.");
+        }
+
+        $this->validarNombreUsuario($nuevoNombre);
+
+        if (empty($nuevoCorreo)) {
+            throw new Exception("[Validación] El correo electrónico es obligatorio.");
+        }
+        if (!filter_var($nuevoCorreo, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("[Validación] El correo electrónico no es válido.");
+        }
+        if ($this->existeNombreUsuario($nuevoNombre, $idUsuario)) {
+            throw new Exception("[Validación] El nombre de usuario '{$nuevoNombre}' ya está registrado.");
+        }
+        if ($this->existeCorreo($nuevoCorreo, $idUsuario)) {
+            throw new Exception("[Validación] El correo electrónico '{$nuevoCorreo}' ya está registrado.");
+        }
+
+        $sql = "UPDATE usuario
+                SET nombre_usuario = :nombre_usuario,
+                    correo = :correo
+                WHERE id_usuario = :id_usuario";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([
+            ':nombre_usuario' => $nuevoNombre,
+            ':correo'         => $nuevoCorreo,
             ':id_usuario'     => $idUsuario
         ]);
 
@@ -339,9 +386,38 @@ class UsuarioModel extends Database
 
     public function obtenerUsuarioPorCorreo(string $correo): ?array
     {
-        $sql = "SELECT id_usuario, nombre_usuario, correo FROM usuario WHERE correo = :correo AND status_usuario = 'activo' LIMIT 1";
+        $sql = "SELECT id_usuario, nombre_usuario, correo, contrasena, status_usuario, id_rol
+                FROM usuario
+                WHERE correo = :correo AND status_usuario = 'activo'
+                LIMIT 1";
         $stmt = $this->conex->prepare($sql);
         $stmt->execute([':correo' => $correo]);
+        $resultado = $stmt->fetch();
+        return $resultado ?: null;
+    }
+
+    public function obtenerPorCredencial(string $credencial): ?array
+    {
+        $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
+                FROM usuario u
+                LEFT JOIN roles r ON u.id_rol = r.id_rol
+                WHERE (u.nombre_usuario = :credencial1 OR u.correo = :credencial2) AND u.status_usuario = 'activo'
+                LIMIT 1";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([':credencial1' => $credencial, ':credencial2' => $credencial]);
+        $resultado = $stmt->fetch();
+        return $resultado ?: null;
+    }
+
+    public function obtenerPorId(int $idUsuario): ?array
+    {
+        $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
+                FROM usuario u
+                LEFT JOIN roles r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = :id_usuario
+                LIMIT 1";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([':id_usuario' => $idUsuario]);
         $resultado = $stmt->fetch();
         return $resultado ?: null;
     }
@@ -370,5 +446,57 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] La contraseña debe tener al menos 6 caracteres.");
         }
     }
+
+    /**
+     * Empleados con datos de su vínculo en acceso_empleado, para poblar
+     * los selectores de "empleado asociado" en registro/edición de usuarios.
+     */
+    public function listarEmpleadosParaVincular(): array
+    {
+        $sql = "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.status_empleado,
+                       ae.id_usuario AS id_usuario_vinculado
+                FROM empleado e
+                LEFT JOIN acceso_empleado ae ON ae.id_empleado = e.id_empleado
+                ORDER BY e.nombres ASC, e.apellidos ASC";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Vincula (o reemplaza) un empleado a un usuario en acceso_empleado.
+     * Elimina antes cualquier vínculo previo de ese usuario o de ese empleado.
+     */
+    public function vincularEmpleado(int $idUsuario, int $idEmpleado): bool
+    {
+        if ($idUsuario <= 0 || $idEmpleado <= 0) {
+            throw new Exception("[Validación] Usuario o empleado inválido para vincular.");
+        }
+
+        $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u OR id_empleado = :e");
+        $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
+
+        $stmt = $this->conex->prepare("INSERT INTO acceso_empleado (id_usuario, id_empleado) VALUES (:u, :e)");
+        return $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
+    }
+
+    /**
+     * Elimina el vínculo de un usuario con su empleado (si existe).
+     */
+    public function desvincularEmpleado(int $idUsuario): bool
+    {
+        $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u");
+        return $stmt->execute([':u' => $idUsuario]);
+    }
 }
+
+
+
+
+
+
+
+
+
+
 

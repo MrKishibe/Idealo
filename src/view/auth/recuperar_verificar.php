@@ -240,7 +240,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="index.php?controller=recuperacionPassword&action=verificar" method="POST">
+        <form action="index.php?controller=auth&action=verificarRecuperacion" method="POST">
             <div class="mb-4">
                 <label for="codigo" class="form-label fw-semibold text-center d-block">Código de Verificación</label>
                 <div class="input-group">
@@ -252,7 +252,7 @@
         </form>
 
         <div class="link-back">
-            <a href="index.php?controller=recuperacionPassword&action=solicitar"><i class="bi bi-arrow-left"></i> Volver atrás</a>
+            <a href="index.php?controller=auth&action=solicitar"><i class="bi bi-arrow-left"></i> Volver atrás</a>
         </div>
     </div>
 
@@ -264,3 +264,6 @@
     </script>
 </body>
 </html>
+
+
+

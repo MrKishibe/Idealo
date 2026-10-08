@@ -23,15 +23,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $cargo     = trim($_POST['cargo'] ?? '');
             $salario   = trim($_POST['salario'] ?? '0.00');
 
+            $esUsuario = !empty($_POST['es_usuario']);
+            $idUsuario = intval($_POST['id_usuario'] ?? 0);
+
             $validacion = EmpleadoModel::validarDatos($nombres, $apellidos, $cedula, $telefono, $direccion, $cargo, $salario, $nuevoEstado, $id);
 
             if ($validacion === true) {
+
+                if ($esUsuario && $idUsuario <= 0) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Si el empleado tiene usuario, debes seleccionar el usuario asociado.",
+                        'evento'  => 'editar',
+                        'estado'  => 'error_validacion'
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
                 $resultado = EmpleadoModel::getActualizarDatos($id);
 
                 if (isset($resultado['existoso'])) {
+                    $mensaje = $resultado['existoso'];
+
+                    if ($esUsuario) {
+                        $vinculo = EmpleadoModel::vincularUsuario($id, $idUsuario);
+                        if (isset($vinculo['error'])) {
+                            $mensaje .= " (No se pudo vincular el usuario: {$vinculo['error']})";
+                        } else {
+                            $mensaje .= " Usuario vinculado con éxito.";
+                        }
+                    } else {
+                        $vinculo = EmpleadoModel::desvincularUsuario($id);
+                        if (isset($vinculo['error'])) {
+                            $mensaje .= " (No se pudo desvincular el usuario: {$vinculo['error']})";
+                        }
+                    }
+
                     echo json_encode([
                         'success' => true,
-                        'message' => $resultado['existoso'],
+                        'message' => $mensaje,
                         'evento'  => 'editar',
                         'estado'  => 'completado'
                     ], JSON_UNESCAPED_UNICODE);
@@ -87,15 +117,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         $salario   = trim($_POST['salario'] ?? '0.00');
         $status    = 'Activo';
 
+        $esUsuario = !empty($_POST['es_usuario']);
+        $idUsuario = intval($_POST['id_usuario'] ?? 0);
+
         $validacion = EmpleadoModel::validarDatos($nombres, $apellidos, $cedula, $telefono, $direccion, $cargo, $salario, $status);
 
         if ($validacion === true) {
+
+            if ($esUsuario && $idUsuario <= 0) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Si el empleado tiene usuario, debes seleccionar el usuario asociado.",
+                    'evento'  => 'guardar',
+                    'estado'  => 'error_validacion'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             $resultado = EmpleadoModel::getRegistrarDatos();
 
             if (isset($resultado['existoso'])) {
+                $mensaje = 'Empleado registrado con éxito.';
+
+                if ($esUsuario) {
+                    $vinculo = EmpleadoModel::vincularUsuario($resultado['id'], $idUsuario);
+                    if (isset($vinculo['error'])) {
+                        $mensaje .= " (No se pudo vincular el usuario: {$vinculo['error']})";
+                    } else {
+                        $mensaje .= " Usuario vinculado con éxito.";
+                    }
+                }
+
                 echo json_encode([
                     'success'   => true,
-                    'message'   => 'Empleado registrado con éxito.',
+                    'message'   => $mensaje,
                     'id'        => $resultado['id'],
                     'nombres'   => $nombres,
                     'apellidos' => $apellidos,
@@ -122,6 +177,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         }
         exit;
     }
+}
+
+
+if (isset($_GET["ajax"]) && $_GET["ajax"] === "usuarios") {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
+    $usuarios = EmpleadoModel::listarUsuariosParaVincular();
+
+    if (is_array($usuarios) && isset($usuarios['error'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => $usuarios['error'],
+            'evento'  => 'usuarios',
+            'estado'  => 'error'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    echo json_encode([
+        'success'  => true,
+        'usuarios' => is_array($usuarios) ? $usuarios : [],
+        'evento'   => 'usuarios',
+        'estado'   => 'completado'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 

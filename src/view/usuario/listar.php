@@ -77,15 +77,6 @@ if (!isset($roles)) {
                                         <td>
                                             <div class="text-center d-flex justify-content-center gap-1">
                                                 <?php if ($estadoReal === 'activo'): ?>
-                                                    <button type="button" class="btn-accion-edit btnEditarActivo"
-                                                        data-id="<?php echo $user['id_usuario']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        data-correo="<?php echo htmlspecialchars($user['correo'] ?? ''); ?>"
-                                                        data-correo="<?php echo htmlspecialchars($user['correo'] ?? ''); ?>"
-                                                        data-rol="<?php echo $user['id_rol']; ?>"
-                                                        title="Editar Usuario">
-                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg" alt="Editar">
-                                                    </button>
                                                     <button type="button" class="btn-accion-delete btnCambiarEstado"
                                                         data-id="<?php echo $user['id_usuario']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
@@ -151,6 +142,25 @@ if (!isset($roles)) {
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
+                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-semibold mb-0" for="reg_es_empleado">Este usuario es un empleado</label>
+                                        <small class="text-muted d-block">Márcalo si la persona pertenece a la planilla de empleados.</small>
+                                    </div>
+                                    <div class="form-check form-switch ps-0 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="reg_es_empleado" name="es_empleado" value="1" role="switch">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-none" id="reg_empleado_wrap">
+                                <label class="form-label">Empleado Asociado</label>
+                                <select class="form-select" id="reg_id_empleado" name="id_empleado">
+                                    <option value="">Seleccione el empleado...</option>
+                                </select>
+                                <small class="text-muted">Solo se muestran empleados sin usuario asociado.</small>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
@@ -201,6 +211,25 @@ if (!isset($roles)) {
                                         <option value="<?php echo $rol['id_rol']; ?>"><?php echo htmlspecialchars(ucfirst($rol['tipo_de_usuario'])); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
+                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-semibold mb-0" for="edit_es_empleado">Este usuario es un empleado</label>
+                                        <small class="text-muted d-block">Márcalo si la persona pertenece a la planilla de empleados.</small>
+                                    </div>
+                                    <div class="form-check form-switch ps-0 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="edit_es_empleado" name="es_empleado" value="1" role="switch">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-none" id="edit_empleado_wrap">
+                                <label class="form-label">Empleado Asociado</label>
+                                <select class="form-select" id="edit_id_empleado" name="id_empleado">
+                                    <option value="">Seleccione el empleado...</option>
+                                </select>
+                                <small class="text-muted">Solo se muestran empleados sin usuario asociado.</small>
                             </div>
                         </div>
                     </div>

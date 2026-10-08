@@ -299,6 +299,14 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
                                     </div>
                                 </div>
 
+                                <div class="info-group">
+                                    <label>Correo Electrónico</label>
+                                    <div class="info-value">
+                                        <img src="assets/Img/Iconos/envelope.svg" class="icono-svg icono-gris" alt="Correo electrónico">
+                                        <span id="perfilCorreo"><?php echo htmlspecialchars($perfil['correo'] ?? 'N/A'); ?></span>
+                                    </div>
+                                </div>
+
                                 <?php if ($tieneEmpleado): ?>
                                     <div class="info-group">
                                         <label>Nombre Completo</label>
@@ -423,6 +431,10 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
                                 <label class="form-label">Nombre de Usuario</label>
                                 <input type="text" class="form-control" id="perfil_nombre_usuario" name="nombre_usuario" maxlength="20" required>
                                 <small class="text-muted">Entre 3 y 20 caracteres (letras, números o guiones bajos).</small>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="perfil_correo" name="correo" required>
                             </div>
                         </div>
                     </div>

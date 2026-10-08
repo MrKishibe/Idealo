@@ -1,9 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require "./vendor/autoload.php";
+$frontController = new Idealo\Controllers\FrontController();
 
-require './vendor/autoload.php';
-
-use Idealo\Controllers\FrontController;
-
-
-$frontController = new FrontController();

@@ -226,7 +226,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="index.php?controller=recuperacionPassword&action=solicitar" method="POST">
+        <form action="index.php?controller=auth&action=recuperar" method="POST">
             <div class="mb-4">
                 <label for="correo" class="form-label fw-semibold">Correo Electrónico</label>
                 <div class="input-group">
@@ -247,3 +247,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+
+

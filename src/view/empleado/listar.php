@@ -80,7 +80,8 @@ if (!isset($empleados)) {
                                                         data-telefono="<?php echo htmlspecialchars($emp['telefono'] ?? ''); ?>"
                                                         data-direccion="<?php echo htmlspecialchars($emp['direccion'] ?? ''); ?>"
                                                         data-cargo="<?php echo htmlspecialchars($emp['cargo']); ?>"
-                                                        data-salario="<?php echo htmlspecialchars($emp['salario']); ?>">
+                                                        data-salario="<?php echo htmlspecialchars($emp['salario']); ?>"
+                                                        data-usuario="<?php echo htmlspecialchars($emp['id_usuario_vinculado'] ?? ''); ?>">
 <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-azul" alt="Editar">
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-danger btnCambiarEstado"
@@ -153,6 +154,25 @@ if (!isset($empleados)) {
                                 <label class="form-label">Dirección</label>
                                 <textarea class="form-control" id="reg_direccion" name="direccion" rows="2"></textarea>
                             </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
+                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-semibold mb-0" for="reg_es_usuario">Este empleado tiene un usuario</label>
+                                        <small class="text-muted d-block">Márcalo si la persona entra al sistema con sus credenciales.</small>
+                                    </div>
+                                    <div class="form-check form-switch ps-0 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="reg_es_usuario" name="es_usuario" value="1" role="switch">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-none" id="reg_usuario_wrap">
+                                <label class="form-label">Usuario Asociado</label>
+                                <select class="form-select" id="reg_id_usuario" name="id_usuario">
+                                    <option value="">Seleccione el usuario...</option>
+                                </select>
+                                <small class="text-muted">Solo se muestran usuarios sin empleado asociado.</small>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
@@ -209,6 +229,25 @@ if (!isset($empleados)) {
                             <div class="col-12">
                                 <label class="form-label">Dirección</label>
                                 <textarea class="form-control" id="edit_activo_direccion" rows="2"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
+                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-semibold mb-0" for="edit_es_usuario">Este empleado tiene un usuario</label>
+                                        <small class="text-muted d-block">Márcalo si la persona entra al sistema con sus credenciales.</small>
+                                    </div>
+                                    <div class="form-check form-switch ps-0 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="edit_es_usuario" name="es_usuario" value="1" role="switch">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-none" id="edit_usuario_wrap">
+                                <label class="form-label">Usuario Asociado</label>
+                                <select class="form-select" id="edit_id_usuario" name="id_usuario">
+                                    <option value="">Seleccione el usuario...</option>
+                                </select>
+                                <small class="text-muted">Solo se muestran usuarios sin empleado asociado.</small>
                             </div>
                         </div>
                     </div>

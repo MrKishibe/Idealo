@@ -1,93 +1,141 @@
 <?php
 
-namespace Idealo\Controllers;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../models/ProductoModel.php';
 
 use Idealo\Models\ProductoModel;
-use Exception;
 
-require_once dirname(__DIR__) . '/models/ProductoModel.php';
 
-class ProductoController
-{
-    private $model;
+$action = $_GET['action'] ?? 'listar';
 
-    public function __construct()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $this->model = new ProductoModel();
-    }
+if ($action === 'listar') {
+    $productoModel = new ProductoModel();
+    $productos = $productoModel->listarTodos();
 
-    public function listar()
-    {
-        $productos = $this->model->listarTodos();
+    require_once __DIR__ . '/../view/producto/listar.php';
+    exit();
+}
 
-        $basePath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'view' . DIRECTORY_SEPARATOR;
-        if (is_dir($basePath . 'productos')) {
-            $vista = $basePath . 'productos' . DIRECTORY_SEPARATOR . 'listar.php';
-        } else {
-            $vista = $basePath . 'producto' . DIRECTORY_SEPARATOR . 'listar.php';
-        }
-        require_once $vista;
-    }
+if ($action === 'listarProductosAjax') {
+    header('Content-Type: application/json; charset=utf-8');
 
-    public function guardar()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (ob_get_length()) {
-                ob_clean();
-            }
-            header('Content-Type: application/json; charset=utf-8');
-            try {
-                $datos = [
-                    'id_producto'      => $_POST['id_producto'] ?? '',
-                    'nombre_producto'  => $_POST['nombre_producto'] ?? '',
-                    'tipo_de_producto' => $_POST['tipo_de_producto'] ?? '',
-                    'status_producto'  => $_POST['status_producto'] ?? 'activo',
-                    'detalle_material' => $_POST['detalle_material'] ?? '',
-                    'color'            => $_POST['color'] ?? '',
-                    'tipo_de_prenda'   => $_POST['tipo_de_prenda'] ?? '',
-                    'tallas'           => $_POST['tallas'] ?? []
-                ];
+    try {
+        $productoModel = new ProductoModel();
+        $productos = $productoModel->listarTodos();
 
-                $resultado = $this->model->guardar($datos);
-
-                if (isset($resultado['error'])) {
-                    echo json_encode(['status' => 'error', 'message' => $resultado['error']], JSON_UNESCAPED_UNICODE);
-                } else {
-                    echo json_encode(['status' => 'success', 'message' => 'El producto y sus variantes fueron guardados correctamente.'], JSON_UNESCAPED_UNICODE);
-                }
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
-            }
-            exit;
-        }
-    }
-
-    public function cambiarEstado()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (ob_get_length()) {
-                ob_clean();
-            }
-            header('Content-Type: application/json; charset=utf-8');
-            try {
-                $id = intval($_POST['id_producto'] ?? 0);
-                $nuevoEstado = $_POST['status_producto'] ?? 'inactivo';
-
-                $resultado = $this->model->getCambiarEstado($id, $nuevoEstado);
-
-                if (isset($resultado['error'])) {
-                    echo json_encode(['status' => 'error', 'message' => $resultado['error']], JSON_UNESCAPED_UNICODE);
-                } else {
-                    $msg = ($nuevoEstado === 'activo') ? 'Producto activado con éxito.' : 'Producto inactivado con éxito.';
-                    echo json_encode(['status' => 'success', 'message' => $msg], JSON_UNESCAPED_UNICODE);
-                }
-            } catch (Exception $e) {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
-            }
-            exit;
-        }
+        echo json_encode([
+            'status' => 'success',
+            'productos' => $productos
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
     }
 }
+
+if ($action === 'guardar' || $action === 'editar') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $esEdicion = !empty($_POST['id_producto']);
+
+        $productoModel = new ProductoModel();
+        // El modelo recibe el array completo: id_producto (edición), nombre, tipo,
+        // característica (material/color/prenda), status y tallas[].
+        $resultado = $productoModel->guardar($_POST);
+
+        $mensajePorDefecto = $esEdicion
+            ? 'Producto actualizado con éxito.'
+            : 'Producto registrado con éxito.';
+
+        echo json_encode([
+            'status'  => !empty($resultado['success']) ? 'success' : 'error',
+            'message' => $resultado['message'] ?? $resultado['error'] ?? $mensajePorDefecto,
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+if ($action === 'cambiarEstado') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $idProducto = intval($_POST['id_producto'] ?? 0);
+        $estado = trim($_POST['status_producto'] ?? '');
+
+        if ($idProducto <= 0) {
+            throw new Exception('El ID del producto no es válido.');
+        }
+        if (!in_array($estado, ['activo', 'inactivo'], true)) {
+            throw new Exception('El estado del producto no es válido.');
+        }
+
+        $productoModel = new ProductoModel();
+        $resultado = $productoModel->getCambiarEstado($idProducto, $estado);
+
+        $mensaje = $estado === 'activo'
+            ? 'Producto reactivado con éxito.'
+            : 'Producto inactivado con éxito.';
+
+        echo json_encode([
+            'status'  => !empty($resultado['success']) ? 'success' : 'error',
+            'message' => $resultado['message'] ?? $resultado['error'] ?? $mensaje,
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+if ($action === 'verificarNombreProducto') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $nombreProducto = trim($_POST['nombre_producto'] ?? '');
+        $idProducto = isset($_POST['id_producto']) && $_POST['id_producto'] !== '' ? intval($_POST['id_producto']) : null;
+
+        $productoModel = new ProductoModel();
+        if (!method_exists($productoModel, 'existeNombreProducto')) {
+            echo json_encode(['status' => 'success', 'existe' => false]);
+            exit();
+        }
+
+        $existe = $productoModel->existeNombreProducto($nombreProducto, $idProducto);
+
+        echo json_encode([
+            'status' => 'success',
+            'existe' => $existe
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+http_response_code(404);
+echo json_encode([
+    'status' => 'error',
+    'message' => 'Acción no encontrada.'
+]);
+exit();

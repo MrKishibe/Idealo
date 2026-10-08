@@ -260,7 +260,7 @@
                 <label for="cedula_usuario" class="form-label fw-semibold">Usuario o Correo Electrónico</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="cedula_usuario" placeholder="Usuario o correo electrónico" required autocomplete="off">
+                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="credencial" placeholder="Usuario o correo electrónico" required autocomplete="off">
                 </div>
             </div>
 
@@ -275,7 +275,7 @@
             <button type="submit" class="btn-idealo-submit">Ingresar al Sistema</button>
             
             <div class="text-center mt-3">
-                <a href="index.php?controller=recuperacionPassword&action=solicitar" class="text-decoration-none" style="color: var(--azul-opaco); font-size: 0.9rem; font-weight: 600;">
+                <a href="index.php?controller=auth&action=recuperar" class="text-decoration-none" style="color: var(--azul-opaco); font-size: 0.9rem; font-weight: 600;">
                     <i class="bi bi-key"></i> ¿Olvidaste tu contraseña?
                 </a>
             </div>
@@ -288,3 +288,7 @@
 </body>
 
 </html>
+
+
+
+

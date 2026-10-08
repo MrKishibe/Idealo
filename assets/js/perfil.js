@@ -4,6 +4,12 @@ function cargarPerfilEdicion() {
     if (campo && actual) {
         campo.value = actual.textContent.trim();
     }
+
+    const campoCorreo = document.getElementById('perfil_correo');
+    const actualCorreo = document.getElementById('perfilCorreo');
+    if (campoCorreo && actualCorreo) {
+        campoCorreo.value = actualCorreo.textContent.trim();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -67,6 +73,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (spanNombre) spanNombre.textContent = nuevoNombre;
                     if (h2Nombre) h2Nombre.textContent = nuevoNombre;
+
+                    const nuevoCorreo = document.getElementById('perfil_correo').value;
+                    const spanCorreo = document.getElementById('perfilCorreo');
+                    if (spanCorreo) spanCorreo.textContent = nuevoCorreo;
 
                     Swal.fire({
                         icon: 'success',

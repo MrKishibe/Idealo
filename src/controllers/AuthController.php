@@ -2,57 +2,80 @@
 
 namespace Idealo\Controllers;
 
+require_once __DIR__ . "/../models/UsuarioModel.php";
+require_once __DIR__ . "/../../config/smtp_config.php";
+require_once __DIR__ . "/../../config/mailer.php";
+require_once __DIR__ . "/../helpers/RecuperacionPasswordHelper.php";
+
+use Idealo\Models\UsuarioModel;
+use Idealo\Config\Mailer;
+use Idealo\Helpers\RecuperacionPasswordHelper;
+
+
 class AuthController
 {
+    private $usuarioModel;
+
+    public function __construct()
+    {
+        $this->usuarioModel = new UsuarioModel();
+    }
+
     public function login()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        if (isset($_SESSION['usuario'])) {
+        if (isset($_SESSION["usuario"])) {
             header("Location: index.php?controller=auth&action=dashboard");
-            exit();
+            exit;
         }
 
-        $error_login = '';
+        $error = "";
+        $success = "";
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $pdo = new \PDO("mysql:host=localhost;dbname=idealo;charset=utf8mb4", "root", "");
-                $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        if (isset($_GET["reset"]) && $_GET["reset"] === "ok") {
+            $success = "Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.";
+        }
 
-                $usuario_input = $_POST['cedula_usuario'] ?? $_POST['nombre_usuario'] ?? '';
-                $contrasena = $_POST['contrasena'] ?? '';
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            $credencial = trim($_POST["credencial"] ?? $_POST["cedula_usuario"] ?? "");
+            $contrasena = $_POST["contrasena"] ?? "";
 
-                $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.id_rol, 
-                               r.tipo_de_usuario 
-                        FROM usuario u 
-                        LEFT JOIN roles r ON u.id_rol = r.id_rol 
-                        WHERE (u.nombre_usuario = ? OR u.correo = ?) AND u.status_usuario = 'activo'";
+            if (empty($credencial) || empty($contrasena)) {
+                $error = "Usuario/Correo y contraseña son obligatorios.";
+            } else {
+                $usuario = $this->usuarioModel->obtenerPorCredencial($credencial);
 
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([$usuario_input, $usuario_input]);
-                $usuario = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-                if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {
-
-                    $_SESSION['usuario']        = $usuario['id_usuario'];
-                    $_SESSION['rol']            = $usuario['id_rol'];
-                    $_SESSION['nombre_usuario'] = $usuario['nombre_usuario'];
-                    $_SESSION['nombre_rol']     = !empty($usuario['tipo_de_usuario']) ? $usuario['tipo_de_usuario'] : 'Sin Rol Asignado';
-
-                    header("Location: index.php?controller=auth&action=dashboard");
-                    exit();
+                if ($usuario && password_verify($contrasena, $usuario["contrasena"])) {
+                    if ($usuario["status_usuario"] === "activo") {
+                        $_SESSION["usuario"] = $usuario["id_usuario"];
+                        $_SESSION["rol"] = $usuario["id_rol"];
+                        $_SESSION["nombre_usuario"] = $usuario["nombre_usuario"];
+                        $_SESSION["nombre_rol"] = $usuario["tipo_de_usuario"] ?? "";
+                        header("Location: index.php?controller=auth&action=dashboard");
+                        exit;
+                    } else {
+                        $error = "Tu cuenta está inactiva. Contacta al administrador.";
+                    }
                 } else {
-                    $error_login = "Credenciales incorrectas o el usuario no existe/está inactivo.";
+                    $error = "Credenciales incorrectas.";
                 }
-            } catch (\PDOException $e) {
-                $error_login = "Error de conexión: " . $e->getMessage();
             }
         }
 
-        require_once __DIR__ . '/../view/auth/login.php';
+        require_once __DIR__ . "/../view/auth/login.php";
+    }
+
+    public function logout()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        session_destroy();
+        header("Location: index.php?controller=auth&action=login");
+        exit;
     }
 
     public function dashboard()
@@ -61,69 +84,246 @@ class AuthController
             session_start();
         }
 
-        if (!isset($_SESSION['usuario'])) {
+        if (!isset($_SESSION["usuario"])) {
             header("Location: index.php?controller=auth&action=login");
-            exit();
+            exit;
         }
 
-        $nombreUsuario = $_SESSION['nombre_usuario'] ?? 'Usuario';
-        $rolUsuario    = $_SESSION['nombre_rol'] ?? 'Invitado';
+        $nombreUsuario = $_SESSION["nombre_usuario"] ?? "";
+        $rolUsuario = $_SESSION["nombre_rol"] ?? "";
+        $total_empleados = 0;
+        $pedidos_counts = [
+            'pendiente' => 0,
+            'en proceso' => 0,
+            'completado' => 0,
+            'cancelado' => 0,
+        ];
+        $materia_bajo_stock = [];
+        $pedidos_recientes = [];
 
         try {
-            $pdo = new \PDO("mysql:host=localhost;dbname=idealo;charset=utf8mb4", "root", "");
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $pdo = \Idealo\Config\Database::connect();
 
-            $stmtEmpleados = $pdo->query("SELECT COUNT(*) AS total FROM empleado WHERE status_empleado = 'activo'");
-            $total_empleados = $stmtEmpleados->fetch(\PDO::FETCH_ASSOC)['total'];
+            $stmt = $pdo->query("SELECT COUNT(*) AS total FROM empleado WHERE status_empleado = 'activo'");
+            $total_empleados = (int)($stmt->fetch()['total'] ?? 0);
 
-            $stmtPedidosStatus = $pdo->query("SELECT estado_pedido, COUNT(*) AS total FROM pedido GROUP BY estado_pedido");
-            $pedidos_por_estado = $stmtPedidosStatus->fetchAll(\PDO::FETCH_ASSOC);
-
-            $pedidos_counts = [
-                'pendiente' => 0,
-                'en proceso' => 0,
-                'completado' => 0,
-                'cancelado' => 0
-            ];
-            foreach ($pedidos_por_estado as $p) {
-                $estado_lowercase = mb_strtolower($p['estado_pedido'], 'UTF-8');
-                if (array_key_exists($estado_lowercase, $pedidos_counts)) {
-                    $pedidos_counts[$estado_lowercase] = $p['total'];
-                }
+            $stmt = $pdo->query("SELECT estado_pedido, COUNT(*) AS total FROM pedido GROUP BY estado_pedido");
+            foreach ($stmt->fetchAll() as $fila) {
+                $clave = mb_strtolower(trim($fila['estado_pedido']), 'UTF-8');
+                $pedidos_counts[$clave] = (int)$fila['total'];
             }
 
-            $stmtBajoStock = $pdo->query("SELECT nombre_materia_prima, stock_actual, stock_minimo FROM materia_prima WHERE stock_actual <= stock_minimo AND status_materia_prima = 'disponible'");
-            $materia_bajo_stock = $stmtBajoStock->fetchAll(\PDO::FETCH_ASSOC);
+            $stmt = $pdo->query("SELECT nombre_materia_prima, stock_actual, stock_minimo
+                                  FROM materia_prima
+                                  WHERE stock_actual < stock_minimo
+                                    AND status_materia_prima = 'disponible'
+                                  ORDER BY (stock_actual - stock_minimo) ASC");
+            $materia_bajo_stock = $stmt->fetchAll();
 
-            $stmtRecientes = $pdo->query("SELECT p.id_pedido, c.nombre_razon_social, p.fecha_creacion, p.monto_total, p.estado_pedido FROM pedido p JOIN cliente c ON p.id_cliente = c.id_cliente ORDER BY p.id_pedido DESC LIMIT 5");
-            $pedidos_recientes = $stmtRecientes->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            die("Error en el dashboard: " . $e->getMessage());
+            $stmt = $pdo->query("SELECT p.id_pedido, c.nombre_razon_social, p.fecha_creacion, p.monto_total, p.estado_pedido
+                                  FROM pedido p
+                                  INNER JOIN cliente c ON p.id_cliente = c.id_cliente
+                                  ORDER BY p.id_pedido DESC
+                                  LIMIT 5");
+            $pedidos_recientes = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            // Si una tabla falta, el dashboard se renderiza con valores por defecto.
+            error_log("dashboard: " . $e->getMessage());
         }
 
-        require_once __DIR__ . '/../view/dashboard.php';
+        require_once __DIR__ . "/../view/dashboard.php";
     }
 
-    public function logout()
+    public function recuperar()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        $_SESSION = array();
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(
-                session_name(),
-                '',
-                time() - 42000,
-                $params["path"],
-                $params["domain"],
-                $params["secure"],
-                $params["httponly"]
-            );
+
+        if (isset($_SESSION["usuario"])) {
+            header("Location: index.php?controller=auth&action=dashboard");
+            exit;
         }
-        session_destroy();
-        header("Location: index.php?controller=auth&action=login");
-        exit();
+
+        $mensaje = "";
+        $tipo = "";
+
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            try {
+                $correo = trim($_POST["correo"] ?? "");
+
+                if (empty($correo)) {
+                    throw new Exception("El correo electrónico es obligatorio.");
+                }
+
+                if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+                    throw new Exception("El formato del correo electrónico no es válido.");
+                }
+
+                $usuario = $this->usuarioModel->obtenerUsuarioPorCorreo($correo);
+
+                if ($usuario) {
+                    $codigo = RecuperacionPasswordHelper::generarCodigo();
+                    $codigoHash = RecuperacionPasswordHelper::generarCodigoHash($codigo);
+                    $token = RecuperacionPasswordHelper::generarToken();
+                    $tokenHash = RecuperacionPasswordHelper::generarTokenHash($token);
+
+                    $_SESSION["recuperacion_codigo_hash"] = $codigoHash;
+                    $_SESSION["recuperacion_token_hash"] = $tokenHash;
+                    $_SESSION["recuperacion_token"] = $token;
+                    $_SESSION["recuperacion_correo"] = $correo;
+                    $_SESSION["recuperacion_id_usuario"] = $usuario["id_usuario"];
+                    $_SESSION["recuperacion_expira"] = time() + (5 * 60);
+                    $_SESSION["recuperacion_usado"] = false;
+                    $_SESSION["recuperacion_verificado"] = false;
+
+                    $mailer = new Mailer();
+                    if ($mailer->enviarCodigoRecuperacion($correo, $codigo)) {
+                        header("Location: index.php?controller=auth&action=verificarRecuperacion");
+                        exit;
+                    } else {
+                        throw new Exception("No se pudo enviar el correo de recuperación. Inténtalo nuevamente.");
+                    }
+                } else {
+                    $mensaje = "Si el correo existe en nuestro sistema, recibirás un código de recuperación.";
+                    $tipo = "info";
+                }
+            } catch (Exception $e) {
+                $mensaje = $e->getMessage();
+                $tipo = "danger";
+            }
+        }
+
+        require_once __DIR__ . "/../view/auth/recuperar_solicitar.php";
+    }
+
+    public function verificarRecuperacion()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (isset($_SESSION["usuario"])) {
+            header("Location: index.php?controller=auth&action=dashboard");
+            exit;
+        }
+
+        if (!isset($_SESSION["recuperacion_codigo_hash"]) || !isset($_SESSION["recuperacion_correo"])) {
+            header("Location: index.php?controller=auth&action=recuperar");
+            exit;
+        }
+
+        $correo = $_SESSION["recuperacion_correo"];
+        $mensaje = "";
+        $tipo = "";
+
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            try {
+                $codigo = trim($_POST["codigo"] ?? "");
+
+                if (empty($codigo)) {
+                    throw new Exception("El código de verificación es obligatorio.");
+                }
+
+                if (isset($_SESSION["recuperacion_usado"]) && $_SESSION["recuperacion_usado"]) {
+                    throw new Exception("Este código ya fue utilizado.");
+                }
+
+                if (!isset($_SESSION["recuperacion_expira"]) || time() > $_SESSION["recuperacion_expira"]) {
+                    throw new Exception("Este código ha expirado.");
+                }
+
+                $codigoHash = $_SESSION["recuperacion_codigo_hash"] ?? "";
+
+                if (RecuperacionPasswordHelper::verificarCodigo($codigo, $codigoHash)) {
+                    $_SESSION["recuperacion_verificado"] = true;
+                    header("Location: index.php?controller=auth&action=reestablecerRecuperacion");
+                    exit;
+                } else {
+                    throw new Exception("Código inválido.");
+                }
+            } catch (Exception $e) {
+                $mensaje = $e->getMessage();
+                $tipo = "danger";
+            }
+        }
+
+        require_once __DIR__ . "/../view/auth/recuperar_verificar.php";
+    }
+
+    public function reestablecerRecuperacion()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (isset($_SESSION["usuario"])) {
+            header("Location: index.php?controller=auth&action=dashboard");
+            exit;
+        }
+
+        if (!isset($_SESSION["recuperacion_verificado"]) || !isset($_SESSION["recuperacion_id_usuario"])) {
+            header("Location: index.php?controller=auth&action=recuperar");
+            exit;
+        }
+
+        if (isset($_SESSION["recuperacion_expira"]) && time() > $_SESSION["recuperacion_expira"]) {
+            RecuperacionPasswordHelper::limpiarSesionRecuperacion();
+            header("Location: index.php?controller=auth&action=recuperar");
+            exit;
+        }
+
+        $mensaje = "";
+        $tipo = "";
+
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            try {
+                $contrasena = $_POST["contrasena"] ?? "";
+                $confirmarContrasena = $_POST["confirmar_contrasena"] ?? "";
+
+                if (empty($contrasena) || empty($confirmarContrasena)) {
+                    throw new Exception("Ambos campos de contraseña son obligatorios.");
+                }
+
+                if (strlen($contrasena) < 6) {
+                    throw new Exception("La contraseña debe tener al menos 6 caracteres.");
+                }
+
+                if ($contrasena !== $confirmarContrasena) {
+                    throw new Exception("Las contraseñas no coinciden.");
+                }
+
+                $this->usuarioModel->cambiarContrasenaSimple($_SESSION["recuperacion_id_usuario"], $contrasena);
+                $_SESSION["recuperacion_usado"] = true;
+                RecuperacionPasswordHelper::limpiarSesionRecuperacion();
+                header("Location: index.php?controller=auth&action=login&reset=ok");
+                exit;
+            } catch (Exception $e) {
+                $mensaje = $e->getMessage();
+                $tipo = "danger";
+            }
+        }
+
+        require_once __DIR__ . "/../view/auth/recuperar_reestablecer.php";
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

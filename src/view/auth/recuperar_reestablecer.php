@@ -210,7 +210,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="index.php?controller=recuperacionPassword&action=reestablecer" method="POST">
+        <form action="index.php?controller=auth&action=reestablecerRecuperacion" method="POST">
             <div class="mb-3">
                 <label for="contrasena" class="form-label fw-semibold">Nueva Contraseña</label>
                 <div class="input-group">
@@ -235,3 +235,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+
+

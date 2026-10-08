@@ -65,6 +65,36 @@ function limpiarFormularioCrear() {
     if (form) form.reset();
 }
 
+function cargarOpcionesEmpleados($select, usuarioActual, esEdicion, empleadoPreseleccionado) {
+    fetch('index.php?controller=usuario&action=listarEmpleadosAjax')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') return;
+
+            const opciones = ['<option value="">Seleccione el empleado...</option>'];
+
+            (data.empleados || []).forEach(function (emp) {
+                const vinculado = emp.id_usuario_vinculado ? String(emp.id_usuario_vinculado) : null;
+                const esActivo = emp.status_empleado === 'Activo';
+
+                const disponible = !esEdicion
+                    ? (vinculado === null && esActivo)
+                    : (vinculado === null || vinculado === String(usuarioActual));
+
+                if (!disponible) return;
+
+                const sufijo = esActivo ? '' : ' (inactivo)';
+                opciones.push('<option value="' + emp.id_empleado + '">' + emp.nombres + ' ' + emp.apellidos + ' — ' + emp.cedula + sufijo + '</option>');
+            });
+
+            $select.html(opciones.join(''));
+            if (empleadoPreseleccionado) {
+                $select.val(empleadoPreseleccionado);
+            }
+        })
+        .catch(() => {});
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     initTablaUsuarios();
 
@@ -107,6 +137,14 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#edit_activo_contrasena').val('');
         $('#edit_activo_confirmar_contrasena').val('');
 
+        const empleadoId = $(this).data('empleado') ? String($(this).data('empleado')) : null;
+        const swEdit = document.getElementById('edit_es_empleado');
+        if (swEdit) {
+            swEdit.checked = !!empleadoId;
+            swEdit.dispatchEvent(new Event('change'));
+        }
+        cargarOpcionesEmpleados($('#edit_id_empleado'), id, true, empleadoId);
+
         $('#modalEditarActivo').modal('show');
     });
 
@@ -120,6 +158,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $('#modalEditarInactivo').modal('show');
     });
+
+    const modalRegistrar = document.getElementById('modalRegistrarUsuario');
+    if (modalRegistrar) {
+        modalRegistrar.addEventListener('show.bs.modal', function () {
+            const sw = document.getElementById('reg_es_empleado');
+            if (sw) {
+                sw.checked = false;
+                sw.dispatchEvent(new Event('change'));
+            }
+            cargarOpcionesEmpleados($('#reg_id_empleado'), null, false, null);
+        });
+    }
+
+    const swReg = document.getElementById('reg_es_empleado');
+    if (swReg) {
+        swReg.addEventListener('change', function () {
+            document.getElementById('reg_empleado_wrap').classList.toggle('d-none', !this.checked);
+            if (!this.checked) document.getElementById('reg_id_empleado').value = '';
+        });
+    }
+
+    const swEdit = document.getElementById('edit_es_empleado');
+    if (swEdit) {
+        swEdit.addEventListener('change', function () {
+            document.getElementById('edit_empleado_wrap').classList.toggle('d-none', !this.checked);
+            if (!this.checked) document.getElementById('edit_id_empleado').value = '';
+        });
+    }
 
     const btnGuardarInactivo = document.getElementById('btnGuardarEdicionInactivo');
     if (btnGuardarInactivo) {
@@ -216,6 +282,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            const swReg = document.getElementById('reg_es_empleado');
+            if (swReg && swReg.checked && !document.getElementById('reg_id_empleado').value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empleado requerido',
+                    text: 'Si el usuario es empleado, seleccione el empleado asociado.'
+                });
+                return;
+            }
+
             const formDataReg = new FormData(formRegistrar);
             fetch('index.php?controller=usuario&action=guardar', {
                 method: 'POST',
@@ -252,6 +328,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     icon: 'warning',
                     title: 'Contraseñas no coinciden',
                     text: 'La contraseña y su confirmación deben ser iguales.'
+                });
+                return;
+            }
+
+            const swEdit = document.getElementById('edit_es_empleado');
+            if (swEdit && swEdit.checked && !document.getElementById('edit_id_empleado').value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empleado requerido',
+                    text: 'Si el usuario es empleado, seleccione el empleado asociado.'
                 });
                 return;
             }

@@ -149,7 +149,13 @@ class EmpleadoModel extends Database
     {
         try {
             $db = self::connect();
-            $consulta = $db->prepare("SELECT id_empleado, nombres, apellidos, cedula, telefono, direccion, cargo, salario, status_empleado FROM empleado ORDER BY id_empleado DESC");
+            $consulta = $db->prepare(
+                "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.telefono, e.direccion, e.cargo, e.salario, e.status_empleado,
+                        ae.id_usuario AS id_usuario_vinculado
+                 FROM empleado e
+                 LEFT JOIN acceso_empleado ae ON ae.id_empleado = e.id_empleado
+                 ORDER BY e.id_empleado DESC"
+            );
             $consulta->execute();
             return $consulta->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
@@ -225,6 +231,76 @@ class EmpleadoModel extends Database
             $actualizar->execute();
 
             return array("existoso" => "Estado cambiado.");
+        } catch (PDOException $error) {
+            return array("error" => $error->getMessage());
+        }
+    }
+
+    /**
+     * Usuarios (activos o inactivos) con datos de su vínculo en acceso_empleado,
+     * para poblar los selectores de "usuario asociado" en registro/edición.
+     */
+    public static function listarUsuariosParaVincular()
+    {
+        try {
+            $db = self::connect();
+            $consulta = $db->prepare(
+                "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.status_usuario,
+                        ae.id_empleado AS id_empleado_vinculado
+                 FROM usuario u
+                 LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
+                 ORDER BY u.nombre_usuario ASC"
+            );
+            $consulta->execute();
+            return $consulta->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $error) {
+            return array("error" => $error->getMessage());
+        }
+    }
+
+    /**
+     * Vincula (o reemplaza) un usuario a un empleado en acceso_empleado.
+     * Primero elimina cualquier vínculo previo de ese usuario o de ese empleado.
+     */
+    public static function vincularUsuario($idEmpleado, $idUsuario)
+    {
+        $idEmpleado = intval($idEmpleado);
+        $idUsuario  = intval($idUsuario);
+
+        if ($idEmpleado <= 0 || $idUsuario <= 0) {
+            return array("error" => "No se puede vincular: empleado o usuario inválido.");
+        }
+
+        $db = self::connect();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("DELETE FROM acceso_empleado WHERE id_empleado = ? OR id_usuario = ?");
+            $stmt->execute([$idEmpleado, $idUsuario]);
+
+            $stmt = $db->prepare("INSERT INTO acceso_empleado (id_usuario, id_empleado) VALUES (?, ?)");
+            $stmt->execute([$idUsuario, $idEmpleado]);
+
+            $db->commit();
+            return array("existoso" => "Usuario vinculado al empleado.");
+        } catch (PDOException $error) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            return array("error" => $error->getMessage());
+        }
+    }
+
+    /**
+     * Elimina el vínculo de un empleado con su usuario (si existe).
+     */
+    public static function desvincularUsuario($idEmpleado)
+    {
+        try {
+            $db = self::connect();
+            $stmt = $db->prepare("DELETE FROM acceso_empleado WHERE id_empleado = ?");
+            $stmt->execute([intval($idEmpleado)]);
+            return array("existoso" => "Vínculo con el usuario eliminado.");
         } catch (PDOException $error) {
             return array("error" => $error->getMessage());
         }

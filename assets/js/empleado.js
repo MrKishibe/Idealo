@@ -31,6 +31,52 @@ $(document).ready(function () {
 
     filtrarPorEstado();
 
+    function cargarOpcionesUsuarios($select, empleadoActual, esEdicion, usuarioPreseleccionado) {
+        $.getJSON(URL_EMPLEADO + '&ajax=usuarios', function (res) {
+            if (!res.success) return;
+
+            const opciones = ['<option value="">Seleccione el usuario...</option>'];
+
+            (res.usuarios || []).forEach(function (u) {
+                const vinculado = u.id_empleado_vinculado ? String(u.id_empleado_vinculado) : null;
+                const esActivo = u.status_usuario === 'activo';
+
+                const disponible = !esEdicion
+                    ? (vinculado === null && esActivo)
+                    : (vinculado === null || vinculado === String(empleadoActual));
+
+                if (!disponible) return;
+
+                const sufijo = esActivo ? '' : ' (inactivo)';
+                opciones.push('<option value="' + u.id_usuario + '">' + u.nombre_usuario + ' — ' + (u.correo || 'sin correo') + sufijo + '</option>');
+            });
+
+            $select.html(opciones.join(''));
+            if (usuarioPreseleccionado) {
+                $select.val(usuarioPreseleccionado);
+            }
+        });
+    }
+
+    $('#reg_es_usuario').on('change', function () {
+        $('#reg_usuario_wrap').toggleClass('d-none', !this.checked);
+        if (!this.checked) {
+            $('#reg_id_usuario').val('');
+        }
+    });
+
+    $('#edit_es_usuario').on('change', function () {
+        $('#edit_usuario_wrap').toggleClass('d-none', !this.checked);
+        if (!this.checked) {
+            $('#edit_id_usuario').val('');
+        }
+    });
+
+    $('#modalRegistrarEmpleado').on('show.bs.modal', function () {
+        $('#reg_es_usuario').prop('checked', false).trigger('change');
+        cargarOpcionesUsuarios($('#reg_id_usuario'), null, false, null);
+    });
+
     function recargarTabla() {
         $.getJSON(URL_EMPLEADO + '&ajax=listar', function (res) {
             tablaEmpleados.clear();
@@ -52,7 +98,8 @@ $(document).ready(function () {
                                 ' data-telefono="' + (emp.telefono || '') + '"' +
                                 ' data-direccion="' + (emp.direccion || '') + '"' +
                                 ' data-cargo="' + (emp.cargo || '') + '"' +
-                                ' data-salario="' + (emp.salario || '') + '">' +
+                                ' data-salario="' + (emp.salario || '') + '"' +
+                                 ' data-usuario="' + (emp.id_usuario_vinculado || '') + '">' +
                                 '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-azul" alt="Editar">' +
                             '</button>' +
                             '<button class="btn btn-sm btn-outline-danger btnCambiarEstado"' +
@@ -104,15 +151,23 @@ $(document).ready(function () {
         let cargo     = $('#reg_cargo').val();
         let salario   = $('#reg_salario').val().trim();
 
+        let esUsuario = $('#reg_es_usuario').prop('checked');
+        let idUsuario = $('#reg_id_usuario').val();
+
         if (!cedula || !nombres || !apellidos || !cargo || !salario) {
             Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
+            return;
+        }
+
+        if (esUsuario && !idUsuario) {
+            Swal.fire('Usuario requerido', 'Si el empleado tiene usuario, seleccione el usuario asociado.', 'warning');
             return;
         }
 
         $.ajax({
             url: URL_EMPLEADO,
             type: 'POST',
-            data: { cedula, nombres, apellidos, telefono, direccion, cargo, salario },
+            data: { cedula, nombres, apellidos, telefono, direccion, cargo, salario, es_usuario: esUsuario ? 1 : '', id_usuario: idUsuario || '' },
             dataType: 'json',
             success: function (res) {
                 if (res.success) {
@@ -140,6 +195,11 @@ $(document).ready(function () {
         $('#edit_activo_cargo').val(btn.data('cargo'));
         $('#edit_activo_salario').val(btn.data('salario'));
 
+        const empleadoId = btn.data('id');
+        const usuarioId = btn.data('usuario') ? String(btn.data('usuario')) : null;
+        $('#edit_es_usuario').prop('checked', !!usuarioId).trigger('change');
+        cargarOpcionesUsuarios($('#edit_id_usuario'), empleadoId, true, usuarioId);
+
         let modal = new bootstrap.Modal(document.getElementById('modalEditarActivo'));
         modal.show();
     });
@@ -154,8 +214,16 @@ $(document).ready(function () {
         let salario    = $('#edit_activo_salario').val().trim();
         let cedula     = $('#edit_activo_cedula').val().trim();
 
+        let esUsuario = $('#edit_es_usuario').prop('checked');
+        let idUsuario = $('#edit_id_usuario').val();
+
         if (!nombres || !apellidos || !cargo || !salario) {
             Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
+            return;
+        }
+
+        if (esUsuario && !idUsuario) {
+            Swal.fire('Usuario requerido', 'Si el empleado tiene usuario, seleccione el usuario asociado.', 'warning');
             return;
         }
 
@@ -164,7 +232,8 @@ $(document).ready(function () {
             type: 'POST',
             data: {
                 id_accion: idEmpleado, nuevo_estado: 'Activo',
-                nombres, apellidos, cedula, telefono, direccion, cargo, salario
+                nombres, apellidos, cedula, telefono, direccion, cargo, salario,
+                es_usuario: esUsuario ? 1 : '', id_usuario: idUsuario || ''
             },
             dataType: 'json',
             success: function (res) {
@@ -255,5 +324,7 @@ $(document).ready(function () {
     $('#modalRegistrarEmpleado').on('hidden.bs.modal', function () {
         $('#formEmpleado')[0].reset();
         $('#formEmpleado').removeClass('was-validated');
+        $('#reg_usuario_wrap').addClass('d-none');
+        $('#reg_id_usuario').html('<option value="">Seleccione el usuario...</option>');
     });
 });

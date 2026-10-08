@@ -4,7 +4,7 @@ $(document).ready(function () {
 
     let tablaEmpleados = $('#tablaEmpleados').DataTable({
         language: {
-            url: 'assets/js/es-ES.json'
+            url: 'assets/libs/es-ES.json'
         },
         responsive: true,
         order: [[0, 'desc']],
@@ -30,6 +30,67 @@ $(document).ready(function () {
     }
 
     filtrarPorEstado();
+
+    // ===== VALIDACIÓN (jQuery + helpers/expresiones.js) =====
+    const REGLAMENTO = {
+        cedula:    { patron: /^[a-zA-Z0-9\-]{3,20}$/,                   mensaje: 'La cédula solo debe contener letras, números y guiones (3 a 20 caracteres).' },
+        nombres:   { patron: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/,         mensaje: 'Los nombres solo deben contener letras y espacios (entre 3 y 100 caracteres).' },
+        apellidos: { patron: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/,         mensaje: 'Los apellidos solo deben contener letras y espacios (entre 3 y 100 caracteres).' },
+        telefono:  { requerido: false, patron: /^(0412|0414|0416|0422|0424|0426)\d{7}$/, mensaje: 'El teléfono debe tener 10 dígitos, ej. 04125555555.' },
+        direccion: { requerido: false },
+        cargo:     { patron: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/,         mensaje: 'Seleccione un cargo válido.' },
+        salario:   { patron: /^\d+(\.\d{1,2})?$/,                       mensaje: 'El salario debe ser un número válido con hasta 2 decimales.' }
+    };
+
+    function reglasParaCampo(idCampo) {
+        const sufijos = Object.keys(REGLAMENTO);
+        for (let i = 0; i < sufijos.length; i++) {
+            const sufijo = sufijos[i];
+            if (idCampo.endsWith('_' + sufijo)) {
+                const regla = $.extend({}, REGLAMENTO[sufijo]);
+                if (sufijo === 'direccion') {
+                    regla.requerido = false;
+                    regla.validar = function (valor) {
+                        return valor.length <= 500 ? true : 'La dirección supera el límite de 500 caracteres.';
+                    };
+                }
+                return regla;
+            }
+        }
+        return null;
+    }
+
+    function validarCamposFormulario($form, incluyeCedula) {
+        const $campos = $form.find('input:not([type=hidden]):not([disabled]):not([readonly]), select:not([disabled]), textarea');
+        let valido = true;
+
+        $campos.each(function () {
+            const $campo = $(this);
+            const idCampo = $campo.attr('id');
+            if (!idCampo) return true;
+
+            // Cédula solo se valida al registrar (en edición está deshabilitada)
+            if (/cedula$/.test(idCampo) && !incluyeCedula) return true;
+
+            const regla = reglasParaCampo(idCampo);
+            if (!regla) return true;
+
+            if (!$.validarCampo($campo, regla)) {
+                valido = false;
+            }
+        });
+
+        return valido;
+    }
+
+    // Revalida en tiempo real un campo que ya está marcado como inválido
+    $('#modalRegistrarEmpleado, #modalEditarActivo').on('input change', 'input, select, textarea', function () {
+        const $campo = $(this);
+        if ($campo.hasClass('is-invalid')) {
+            const regla = reglasParaCampo($campo.attr('id') || '');
+            if (regla) $.validarCampo($campo, regla);
+        }
+    });
 
     function cargarOpcionesUsuarios($select, empleadoActual, esEdicion, usuarioPreseleccionado) {
         $.getJSON(URL_EMPLEADO + '&ajax=usuarios', function (res) {
@@ -154,8 +215,10 @@ $(document).ready(function () {
         let esUsuario = $('#reg_es_usuario').prop('checked');
         let idUsuario = $('#reg_id_usuario').val();
 
-        if (!cedula || !nombres || !apellidos || !cargo || !salario) {
-            Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
+        // Validación por campo (marca is-invalid + feedback debajo de cada input)
+        $.limpiarValidaciones('#formEmpleado');
+        if (!validarCamposFormulario($('#formEmpleado'), true)) {
+            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
             return;
         }
 
@@ -217,8 +280,10 @@ $(document).ready(function () {
         let esUsuario = $('#edit_es_usuario').prop('checked');
         let idUsuario = $('#edit_id_usuario').val();
 
-        if (!nombres || !apellidos || !cargo || !salario) {
-            Swal.fire('Campos incompletos', 'Por favor complete todos los campos obligatorios.', 'warning');
+        // Validación por campo (la cédula no se valida aquí porque no es editable)
+        $.limpiarValidaciones('#formEditarActivo');
+        if (!validarCamposFormulario($('#formEditarActivo'), false)) {
+            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
             return;
         }
 
@@ -324,7 +389,12 @@ $(document).ready(function () {
     $('#modalRegistrarEmpleado').on('hidden.bs.modal', function () {
         $('#formEmpleado')[0].reset();
         $('#formEmpleado').removeClass('was-validated');
+        $.limpiarValidaciones('#formEmpleado');
         $('#reg_usuario_wrap').addClass('d-none');
         $('#reg_id_usuario').html('<option value="">Seleccione el usuario...</option>');
+    });
+
+    $('#modalEditarActivo').on('hidden.bs.modal', function () {
+        $.limpiarValidaciones('#formEditarActivo');
     });
 });

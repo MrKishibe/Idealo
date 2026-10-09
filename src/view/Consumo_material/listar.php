@@ -40,7 +40,6 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Materia Prima / Descripción</th>
-                                <th>Producto</th>
                                 <th>Costo Unitario</th>
                                 <th>Cantidad Usada</th>
                                 <th>Costo Total</th>
@@ -134,17 +133,12 @@
                                     <option value="">Seleccione una orden</option>
                                     <?php $ordenes = $ordenes ?? []; ?>
                                     <?php foreach ($ordenes as $orden): ?>
-                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>"
-                                            data-producto="<?php echo htmlspecialchars($orden['producto_asociado'] ?? ''); ?>">
+                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
                                             OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
-                                            - <?php echo htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin pedido'); ?>
+                                            - <?php echo htmlspecialchars($orden['estado_de_produccion'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Producto asociado a la orden</label>
-                                <input type="text" class="form-control" id="registrar_producto_asociado" readonly placeholder="Se completa al seleccionar la orden">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Costo unitario</label>
@@ -199,17 +193,12 @@
                                 <select class="form-select" name="id_produccion" id="edit_id_produccion" required>
                                     <option value="">Seleccione una orden</option>
                                     <?php foreach ($ordenes as $orden): ?>
-                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>"
-                                            data-producto="<?php echo htmlspecialchars($orden['producto_asociado'] ?? ''); ?>">
+                                        <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
                                             OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
-                                            - <?php echo htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin pedido'); ?>
+                                            - <?php echo htmlspecialchars($orden['estado_de_produccion'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Producto asociado a la orden</label>
-                                <input type="text" class="form-control" id="edit_producto_asociado" readonly placeholder="Se completa al seleccionar la orden">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Costo unitario</label>

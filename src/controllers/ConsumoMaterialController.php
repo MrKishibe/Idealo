@@ -194,25 +194,20 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
             <tr style="background-color:#0d6efd; color:white; font-weight:bold; text-align:center;">
                 <th width="8%">ID</th>
                 <th width="20%">Materia Prima</th>
-                <th width="17%">Producto</th>
                 <th width="13%">Costo Unit.</th>
                 <th width="12%">Cantidad</th>
                 <th width="13%">Costo Total</th>
-                <th width="17%">Orden / Descripción</th>
+                <th width="34%">Orden / Descripción</th>
             </tr>
         </thead>
         <tbody>';
 
     if (empty($consumos)) {
-        $html .= '<tr><td colspan="7" style="text-align:center;">No hay consumos que coincidan con los filtros seleccionados.</td></tr>';
+        $html .= '<tr><td colspan="6" style="text-align:center;">No hay consumos que coincidan con los filtros seleccionados.</td></tr>';
     } else {
         foreach ($consumos as $c) {
             $costoTotal = (float) $c['costo_unitario'] * (float) $c['cantidad_usada'];
-            $productoAsociado = trim((string) ($c['producto_asociado'] ?? ''));
-            if ($productoAsociado === '') {
-                $productoAsociado = 'Producto no disponible';
-            }
-            
+
             $ordenLabel = htmlspecialchars('OP-' . str_pad((string) $c['id_produccion'], 4, '0', STR_PAD_LEFT), ENT_QUOTES, 'UTF-8');
             if (!empty($c['descripcion_de_consumo'])) {
                 $ordenLabel .= '<br><span style="font-size:8px; color:#555;">' . htmlspecialchars($c['descripcion_de_consumo'], ENT_QUOTES, 'UTF-8') . '</span>';
@@ -221,7 +216,6 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
             $html .= '<tr style="text-align:center;">
                         <td>' . htmlspecialchars((string) $c['id_consumo_material'], ENT_QUOTES, 'UTF-8') . '</td>
                         <td><strong>' . htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material', ENT_QUOTES, 'UTF-8') . '</strong></td>
-                        <td>' . htmlspecialchars($productoAsociado, ENT_QUOTES, 'UTF-8') . '</td>
                         <td>$' . number_format((float) $c['costo_unitario'], 2, '.', ',') . '</td>
                         <td>' . htmlspecialchars((string) $c['cantidad_usada'], ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>
                         <td style="color:green; font-weight:bold;">$' . number_format($costoTotal, 2, '.', ',') . '</td>

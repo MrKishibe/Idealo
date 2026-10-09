@@ -37,7 +37,13 @@
         hora24: /^(?:[01]\d|2[0-3]):[0-5]\d$/,
         slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
         colorHex: /^#?(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/,
-        tarjeta: /^[0-9]{13,19}$/
+        tarjeta: /^[0-9]{13,19}$/,
+        
+        // nuevas expresiones para  finanzas (adrian chavales)
+        titularCuenta: /^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/,
+        identificadorCuenta: /^[0-9]{20}$/,
+        metodoPago: /^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]{3,50}$/,
+        referenciaPago: /^[0-9]{6}$/
     });
 
     $.expresionesRegulares = Object.freeze({

@@ -1,61 +1,73 @@
 $(document).ready(function () {
-
     let tablaDataTable = null;
     let todosLosPedidos = [];
     let verEliminados = false;
 
-    // Expresión regular para validar la longitud final (entre 3 y 50 caracteres)
-    const regexNombre = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]{3,50}$/;
+    const urlModulo = 'index.php?controller=tipoPedido&action=listar';
 
-    // Expresión regular para bloquear/limpiar caracteres no permitidos mientras el usuario escribe
-    const regexCaracteresPermitidos = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g;
+    // Objeto de idioma en español configurado manualmente
+    const lenguajeEspanolDataTables = {
+        processing:     "Procesando...",
+        search:         "Buscar:",
+        lengthMenu:     "Mostrar _MENU_ registros",
+        info:           "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+        infoEmpty:      "Mostrando 0 de 0 registros",
+        infoFiltered:   "(filtrado de _MAX_ registros en total)",
+        infoPostFix:    "",
+        loadingRecords: "Cargando...",
+        zeroRecords:    "No se encontraron coincidencias",
+        emptyTable:     "No hay registros en esta vista",
+        paginate: {
+            first:      "Primero",
+            previous:   "Anterior",
+            next:       "Siguiente",
+            last:       "Último"
+        },
+        aria: {
+            sortAscending:  ": Activar para ordenar la columna de manera ascendente",
+            sortDescending: ": Activar para ordenar la columna de manera descendente"
+        }
+    };
 
-    /*
-    |--------------------------------------------------------------------------
-    | Bloqueo en tiempo real de caracteres no permitidos
-    |--------------------------------------------------------------------------
-    */
+    async function solicitarAPI(url, opciones = {}) {
+        try {
+            return await $.ajax({
+                url: url,
+                type: opciones.method || 'GET',
+                data: opciones.data || {},
+                dataType: 'json'
+            });
+        } catch (xhr) {
+            console.error('Error en la petición AJAX:', xhr.statusText || xhr);
+            throw new Error(xhr.responseText || 'Error de comunicación');
+        }
+    }
+
+    function escaparHTML(texto) {
+        return $('<div>').text(texto ?? '').html();
+    }
+
     $(document).on('input', '#nombre_tipo_pedido, #edit_activo_nombre, #edit_nombre_pedido', function () {
         const valorOriginal = $(this).val();
-        const valorLimpio = valorOriginal.replace(regexCaracteresPermitidos, '');
-
+        const valorLimpio = valorOriginal.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]/g, '');
         if (valorOriginal !== valorLimpio) {
             $(this).val(valorLimpio);
         }
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener URL del módulo
-    |--------------------------------------------------------------------------
-    */
-    const urlModulo = 'index.php?controller=tipoPedido&action=listar';
-
-    /*
-    |--------------------------------------------------------------------------
-    | Escapar HTML para evitar XSS
-    |--------------------------------------------------------------------------
-    */
-    function escaparHTML(texto) {
-        return $('<div>').text(texto ?? '').html();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mostrar mensaje de validación (Sin duplicados)
-    |--------------------------------------------------------------------------
-    */
-    function validarCampo(input, regex, mensajeError) {
-        if (!input || input.length === 0) {
-            return false;
-        }
+    /**
+     * Valida un campo utilizando expresiones regulares
+     * @param {jQuery} input
+     * @param {string} nombrePatron 
+     * @param {string} mensajeError 
+     */
+    function validarCampo(input, nombrePatron, mensajeError) {
+        if (!input || input.length === 0) return false;
 
         const domInput = input[0];
-        const $contenedor = $(domInput).closest('.mb-3, .form-group, div');
+        const $contenedor =$(domInput).closest('.mb-3, .form-group, div');
 
-        // Limpieza de feedback previo en el contenedor y hermanos directos
-        $contenedor.find('.feedback-validacion').remove();
-        $(domInput).siblings('.invalid-feedback, .valid-feedback').remove();
+        $contenedor.find('.feedback-validacion').remove();$(domInput).siblings('.invalid-feedback, .valid-feedback').remove();
 
         const feedback = document.createElement('small');
         feedback.classList.add('feedback-validacion', 'form-text', 'd-block', 'mt-1');
@@ -70,7 +82,8 @@ $(document).ready(function () {
             return false;
         }
 
-        if (regex.test(valor)) {
+        // Validación delegada a expresiones.js
+        if ($.expresionesRegulares && $.expresionesRegulares.validar(nombrePatron, valor)) {
             input.removeClass('is-invalid').addClass('is-valid');
             feedback.textContent = 'Campo válido';
             feedback.style.color = '#198754';
@@ -86,304 +99,204 @@ $(document).ready(function () {
         return false;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Limpiar formulario y estados de validación de un modal
-    |--------------------------------------------------------------------------
-    */
     function limpiarFormularioModal(modalSelector, formSelector) {
-        if (formSelector && $(formSelector).length) {
-            $(formSelector)[0].reset();
+        if (formSelector && $(formSelector).length) {$(formSelector)[0].reset();
         }
-        const $modal = $(modalSelector);
-        $modal.find('input, select, textarea').val('').removeClass('is-valid is-invalid');
-        $modal.find('.feedback-validacion, .invalid-feedback, .valid-feedback').remove();
+        const $modal =$(modalSelector);
+        $modal.find('input, select, textarea').val('').removeClass('is-valid is-invalid');$modal.find('.feedback-validacion, .invalid-feedback, .valid-feedback').remove();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Eventos de limpieza explícita para modales (SOLO con botón Cancelar)
-    |--------------------------------------------------------------------------
-    */
-    $('#modalRegistrarPedido').on('click', '[data-bs-dismiss="modal"]', function () {
-        // Solo limpia si es el botón Cancelar (no la X)
+    // Eventos de cancelación manual (Solo botón Cancelar)
+    $('#modalRegistrarPedido, #modalEditarActivo, #modalEditarInactivo').on('click', '[data-bs-dismiss="modal"]', function () {
         if ($(this).text().trim().toLowerCase() === 'cancelar') {
-            limpiarFormularioModal('#modalRegistrarPedido', '#formTipoPedido');
+            const modalId = $(this).closest('.modal').attr('id');
+            const formId = $(this).closest('.modal').find('form').attr('id');
+            limpiarFormularioModal(`#${modalId}`, `#${formId}`);
         }
     });
 
-    $('#modalEditarActivo').on('click', '[data-bs-dismiss="modal"]', function () {
-        if ($(this).text().trim().toLowerCase() === 'cancelar') {
-            limpiarFormularioModal('#modalEditarActivo', '#formEditarActivo');
+    async function cargarPedidos() {
+        try {
+            const respuesta = await solicitarAPI(`${urlModulo}&ajax=listar`);
+            todosLosPedidos = Array.isArray(respuesta?.pedidos) ? respuesta.pedidos : [];
+            renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudieron cargar los tipos de pedido.',
+                confirmButtonColor: '#dc3545'
+            });
         }
-    });
-
-    $('#modalEditarInactivo').on('click', '[data-bs-dismiss="modal"]', function () {
-        if ($(this).text().trim().toLowerCase() === 'cancelar') {
-            limpiarFormularioModal('#modalEditarInactivo', '#formEditarPedido');
-        }
-    });
-
-    // Al cerrar con X o clic fuera: NO limpiar (los datos se mantienen)
-    $('#modalRegistrarPedido, #modalEditarActivo, #modalEditarInactivo').on('hide.bs.modal', function () {
-        // No hacemos nada aquí intencionalmente
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cargar pedidos desde el servidor
-    |--------------------------------------------------------------------------
-    */
-    function cargarPedidos() {
-        $.ajax({
-            url: `${urlModulo}&ajax=listar`,
-            type: 'GET',
-            dataType: 'json',
-
-            success: function (respuesta) {
-                if (respuesta && Array.isArray(respuesta.pedidos)) {
-                    todosLosPedidos = respuesta.pedidos;
-                } else {
-                    todosLosPedidos = [];
-                }
-
-                renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
-            },
-
-            error: function (xhr, status, error) {
-                console.error('Error al cargar los tipos de pedido:', error);
-
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de conexión',
-                    text: 'No se pudieron cargar los tipos de pedido.',
-                    confirmButtonColor: '#dc3545'
-                });
-            }
-        });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Renderizar tabla
-    |--------------------------------------------------------------------------
-    */
+    function inicializarDataTable() {
+        if (!tablaDataTable) {
+            tablaDataTable = $('#tablaTipoPedido').DataTable({
+                language: lenguajeEspanolDataTables,
+                pageLength: 10,
+                responsive: true,
+                ordering: false
+            });
+        }
+    }
+
     function renderizarTabla(estadoFiltro) {
-        const tabla = $('#tablaTipoPedido');
-        const tbody = tabla.find('tbody');
+        inicializarDataTable();
+        tablaDataTable.clear();
 
-        if ($.fn.DataTable.isDataTable('#tablaTipoPedido')) {
-            tablaDataTable.destroy();
-            tablaDataTable = null;
-        }
+        const filtrados = todosLosPedidos.filter(p => p.status_tipo_servicio === estadoFiltro);
 
-        tbody.empty();
-
-        const filtrados = todosLosPedidos.filter(function (pedido) {
-            return pedido.status_tipo_servicio === estadoFiltro;
-        });
-
-        filtrados.forEach(function (pedido) {
+        const filas = filtrados.map(pedido => {
             const id = escaparHTML(pedido.id_tipo_pedido);
             const nombre = escaparHTML(pedido.nombre_tipo_pedido);
-            const nombreData = escaparHTML(pedido.nombre_tipo_pedido);
             const estado = escaparHTML(pedido.status_tipo_servicio);
 
             const badge = estado === 'Activo'
                 ? '<span class="badge bg-success">Activo</span>'
                 : '<span class="badge bg-danger">Inactivo</span>';
 
-            let acciones = '';
-
-            if (estado === 'Activo') {
-                acciones = `
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-primary btnEditarActivo me-1"
-                        data-id="${id}"
-                        data-nombre="${nombreData}"
-                        data-estado="${estado}"
-                        title="Editar Tipo de Pedido">
-
+            const acciones = estado === 'Activo'
+                ? `
+                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo me-1" data-id="${id}" data-nombre="${nombre}" data-estado="${estado}" title="Editar Tipo de Pedido">
                         <i class="bi bi-pencil-square"></i>
                     </button>
-
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-danger btnCambiarEstado"
-                        data-id="${id}"
-                        data-nombre="${nombreData}"
-                        data-estado="Inactivo"
-                        title="Inhabilitar Tipo de Pedido">
-
+                    <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado" data-id="${id}" data-nombre="${nombre}" data-estado="Inactivo" title="Inhabilitar Tipo de Pedido">
                         <i class="bi bi-trash3-fill"></i>
                     </button>
-                `;
-            } else {
-                acciones = `
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-warning btnEditarInactivo"
-                        data-id="${id}"
-                        data-nombre="${nombreData}"
-                        data-estado="${estado}"
-                        title="Editar / Reactivar">
-
+                `
+                : `
+                    <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="${id}" data-nombre="${nombre}" data-estado="${estado}" title="Editar / Reactivar">
                         <i class="bi bi-pencil-square"></i>
                     </button>
                 `;
-            }
 
-            tbody.append(`
-                <tr id="fila-${id}">
-                    <td class="fw-bold">${nombre}</td>
-                    <td>${badge}</td>
-                    <td>
-                        <div class="text-center">
-                            ${acciones}
-                        </div>
-                    </td>
-                </tr>
-            `);
+            return [
+                `<span class="fw-bold">${nombre}</span>`,
+                badge,
+                `<div class="text-center">${acciones}</div>`
+            ];
         });
 
-        tablaDataTable = tabla.DataTable({
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
-                emptyTable: 'No hay registros en esta vista',
-                zeroRecords: 'No se encontraron coincidencias'
-            },
-            pageLength: 10,
-            responsive: true,
-            ordering: false
-        });
+        tablaDataTable.rows.add(filas).draw();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Alternar activos e inactivos
-    |--------------------------------------------------------------------------
-    */
     $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
 
         if (verEliminados) {
-            $(this)
-                .attr('data-vista', 'eliminados')
-                .removeClass('btn-outline-secondary')
-                .addClass('btn-secondary');
-
-            $('#txtBotonEstado').text('Ver Activos');
+            $(this).attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');$('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
             $('#tituloVista').text('Tipos de Pedido Inhabilitados');
-
             renderizarTabla('Inactivo');
-
         } else {
-            $(this)
-                .attr('data-vista', 'activos')
-                .removeClass('btn-secondary')
-                .addClass('btn-outline-secondary');
-
-            $('#txtBotonEstado').text('Ver inhabilitados');
+            $(this).attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');$('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Tipo de Pedido');
-
             renderizarTabla('Activo');
         }
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Registrar tipo de pedido
-    |--------------------------------------------------------------------------
-    */
-    $('#btnEnvio').on('click', function (evento) {
-        evento.preventDefault();
+    async function procesarGuardado({ datosBody, modalSelector, formSelector }) {
+        try {
+            const respuesta = await solicitarAPI(urlModulo, {
+                method: 'POST',
+                data: datosBody
+            });
 
-        const inputNombre = $('#nombre_tipo_pedido');
+            if (respuesta.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Completado!',
+                    text: respuesta.message,
+                    confirmButtonColor: '#10b981'
+                });
 
-        const nombreValido = validarCampo(
-            inputNombre,
-            regexNombre,
-            'El nombre debe tener entre 3 y 50 caracteres.'
-        );
+                limpiarFormularioModal(modalSelector, formSelector);
+                const modalElement = document.querySelector(modalSelector);
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) modalInstance.hide();
 
-        if (!nombreValido) {
-            return;
-        }
-
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                nombre: inputNombre.val().trim()
-            },
-            dataType: 'json',
-
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Completado!',
-                        text: respuesta.message,
-                        confirmButtonColor: '#10b981'
-                    });
-
-                    // Limpiar SOLO después de registro exitoso
-                    limpiarFormularioModal('#modalRegistrarPedido', '#formTipoPedido');
-
-                    const modal = bootstrap.Modal.getInstance(
-                        document.getElementById('modalRegistrarPedido')
-                    );
-
-                    if (modal) {
-                        modal.hide();
-                    }
-
-                    cargarPedidos();
-
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de validación',
-                        text: respuesta.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            },
-
-            error: function () {
+                await cargarPedidos();
+            } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: 'Sucedió un error inesperado de comunicación con el servidor.',
+                    title: 'Error de validación',
+                    text: respuesta.message,
                     confirmButtonColor: '#dc3545'
                 });
             }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un error inesperado al procesar la solicitud.',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    $('#btnEnvio').on('click', async function (evento) {
+        evento.preventDefault();
+        const inputNombre = $('#nombre_tipo_pedido');
+
+        if (!validarCampo(inputNombre, 'nombre', 'El nombre debe tener entre 2 y 100 caracteres válidos.')) return;
+
+        await procesarGuardado({
+            datosBody: { nombre: inputNombre.val().trim() },
+            modalSelector: '#modalRegistrarPedido',
+            formSelector: '#formTipoPedido'
         });
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Abrir modal de edición (Para Activos e Inactivos)
-    |--------------------------------------------------------------------------
-    */
+    $('#btnGuardarEdicionActivo').on('click', async function (evento) {
+        evento.preventDefault();
+        const id = $('#edit_activo_id').val();
+        const inputNombre = $('#edit_activo_nombre');
+
+        if (!validarCampo(inputNombre, 'nombre', 'El nombre debe tener entre 2 y 100 caracteres válidos.')) return;
+
+        await procesarGuardado({
+            datosBody: {
+                id_accion: id,
+                nuevo_estado: 'Activo',
+                nombre: inputNombre.val().trim()
+            },
+            modalSelector: '#modalEditarActivo',
+            formSelector: '#formEditarActivo'
+        });
+    });
+
+    $('#btnGuardarEdicionInactivo').on('click', async function (evento) {
+        evento.preventDefault();
+        const id = $('#edit_id_pedido').val();
+        const inputNombre = $('#edit_nombre_pedido');
+        const nuevoEstado = $('#edit_status_pedido').val();
+
+        if (!validarCampo(inputNombre, 'nombre', 'El nombre debe tener entre 2 y 100 caracteres válidos.')) return;
+
+        await procesarGuardado({
+            datosBody: {
+                id_accion: id,
+                nombre: inputNombre.val().trim(),
+                nuevo_estado: nuevoEstado
+            },
+            modalSelector: '#modalEditarInactivo',
+            formSelector: '#formEditarPedido'
+        });
+    });
+
     $(document).on('click', '.btnEditarActivo', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
-        const estado = $(this).data('estado') || 'Activo';
 
         $('#edit_activo_id').val(id);
         $('#edit_activo_nombre').val(nombre).removeClass('is-invalid is-valid');
         $('#modalEditarActivo').find('.feedback-validacion, .invalid-feedback, .valid-feedback').remove();
 
-        new bootstrap.Modal(
-            document.getElementById('modalEditarActivo')
-        ).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarActivo')).show();
     });
 
-    // Abrir modal de edición para INACTIVOS (ahora con nombre editable + estado)
     $(document).on('click', '.btnEditarInactivo', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
@@ -392,176 +305,17 @@ $(document).ready(function () {
         $('#edit_id_pedido').val(id);
         $('#edit_nombre_pedido').val(nombre).removeClass('is-invalid is-valid');
         $('#edit_status_pedido').val(estado);
-
         $('#modalEditarInactivo').find('.feedback-validacion, .invalid-feedback, .valid-feedback').remove();
 
-        new bootstrap.Modal(
-            document.getElementById('modalEditarInactivo')
-        ).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarInactivo')).show();
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Guardar edición (Activo)
-    |--------------------------------------------------------------------------
-    */
-    $('#btnGuardarEdicionActivo').on('click', function (evento) {
-        evento.preventDefault();
-
-        const id = $('#edit_activo_id').val();
-        const inputNombre = $('#edit_activo_nombre');
-
-        const nombreValido = validarCampo(
-            inputNombre,
-            regexNombre,
-            'El nombre debe tener entre 3 y 50 caracteres.'
-        );
-
-        if (!nombreValido) {
-            return;
-        }
-
-        const estadoDestino = 'Activo';
-
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                id_accion: id,
-                nuevo_estado: estadoDestino,
-                nombre: inputNombre.val().trim()
-            },
-            dataType: 'json',
-
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Actualizado',
-                        text: respuesta.message,
-                        confirmButtonColor: '#10b981'
-                    });
-
-                    // Limpiar SOLO después de edición exitosa
-                    limpiarFormularioModal('#modalEditarActivo', '#formEditarActivo');
-
-                    const modal = bootstrap.Modal.getInstance(
-                        document.getElementById('modalEditarActivo')
-                    );
-
-                    if (modal) {
-                        modal.hide();
-                    }
-
-                    cargarPedidos();
-
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: respuesta.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            },
-
-            error: function () {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo actualizar el tipo de pedido.',
-                    confirmButtonColor: '#dc3545'
-                });
-            }
-        });
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Guardar edición desde modal INACTIVO (NOMBRE + ESTADO)
-    |--------------------------------------------------------------------------
-    */
-    $('#btnGuardarEdicionInactivo').on('click', function (evento) {
-        evento.preventDefault();
-
-        const id = $('#edit_id_pedido').val();
-        const inputNombre = $('#edit_nombre_pedido');
-        const nuevoEstado = $('#edit_status_pedido').val();
-
-        const nombreValido = validarCampo(
-            inputNombre,
-            regexNombre,
-            'El nombre debe tener entre 3 y 50 caracteres.'
-        );
-
-        if (!nombreValido) {
-            return;
-        }
-
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                id_accion: id,
-                nombre: inputNombre.val().trim(),
-                nuevo_estado: nuevoEstado
-            },
-            dataType: 'json',
-
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Actualizado',
-                        text: respuesta.message,
-                        confirmButtonColor: '#10b981'
-                    });
-
-                    // Limpiar SOLO después de edición exitosa
-                    limpiarFormularioModal('#modalEditarInactivo', '#formEditarPedido');
-
-                    const modal = bootstrap.Modal.getInstance(
-                        document.getElementById('modalEditarInactivo')
-                    );
-
-                    if (modal) {
-                        modal.hide();
-                    }
-
-                    cargarPedidos();
-
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: respuesta.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            },
-
-            error: function () {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo actualizar el tipo de pedido.',
-                    confirmButtonColor: '#dc3545'
-                });
-            }
-        });
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Inhabilitar tipo de pedido (Solamente Activos)
-    |--------------------------------------------------------------------------
-    */
-    $(document).on('click', '.btnCambiarEstado', function () {
+    $(document).on('click', '.btnCambiarEstado', async function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
         const nuevoEstado = $(this).data('estado');
 
-        Swal.fire({
+        const resultado = await Swal.fire({
             title: '¿Inhabilitar Tipo de Pedido?',
             text: `El registro "${nombre}" pasará a la lista de inhabilitados.`,
             icon: 'warning',
@@ -570,59 +324,41 @@ $(document).ready(function () {
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, inhabilitar',
             cancelButtonText: 'Cancelar'
-
-        }).then(function (resultado) {
-            if (!resultado.isConfirmed) {
-                return;
-            }
-
-            $.ajax({
-                url: urlModulo,
-                type: 'POST',
-                data: {
-                    id_accion: id,
-                    nuevo_estado: nuevoEstado
-                },
-                dataType: 'json',
-
-                success: function (respuesta) {
-                    if (respuesta.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Inhabilitado',
-                            text: respuesta.message,
-                            confirmButtonColor: '#10b981'
-                        });
-
-                        cargarPedidos();
-
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: respuesta.message,
-                            confirmButtonColor: '#dc3545'
-                        });
-                    }
-                },
-
-                error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No se pudo cambiar el estado del tipo de pedido.',
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            });
         });
+
+        if (!resultado.isConfirmed) return;
+
+        try {
+            const respuesta = await solicitarAPI(urlModulo, {
+                method: 'POST',
+                data: { id_accion: id, nuevo_estado: nuevoEstado }
+            });
+
+            if (respuesta.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Inhabilitado',
+                    text: respuesta.message,
+                    confirmButtonColor: '#10b981'
+                });
+                await cargarPedidos();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: respuesta.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo cambiar el estado del tipo de pedido.',
+                confirmButtonColor: '#dc3545'
+            });
+        }
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Carga inicial
-    |--------------------------------------------------------------------------
-    */
     cargarPedidos();
-
 });

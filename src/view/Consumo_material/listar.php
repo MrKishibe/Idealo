@@ -7,7 +7,7 @@
     <title>Idéalo - Consumo de Material</title>
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="assets/libs/css/icons.css">
+    <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>

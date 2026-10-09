@@ -1,174 +1,221 @@
 $(document).ready(function () {
     let tablaDataTable = null;
-    let todosLosMateriales = []; 
+    let todosLosMateriales = [];
     let verEliminados = false;
 
-    console.log("Inicialización: tipomaterial.js sincronizado con el controlador procedimental.");
-
-    // Expresión regular para validar nombres (entre 3 y 50 caracteres) con / - . ( )
-    const regexNombre = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s/\-\.\(\)]{3,50}$/;
-    const mensajeErrorNombre = "El nombre debe tener entre 3 y 50 caracteres (letras, números o /-.()).";
-
-    // Función auxiliar para reseteo completo de formularios y mensajes visuales
-    function limpiarFormulario(formSelector, inputJQuery) {
-        if (formSelector && $(formSelector).length > 0) {
-            $(formSelector)[0].reset();
-            $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-            $(formSelector).find(".feedback-validacion").remove();
-        } else if (inputJQuery && inputJQuery.length > 0) {
-            inputJQuery.removeClass("is-valid is-invalid");
-            inputJQuery.siblings(".feedback-validacion").remove();
+    // Configuración centralizada de idioma en español para DataTables
+    const lenguajeEspanolDataTables = {
+        processing:     "Procesando...",
+        search:         "Buscar:",
+        lengthMenu:     "Mostrar _MENU_ registros",
+        info:           "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+        infoEmpty:      "Mostrando registros del 0 al 0 de un total de 0 registros",
+        infoFiltered:   "(filtrado de un total de _MAX_ registros)",
+        loadingRecords: "Cargando...",
+        zeroRecords:    "No se encontraron coincidencias",
+        emptyTable:     "No hay registros disponibles en esta vista",
+        paginate: {
+            first:      "Primero",
+            previous:   "Anterior",
+            next:       "Siguiente",
+            last:       "Último"
+        },
+        aria: {
+            sortAscending:  ": Activar para ordenar la columna de manera ascendente",
+            sortDescending: ": Activar para ordenar la columna de manera descendente"
         }
-    }
+    };
 
-    // Validador de campos (Ejecutado solo al presionar el botón de envío)
-    function validarCampo(input, regex, mensajeError) {
-        if (!input || input.length === 0) return false;
-        let domInput = input[0];
-        
-        // 1. Ocultar o eliminar mensajes estáticos que puedan venir desde el HTML
-        $(domInput).siblings("small:not(.feedback-validacion), .invalid-feedback, .valid-feedback").hide();
-        
-        // 2. Buscar si ya existe el contenedor dinámico o crearlo si no existe
-        let $feedback = $(domInput).siblings(".feedback-validacion");
-        if ($feedback.length === 0) {
-            $feedback = $('<small class="feedback-validacion form-text d-block"></small>');
-            $(domInput).after($feedback);
-        }
+    function bloqEntradaNoPermitida(input, tipoPatron) {
+        if (!window.jQuery || !$.expresionesRegulares) return;
 
-        let valor = input.val().trim();
+        input.on("keypress", function (e) {
+            if (e.ctrlKey || e.altKey || e.metaKey || e.which < 32) return;
 
-        // Evaluar si el campo está vacío
-        if (valor === "") {
-            input.removeClass("is-valid").addClass("is-invalid");
-            $feedback.text("Este campo no puede estar vacío.").css("color", "#dc3545").show();
-            return false;
-        }
+            const char = String.fromCharCode(e.which);
+            const valActual = $(this).val();
+            const selStart = this.selectionStart ?? valActual.length;
+            const selEnd = this.selectionEnd ?? valActual.length;
+            const nuevoVal = valActual.slice(0, selStart) + char + valActual.slice(selEnd);
 
-        // Evaluar con la expresión regular
-        if (regex.test(valor)) {
-            input.removeClass("is-invalid").addClass("is-valid");
-            $feedback.text("").hide();
-            return true;
-        } else {
-            input.removeClass("is-valid").addClass("is-invalid");
-            $feedback.text(mensajeError).css("color", "#dc3545").show();
-            return false;
-        }
-    }
+            try {
+                const patron = $.expresionesRegulares.obtener(tipoPatron);
+                const fuente = patron.source.replace(/^\^|\$$/g, "");
+                let regexParcial;
 
-    // =========================================================================
-    // CONTROL DE LIMPIEZA Y EVENTOS DE MODALES (BOOTSTRAP)
-    // =========================================================================
-    
-    // 1. Modal Registrar: NO limpiar al cerrar (solo ocultar)
-    $('#modalRegistrarMaterial').on('hide.bs.modal', function () {
-        if (document.activeElement) document.activeElement.blur();
-    });
-
-    // Botón Cancelar explícito en Registrar -> SÍ limpia
-    $('#modalRegistrarMaterial').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
-        limpiarFormulario("#formTipoMaterial");
-    });
-
-    // 2. Modal Editar Activo: NO limpiar al cerrar (solo ocultar)
-    $('#modalEditarActivo').on('hide.bs.modal', function () {
-        if (document.activeElement) document.activeElement.blur();
-    });
-
-    // Botón Cancelar explícito en Editar Activo -> SÍ limpia
-    $('#modalEditarActivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
-        limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
-        $('#edit_activo_id').val('');
-    });
-
-    // 3. Modal Editar Inactivo: NO limpiar al cerrar (solo ocultar)
-    $('#modalEditarInactivo').on('hide.bs.modal', function () {
-        if (document.activeElement) document.activeElement.blur();
-    });
-
-    // Botón Cancelar explícito en Editar Inactivo -> SÍ limpia
-    $('#modalEditarInactivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', function() {
-        limpiarFormulario("#formEditarMaterial");
-        $('#edit_id_material').val('');
-    });
-
-    // Carga de datos asíncrona
-    function cargarMateriales() {
-        $.ajax({
-            url: 'index.php?controller=tipoMateriaPrima&action=listar&ajax=listar',
-            type: 'GET',
-            dataType: 'json', 
-            success: function (data) {
-                if (data && Array.isArray(data.materiales)) {
-                    todosLosMateriales = data.materiales;
+                if (fuente.includes("{")) {
+                    const baseSinRango = fuente.replace(/\{[^}]+\}/, "+");
+                    regexParcial = new RegExp("^" + baseSinRango + "$");
                 } else {
-                    todosLosMateriales = [];
+                    regexParcial = new RegExp("^" + fuente + "$");
                 }
-                renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
-            },
-            error: function (xhr, status, error) { 
-                console.error("Error al obtener JSON, usando datos de respaldo de la vista estática.", error);
-                extraerDatosDeTablaEstatica();
-            }
+
+                if (!regexParcial.test(nuevoVal)) {
+                    e.preventDefault();
+                }
+            } catch (err) {}
+        });
+
+        input.on("paste", function (e) {
+            const pastedText = (e.originalEvent || e).clipboardData?.getData("text") || "";
+            const valActual = $(this).val();
+            const selStart = this.selectionStart ?? valActual.length;
+            const selEnd = this.selectionEnd ?? valActual.length;
+            const nuevoVal = valActual.slice(0, selStart) + pastedText + valActual.slice(selEnd);
+
+            try {
+                if (!$.expresionesRegulares.validar(tipoPatron, nuevoVal)) {
+                    e.preventDefault();
+                }
+            } catch (err) {}
         });
     }
 
-    // Extracción de contingencia desde el HTML
+    function validarCampoEntrada(input, tipoPatron, esRequerido = true) {
+        if (!input || input.length === 0) return false;
+
+        const valor = input.val().trim();
+        let $feedback = input.siblings(".feedback-validacion");
+
+        if ($feedback.length === 0) {
+            $feedback =$('<small class="feedback-validacion form-text d-block"></small>');
+            input.after($feedback);
+        }
+
+        if (valor === "") {
+            if (esRequerido) {
+                input.removeClass("is-valid").addClass("is-invalid");
+                $feedback.text("Este campo es obligatorio.").css("color", "#dc3545").show();
+                return false;
+            } else {
+                input.removeClass("is-valid is-invalid");
+                $feedback.text("").hide();
+                return true;
+            }
+        }
+
+        if (window.jQuery && $.expresionesRegulares) {
+            try {
+                const esValido = $.expresionesRegulares.validar(tipoPatron, valor);
+
+                if (esValido) {
+                    input.removeClass("is-invalid").addClass("is-valid");
+                    $feedback.text("").hide();
+                    return true;
+                } else {
+                    input.removeClass("is-valid").addClass("is-invalid");
+                    $feedback.text("El formato ingresado no es válido.").css("color", "#dc3545").show();
+                    return false;
+                }
+            } catch (error) {}
+        }
+
+        input.removeClass("is-invalid").addClass("is-valid");
+        $feedback.text("").hide();
+        return true;
+    }
+
+    function configurarCampo(selector, tipoPatron, esRequerido = true) {
+        const $el =$(selector);
+        bloqEntradaNoPermitida($el, tipoPatron);$(document).on("input change", selector, function () {
+            validarCampoEntrada($(this), tipoPatron, esRequerido);
+        });
+    }
+
+    configurarCampo("#nombre_tipo_material", "nombre", true);
+    configurarCampo("#descripcion_tipo_material", "descripcion", false);
+
+    configurarCampo("#edit_activo_nombre", "nombre", true);
+    configurarCampo("#edit_activo_descripcion", "descripcion", false);
+
+    configurarCampo("#edit_nombre_material", "nombre", true);
+    configurarCampo("#edit_descripcion_material", "descripcion", false);
+
+    function limpiarFormulario(formSelector, inputsJQuery = null) {
+        if (formSelector && $(formSelector).length > 0) {$(formSelector)[0].reset();
+            $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');$(formSelector).find(".feedback-validacion").remove();
+        } else if (inputsJQuery && inputsJQuery.length > 0) {
+            inputsJQuery.removeClass("is-valid is-invalid");
+            inputsJQuery.siblings(".feedback-validacion").remove();
+        }
+    }
+
+    async function cargarMateriales() {
+        try {
+            const response = await $.ajax({
+                url: 'index.php?controller=tipoMateriaPrima&action=listar&ajax=listar',
+                type: 'GET',
+                dataType: 'json'
+            });
+
+            todosLosMateriales = (response && Array.isArray(response.materiales)) ? response.materiales : [];
+            renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
+
+        } catch (error) {
+            extraerDatosDeTablaEstatica();
+        }
+    }
+
+    async function enviarPeticion(dataPayload) {
+        return await $.ajax({
+            url: 'index.php?controller=tipoMateriaPrima&action=listar',
+            type: 'POST',
+            data: dataPayload,
+            dataType: 'json'
+        });
+    }
+
     function extraerDatosDeTablaEstatica() {
         todosLosMateriales = [];
-        $('#tablaTipoMaterial tbody tr').each(function() {
+        $('#tablaTipoMaterial tbody tr').each(function () {
             const fila = $(this);
             const idAttr = fila.attr('id');
             if (!idAttr) return;
+
             const id = idAttr.replace('fila-', '');
-            
             const btnEditar = fila.find('.btnEditarActivo, .btnEditarInactivo');
-            
-            let nombre = "";
-            let descripcion = "";
-            let estado = "Activo";
 
             if (btnEditar.length > 0) {
-                nombre = btnEditar.data('nombre');
-                descripcion = btnEditar.data('descripcion');
-                estado = fila.find('.badge').text().trim() === 'Inactivo' ? 'Inactivo' : 'Activo';
-            }
+                const nombre = btnEditar.data('nombre');
+                const descripcion = btnEditar.data('descripcion');
+                const estado = fila.find('.badge').text().trim() === 'Inactivo' ? 'Inactivo' : 'Activo';
 
-            if (nombre) {
-                todosLosMateriales.push({
-                    id_tipo_materia_prima: id,
-                    nombre_de_material: nombre,
-                    descripcion: descripcion === 'Sin especificaciones' ? '' : descripcion,
-                    status_tipo_materia: estado 
-                });
+                if (nombre) {
+                    todosLosMateriales.push({
+                        id_tipo_materia_prima: id,
+                        nombre_de_material: nombre,
+                        descripcion: descripcion === 'Sin especificaciones' ? '' : descripcion,
+                        status_tipo_materia: estado
+                    });
+                }
             }
         });
         renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
     }
 
-    // Renderizador dinámico de filas con DataTables
     function renderizarTabla(estadoFiltro) {
         const tbody = $('#tablaTipoMaterial tbody');
-        
+
         if ($.fn.DataTable.isDataTable('#tablaTipoMaterial')) {
-            tablaDataTable.destroy();
+            $('#tablaTipoMaterial').DataTable().destroy();
         }
         tbody.empty();
 
         const filtrados = todosLosMateriales.filter(mat => {
-            let estadoReal = mat.status_tipo_materia || mat.status_tipo_material;
+            const estadoReal = mat.status_tipo_materia || mat.status_tipo_material;
             return estadoReal === estadoFiltro;
         });
 
         if (filtrados.length > 0) {
-            filtrados.forEach(mat => {
-                let nombreMat = mat.nombre_de_material || mat.nombre;
-                let descMat = mat.descripcion || 'Sin especificaciones';
-                let estadoReal = mat.status_tipo_materia || mat.status_tipo_material;
+            const fragmento = $(document.createDocumentFragment());
 
-                let badge = estadoReal === 'Activo'
-                    ? '<span class="badge bg-success">Activo</span>' 
+            filtrados.forEach(mat => {
+                const nombreMat = mat.nombre_de_material || mat.nombre;
+                const descMat = mat.descripcion || 'Sin especificaciones';
+                const estadoReal = mat.status_tipo_materia || mat.status_tipo_material;
+
+                const badge = estadoReal === 'Activo'
+                    ? '<span class="badge bg-success">Activo</span>'
                     : '<span class="badge bg-danger">Inactivo</span>';
 
                 let acciones = '';
@@ -198,158 +245,157 @@ $(document).ready(function () {
                         </button>`;
                 }
 
-                tbody.append(`<tr id="fila-${mat.id_tipo_materia_prima}">
-                    <td class="fw-bold">${nombreMat}</td>
-                    <td>${descMat}</td>
-                    <td>${badge}</td>
-                    <td><div class="text-center">${acciones}</div></td>
-                </tr>`);
+                fragmento.append(`
+                    <tr id="fila-${mat.id_tipo_materia_prima}">
+                        <td class="fw-bold">${nombreMat}</td>
+                        <td>${descMat}</td>
+                        <td>${badge}</td>
+                        <td><div class="text-center">${acciones}</div></td>
+                    </tr>
+                `);
             });
+
+            tbody.append(fragmento);
         }
 
+        // Inicialización del DataTable con idioma en español garantizado
         tablaDataTable = $('#tablaTipoMaterial').DataTable({
-            language: { 
-                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
-                emptyTable: "No hay registros en esta vista",
-                zeroRecords: "No se encontraron coincidencias"
-            },
-            pageLength: 10, 
-            responsive: true, 
+            language: lenguajeEspanolDataTables,
+            pageLength: 10,
+            responsive: true,
             ordering: false
         });
     }
 
-    // Alternar vistas entre Activos / Inhabilitados
-    $('#btnAlternarEstado').on('click', function() {
+    $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
+        const $btn =$(this);
+
         if (verEliminados) {
-            $(this).attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');
-            $('#txtBotonEstado').text('Ver Activos');
+            $btn.attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');$('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
             $('#tituloVista').text('Tipos de Material Inhabilitados');
             renderizarTabla('Inactivo');
         } else {
-            $(this).attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');
-            $('#txtBotonEstado').text('Ver inhabilitados');
+            $btn.attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');$('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Tipo de Material');
             renderizarTabla('Activo');
         }
     });
 
-    // =========================================================================
-    // ACCIÓN: REGISTRAR
-    // =========================================================================
-    $("#btnEnvio").on("click", function (e) {
-        e.preventDefault();
-
-        let inputNombre = $("#nombre_tipo_material");
-        let inputDesc = $("#descripcion_tipo_material");
-
-        let vNom = validarCampo(inputNombre, regexNombre, mensajeErrorNombre);
-        if (!vNom) return;
-
-        $.ajax({
-            url: 'index.php?controller=tipoMateriaPrima&action=listar', 
-            type: 'POST',
-            data: {
-                nombre: inputNombre.val().trim(),          
-                descripcion: inputDesc.val().trim()       
-            },
-            dataType: 'json',
-            success: function(response) {
-                if(response.success) {
-                    if (document.activeElement) document.activeElement.blur();
-                    Swal.fire({ 
-                        icon: 'success', 
-                        title: 'Completado', 
-                        text: response.message, 
-                        confirmButtonColor: '#10b981',
-                        didClose: () => {
-                            // Limpiar SOLO después de registro exitoso
-                            limpiarFormulario("#formTipoMaterial");
-                            bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMaterial')).hide();
-                            cargarMateriales();
-                        }
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error de Validación', text: response.message, confirmButtonColor: '#dc3545' });
-                }
-            },
-            error: function() {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Sucedió un error inesperado de comunicación con el servidor.', confirmButtonColor: '#dc3545' });
-            }
-        });
+    $('#modalRegistrarMaterial').on('hide.bs.modal', () => document.activeElement?.blur());
+    $('#modalRegistrarMaterial').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', () => {
+        limpiarFormulario("#formTipoMaterial");
     });
 
-    // ACCIÓN: ABRIR MODAL EDICIÓN ACTIVO
-    $(document).on('click', '.btnEditarActivo', function() {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-        const descripcion = $(this).data('descripcion');
-        const estado = $(this).data('estado') || 'Activo';
+    $('#modalEditarActivo').on('hide.bs.modal', () => document.activeElement?.blur());
+    $('#modalEditarActivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', () => {
+        limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
+        $('#edit_activo_id').val('');
+    });
 
-        $('#edit_activo_nombre, #edit_activo_descripcion').removeClass("is-invalid is-valid");
-        $('#modalEditarActivo').find(".feedback-validacion").remove();
+    $('#modalEditarInactivo').on('hide.bs.modal', () => document.activeElement?.blur());
+    $('#modalEditarInactivo').find('[data-bs-dismiss="modal"]:not(.btn-close)').on('click', () => {
+        limpiarFormulario("#formEditarMaterial");
+        $('#edit_id_material').val('');
+    });
 
-        $('#edit_activo_id').val(id);
-        $('#edit_activo_nombre').val(nombre);
-        $('#edit_activo_descripcion').val(descripcion);
-        
+    $("#btnEnvio").on("click", async function (e) {
+        e.preventDefault();
+
+        const inputNombre = $("#nombre_tipo_material");
+        const inputDesc = $("#descripcion_tipo_material");
+
+        const esNombreValido = validarCampoEntrada(inputNombre, "nombre", true);
+        const esDescValida = validarCampoEntrada(inputDesc, "descripcion", false);
+
+        if (!esNombreValido || !esDescValida) return;
+
+        try {
+            const response = await enviarPeticion({
+                nombre: inputNombre.val().trim(),
+                descripcion: inputDesc.val().trim()
+            });
+
+            if (response.success) {
+                document.activeElement?.blur();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Completado',
+                    text: response.message,
+                    confirmButtonColor: '#10b981',
+                    didClose: () => {
+                        limpiarFormulario("#formTipoMaterial");
+                        bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMaterial')).hide();
+                        cargarMateriales();
+                    }
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error de Validación', text: response.message, confirmButtonColor: '#dc3545' });
+            }
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Error inesperado de comunicación con el servidor.', confirmButtonColor: '#dc3545' });
+        }
+    });
+
+    $(document).on('click', '.btnEditarActivo', function () {
+        const btn = $(this);
+        limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
+
+        $('#edit_activo_id').val(btn.data('id'));
+        $('#edit_activo_nombre').val(btn.data('nombre'));
+        $('#edit_activo_descripcion').val(btn.data('descripcion'));
+
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarActivo')).show();
     });
 
-    // =========================================================================
-    // ACCIÓN: GUARDAR CAMBIOS EDICIÓN ACTIVO
-    // =========================================================================
-    $('#formEditarActivo').on('submit', function(e) {
+    $('#formEditarActivo').on('submit', async function (e) {
         e.preventDefault();
-        
-        let id = $('#edit_activo_id').val();
-        let inputNombre = $('#edit_activo_nombre');
-        let inputDesc = $('#edit_activo_descripcion');
 
-        let vNom = validarCampo(inputNombre, regexNombre, mensajeErrorNombre);
-        if (!vNom) return;
+        const id = $('#edit_activo_id').val();
+        const inputNombre = $('#edit_activo_nombre');
+        const inputDesc = $('#edit_activo_descripcion');
 
-        $.ajax({
-            url: 'index.php?controller=tipoMateriaPrima&action=listar',
-            type: 'POST',
-            data: {
-                id_accion: id,            
+        const esNombreValido = validarCampoEntrada(inputNombre, "nombre", true);
+        const esDescValida = validarCampoEntrada(inputDesc, "descripcion", false);
+
+        if (!esNombreValido || !esDescValida) return;
+
+        try {
+            const response = await enviarPeticion({
+                id_accion: id,
                 nombre: inputNombre.val().trim(),
                 descripcion: inputDesc.val().trim()
-            },
-            dataType: 'json',
-            success: function(response) {
-                if(response.success) {
-                    if (document.activeElement) document.activeElement.blur();
-                    Swal.fire({ 
-                        icon: 'success', 
-                        title: 'Actualizado', 
-                        text: response.message, 
-                        confirmButtonColor: '#10b981',
-                        didClose: () => {
-                            // Limpiar SOLO después de edición exitosa
-                            limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
-                            $('#edit_activo_id').val('');
-                            bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
-                            cargarMateriales();
-                        }
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
-                }
+            });
+
+            if (response.success) {
+                document.activeElement?.blur();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Actualizado',
+                    text: response.message,
+                    confirmButtonColor: '#10b981',
+                    didClose: () => {
+                        limpiarFormulario(null, $('#edit_activo_nombre, #edit_activo_descripcion'));
+                        $('#edit_activo_id').val('');
+                        bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
+                        cargarMateriales();
+                    }
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
             }
-        });
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Error al procesar la actualización.', confirmButtonColor: '#dc3545' });
+        }
     });
 
-    // ACCIÓN: INHABILITAR DIRECTO DESDE LA FILA ACTIVA
-    $(document).on('click', '.btnCambiarEstado', function() {
+    $(document).on('click', '.btnCambiarEstado', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
-        
-        if (document.activeElement) document.activeElement.blur();
+
+        document.activeElement?.blur();
 
         Swal.fire({
             title: '¿Inhabilitar Tipo de Material?',
@@ -360,112 +406,84 @@ $(document).ready(function () {
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, inhabilitar',
             cancelButtonText: 'Cancelar'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                $.ajax({
-                    url: 'index.php?controller=tipoMateriaPrima&action=listar',
-                    type: 'POST',
-                    data: {
+                try {
+                    const response = await enviarPeticion({
                         id_accion: id,
                         nuevo_estado: 'Inactivo'
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({ icon: 'success', title: 'Inhabilitado', text: response.message, confirmButtonColor: '#10b981' });
-                            cargarMateriales();
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
-                        }
+                    });
+
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Inhabilitado', text: response.message, confirmButtonColor: '#10b981' });
+                        cargarMateriales();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
                     }
-                });
+                } catch (error) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cambiar el estado del registro.', confirmButtonColor: '#dc3545' });
+                }
             }
         });
     });
 
-    // =========================================================================
-    // ACCIÓN: ABRIR MODAL EDICIÓN INACTIVO (NOMBRE + DESCRIPCIÓN + ESTADO)
-    // =========================================================================
-    $(document).on('click', '.btnEditarInactivo', function() {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-        const descripcion = $(this).data('descripcion') || '';
-        const estado = $(this).data('estado') || 'Inactivo';
+    $(document).on('click', '.btnEditarInactivo', function () {
+        const btn = $(this);
+        limpiarFormulario("#formEditarMaterial");
 
-        // Limpiar validaciones previas
-        $('#edit_nombre_material, #edit_descripcion_material').removeClass("is-invalid is-valid");
-        $('#modalEditarInactivo').find(".feedback-validacion").remove();
-
-        // Llenar campos del modal
-        $('#edit_id_material').val(id);
-        $('#edit_nombre_material').val(nombre);
-        $('#edit_descripcion_material').val(descripcion);
+        $('#edit_id_material').val(btn.data('id'));
+        $('#edit_nombre_material').val(btn.data('nombre'));
+        $('#edit_descripcion_material').val(btn.data('descripcion') || '');
 
         if ($('#edit_status_material').length > 0) {
-            $('#edit_status_material').val(estado); // Activo o Inactivo
+            $('#edit_status_material').val(btn.data('estado') || 'Inactivo');
         }
 
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarInactivo')).show();
     });
 
-    // =========================================================================
-    // ACCIÓN: GUARDAR CAMBIOS DESDE MODAL INACTIVO (NOMBRE + DESCRIPCIÓN + ESTADO)
-    // =========================================================================
-    $('#formEditarMaterial').on('submit', function (e) {
+    $('#formEditarMaterial').on('submit', async function (e) {
         e.preventDefault();
 
         const id = $('#edit_id_material').val();
-        const nombre = $('#edit_nombre_material').val().trim();
-        const descripcion = $('#edit_descripcion_material').val().trim();
+        const inputNombre = $('#edit_nombre_material');
+        const inputDesc = $('#edit_descripcion_material');
         const nuevoEstado = $('#edit_status_material').val();
 
-        // Validación básica del nombre
-        if (!nombre) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campo requerido',
-                text: 'El nombre no puede estar vacío.',
-                confirmButtonColor: '#dc3545'
-            });
-            return;
-        }
+        const esNombreValido = validarCampoEntrada(inputNombre, "nombre", true);
+        const esDescValida = validarCampoEntrada(inputDesc, "descripcion", false);
 
-        $.ajax({
-            url: 'index.php?controller=tipoMateriaPrima&action=listar',
-            type: 'POST',
-            data: {
+        if (!esNombreValido || !esDescValida) return;
+
+        try {
+            const response = await enviarPeticion({
                 id_accion: id,
-                nombre: nombre,
-                descripcion: descripcion,
+                nombre: inputNombre.val().trim(),
+                descripcion: inputDesc.val().trim(),
                 nuevo_estado: nuevoEstado
-            },
-            dataType: 'json',
-            success: function (response) {
-                if (response.success) {
-                    if (document.activeElement) document.activeElement.blur();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Actualizado',
-                        text: response.message || 'El registro ha sido actualizado correctamente.',
-                        confirmButtonColor: '#10b981',
-                        didClose: () => {
-                            // Limpiar SOLO después de edición exitosa
-                            limpiarFormulario("#formEditarMaterial");
-                            $('#edit_id_material').val('');
-                            bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
-                            cargarMateriales();
-                        }
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error al procesar la solicitud con el servidor.', confirmButtonColor: '#dc3545' });
+            });
+
+            if (response.success) {
+                document.activeElement?.blur();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Actualizado',
+                    text: response.message || 'El registro ha sido actualizado correctamente.',
+                    confirmButtonColor: '#10b981',
+                    didClose: () => {
+                        limpiarFormulario("#formEditarMaterial");
+                        $('#edit_id_material').val('');
+                        bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
+                        cargarMateriales();
+                    }
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
             }
-        });
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Error al procesar la solicitud con el servidor.', confirmButtonColor: '#dc3545' });
+        }
     });
 
-    // Cargar datos iniciales
     cargarMateriales();
 });

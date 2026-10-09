@@ -1,118 +1,135 @@
 $(document).ready(function () {
-
     let tablaDataTable = null;
     let todasLasMateriasPrimas = [];
     let verEliminados = false;
 
-    const regexNombre = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-\(\)\.\/]{3,100}$/;
     const urlModulo = 'index.php?controller=materiaPrima&action=listar';
 
     console.log('JS cargado');
+
+    // Helper unificado de peticiones AJAX envuelto en Promesas
+    function peticionAjax(url, opciones = {}) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: url,
+                type: opciones.type || 'GET',
+                data: opciones.data || null,
+                processData: opciones.processData !== undefined ? opciones.processData : true,
+                contentType: opciones.contentType !== undefined ? opciones.contentType : 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json'
+            })
+            .done(function (respuesta) {
+                resolve(respuesta);
+            })
+            .fail(function (jqXHR, textStatus, errorThrown) {
+                console.error('Error en petición AJAX:', jqXHR.responseText || textStatus);
+                let mensaje = 'Error de comunicación con el servidor.';
+                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                    mensaje = jqXHR.responseJSON.message;
+                }
+                reject(new Error(mensaje));
+            });
+        });
+    }
+
+    function alerta(icono, titulo, texto, colorBoton = '#dc3545') {
+        return Swal.fire({
+            icon: icono,
+            title: titulo,
+            text: texto,
+            confirmButtonColor: colorBoton
+        });
+    }
 
     function escaparHTML(texto) {
         return $('<div>').text(texto ?? '').html();
     }
 
-    function validarCampo(input, regex, mensajeError) {
-        if (!input || input.length === 0) return false;
+    function aplicarFeedbackUI(input, esValido, mensaje) {
         const domInput = input[0];
         $(domInput).siblings('.feedback-validacion').remove();
+
         const feedback = document.createElement('small');
         feedback.classList.add('feedback-validacion', 'form-text', 'd-block', 'mt-1');
         domInput.parentNode.appendChild(feedback);
-        const valor = input.val().trim();
-        if (valor === '') {
-            input.removeClass('is-valid').addClass('is-invalid');
-            feedback.textContent = 'Este campo no puede estar vacío.';
-            feedback.style.color = '#dc3545';
-            return false;
-        }
-        if (regex.test(valor)) {
+
+        if (esValido) {
             input.removeClass('is-invalid').addClass('is-valid');
-            feedback.textContent = 'Campo válido';
+            feedback.textContent = mensaje || 'Campo válido';
             feedback.style.color = '#198754';
-            return true;
+        } else {
+            input.removeClass('is-valid').addClass('is-invalid');
+            feedback.textContent = mensaje;
+            feedback.style.color = '#dc3545';
         }
-        input.removeClass('is-valid').addClass('is-invalid');
-        feedback.textContent = mensajeError;
-        feedback.style.color = '#dc3545';
-        return false;
+        return esValido;
     }
 
-    function validarNumero(input, mensajeError) {
+    // Validaciones reutilizando $.expresionesRegulares
+    function validarCampo(input, patronNombre, mensajeError) {
         if (!input || input.length === 0) return false;
-        const domInput = input[0];
-        $(domInput).siblings('.feedback-validacion').remove();
-        const feedback = document.createElement('small');
-        feedback.classList.add('feedback-validacion', 'form-text', 'd-block', 'mt-1');
-        domInput.parentNode.appendChild(feedback);
         const valor = input.val().trim();
+
         if (valor === '') {
-            input.removeClass('is-valid').addClass('is-invalid');
-            feedback.textContent = 'Este campo no puede estar vacío.';
-            feedback.style.color = '#dc3545';
-            return false;
+            return aplicarFeedbackUI(input, false, 'Este campo no puede estar vacío.');
         }
-        const numero = parseFloat(valor);
-        if (isNaN(numero) || numero < 0) {
-            input.removeClass('is-valid').addClass('is-invalid');
-            feedback.textContent = mensajeError;
-            feedback.style.color = '#dc3545';
-            return false;
+
+        const esValido = $.expresionesRegulares.validar(patronNombre, valor);
+        return aplicarFeedbackUI(input, esValido, esValido ? 'Campo válido' : mensajeError);
+    }
+
+    function validarNumero(input, patronNombre, mensajeError) {
+        if (!input || input.length === 0) return false;
+        const valor = input.val().trim();
+
+        if (valor === '') {
+            return aplicarFeedbackUI(input, false, 'Este campo no puede estar vacío.');
         }
-        input.removeClass('is-invalid').addClass('is-valid');
-        feedback.textContent = 'Campo válido';
-        feedback.style.color = '#198754';
-        return true;
+
+        const esValido = $.expresionesRegulares.validar(patronNombre, valor);
+        return aplicarFeedbackUI(input, esValido, esValido ? 'Campo válido' : mensajeError);
     }
 
     function limpiarFormularioModal(formSelector) {
         if (!formSelector || !$(formSelector).length) return;
         $(formSelector)[0].reset();
-        $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-        $(formSelector).find('.feedback-validacion').remove();
+        $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');$(formSelector).find('.feedback-validacion').remove();
     }
 
-    function cargarTiposActivos() {
-        return $.ajax({
-            url: `${urlModulo}&ajax=tipos_activos`,
-            type: 'GET',
-            dataType: 'json'
-        });
+    async function cargarTiposActivos() {
+        return await peticionAjax(`${urlModulo}&ajax=tipos_activos`, { type: 'GET' });
     }
 
-    function llenarSelectTipos() {
-        return cargarTiposActivos().done(function (respuesta) {
+    async function llenarSelectTipos() {
+        try {
+            const respuesta = await cargarTiposActivos();
             const opciones = '<option value="">Seleccione un tipo...</option>';
             $('#id_tipo_materia_prima, #edit_activo_id_tipo, #edit_inactivo_id_tipo').empty().append(opciones);
 
             if (respuesta && Array.isArray(respuesta.tipos)) {
                 respuesta.tipos.forEach(function (tipo) {
-                    const opcion = `<option value="${tipo.id_tipo_materia_prima}">${tipo.nombre_de_material}</option>`;
+                    const opcion = `<option value="${tipo.id_tipo_materia_prima}">${escaparHTML(tipo.nombre_de_material)}</option>`;
                     $('#id_tipo_materia_prima, #edit_activo_id_tipo, #edit_inactivo_id_tipo').append(opcion);
                 });
             }
-        });
+        } catch (error) {
+            console.error('Error al cargar tipos de materia prima:', error);
+        }
     }
 
-    function cargarMateriasPrimas() {
-        $.ajax({
-            url: `${urlModulo}&ajax=listar`,
-            type: 'GET',
-            dataType: 'json',
-            success: function (respuesta) {
-                if (respuesta && Array.isArray(respuesta.materias_primas)) {
-                    todasLasMateriasPrimas = respuesta.materias_primas;
-                } else {
-                    todasLasMateriasPrimas = [];
-                }
-                renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
-            },
-            error: function (xhr, status, error) {
-                console.error('Error:', error);
-                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar las materias primas.', confirmButtonColor: '#dc3545' });
+    async function cargarMateriasPrimas() {
+        try {
+            const respuesta = await peticionAjax(`${urlModulo}&ajax=listar`, { type: 'GET' });
+            if (respuesta && Array.isArray(respuesta.materias_primas)) {
+                todasLasMateriasPrimas = respuesta.materias_primas;
+            } else {
+                todasLasMateriasPrimas = [];
             }
-        });
+            renderizarTabla(verEliminados ? 'Inactivo' : 'Activo');
+        } catch (error) {
+            console.error('Error:', error);
+            alerta('error', 'Error', 'No se pudieron cargar las materias primas.');
+        }
     }
 
     function renderizarTabla(estadoFiltro) {
@@ -148,17 +165,17 @@ $(document).ready(function () {
                 acciones = `
                     <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo me-1" 
                         data-id="${id}" 
-                        data-nombre="${nombre}" 
+                        data-nombre="${escaparHTML(nombre)}" 
                         data-id-tipo="${mp.id_tipo_materia_prima}" 
                         data-costo="${costo}" 
                         data-stock-actual="${stockActual}" 
                         data-stock-minimo="${stockMinimo}" 
-                        data-unidad="${unidad}">
+                        data-unidad="${escaparHTML(unidad)}">
                         <i class="bi bi-pencil-square"></i>
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado" 
                         data-id="${id}" 
-                        data-nombre="${nombre}">
+                        data-nombre="${escaparHTML(nombre)}">
                         <i class="bi bi-trash3-fill"></i>
                     </button>
                 `;
@@ -166,12 +183,12 @@ $(document).ready(function () {
                 acciones = `
                     <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo" 
                         data-id="${id}" 
-                        data-nombre="${nombre}" 
+                        data-nombre="${escaparHTML(nombre)}" 
                         data-id-tipo="${mp.id_tipo_materia_prima}" 
                         data-costo="${costo}" 
                         data-stock-actual="${stockActual}" 
                         data-stock-minimo="${stockMinimo}" 
-                        data-unidad="${unidad}"
+                        data-unidad="${escaparHTML(unidad)}"
                         data-estado="${estado}">
                         <i class="bi bi-pencil-square"></i>
                     </button>
@@ -180,22 +197,39 @@ $(document).ready(function () {
 
             tbody.append(`
                 <tr>
-                    <td class="fw-bold">${nombre}</td>
-                    <td>${tipo}</td>
+                    <td class="fw-bold">${escaparHTML(nombre)}</td>
+                    <td>${escaparHTML(tipo)}</td>
                     <td>${costo}</td>
-                    <td>${stockActual} ${unidad}</td>
-                    <td>${stockMinimo} ${unidad}</td>
+                    <td>${stockActual} ${escaparHTML(unidad)}</td>
+                    <td>${stockMinimo} ${escaparHTML(unidad)}</td>
                     <td>${badge}</td>
                     <td><div class="text-center">${acciones}</div></td>
                 </tr>
             `);
         });
 
+        // Configuración con Traducción Manual de DataTables
         tablaDataTable = tabla.DataTable({
             language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
+                processing: 'Procesando...',
+                search: 'Buscar:',
+                lengthMenu: 'Mostrar _MENU_ registros',
+                info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+                infoEmpty: 'Mostrando 0 a 0 de 0 registros',
+                infoFiltered: '(filtrado de _MAX_ registros en total)',
+                zeroRecords: 'No se encontraron coincidencias',
                 emptyTable: 'No hay registros',
-                zeroRecords: 'No se encontraron coincidencias'
+                loadingRecords: 'Cargando...',
+                paginate: {
+                    first: 'Primero',
+                    last: 'Último',
+                    next: 'Siguiente',
+                    previous: 'Anterior'
+                },
+                aria: {
+                    sortAscending: ': Activar para ordenar la columna de manera ascendente',
+                    sortDescending: ': Activar para ordenar la columna de manera descendente'
+                }
             },
             pageLength: 10,
             responsive: true,
@@ -203,25 +237,24 @@ $(document).ready(function () {
         });
     }
 
+    // Alternar vista entre activos e inhabilitados
     $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
         if (verEliminados) {
-            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
-            $('#txtBotonEstado').text('Ver Activos');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');$('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
             $('#tituloVista').text('Materias Primas Inhabilitadas');
             renderizarTabla('Inactivo');
         } else {
-            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
-            $('#txtBotonEstado').text('Ver inhabilitados');
+            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');$('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Materia Prima');
             renderizarTabla('Activo');
         }
     });
 
-    $('#modalRegistrarMateriaPrima').on('show.bs.modal', function () {
-        llenarSelectTipos();
+    $('#modalRegistrarMateriaPrima').on('show.bs.modal', async function () {
+        await llenarSelectTipos();
     });
 
     // Eventos de limpieza
@@ -232,8 +265,8 @@ $(document).ready(function () {
         }
     });
 
-    // Registrar
-    $('#btnEnvio').on('click', function (e) {
+    // Registrar Materia Prima
+    $('#btnEnvio').on('click', async function (e) {
         e.preventDefault();
         const inputNombre = $('#nombre_materia_prima');
         const selectTipo = $('#id_tipo_materia_prima');
@@ -242,51 +275,52 @@ $(document).ready(function () {
         const inputStockMinimo = $('#stock_minimo');
         const selectUnidad = $('#unidad_de_medida');
 
-        if (!validarCampo(inputNombre, regexNombre, 'El nombre debe tener entre 3 y 100 caracteres.')) return;
+        if (!validarCampo(inputNombre, 'nombre', 'El nombre debe tener entre 2 y 100 caracteres.')) return;
+
         if (selectTipo.val() === '') {
             selectTipo.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione un tipo.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione un tipo.');
             return;
         }
-        if (!validarNumero(inputCosto, 'El costo debe ser >= 0.')) return;
-        if (!validarNumero(inputStockActual, 'El stock debe ser >= 0.')) return;
-        if (!validarNumero(inputStockMinimo, 'El stock debe ser >= 0.')) return;
+
+        if (!validarNumero(inputCosto, 'numeroNoNegativo', 'El costo debe ser un valor no negativo.')) return;
+        if (!validarNumero(inputStockActual, 'numeroNoNegativo', 'El stock actual debe ser un valor no negativo.')) return;
+        if (!validarNumero(inputStockMinimo, 'numeroNoNegativo', 'El stock mínimo debe ser un valor no negativo.')) return;
+
         if (selectUnidad.val() === '') {
             selectUnidad.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione una unidad.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione una unidad.');
             return;
         }
 
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                nombre: inputNombre.val().trim(),
-                id_tipo_materia_prima: selectTipo.val(),
-                costo_unitario: inputCosto.val().trim(),
-                stock_actual: inputStockActual.val().trim(),
-                stock_minimo: inputStockMinimo.val().trim(),
-                unidad_de_medida: selectUnidad.val()
-            },
-            dataType: 'json',
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({ icon: 'success', title: 'Completado', text: respuesta.message, confirmButtonColor: '#10b981' });
-                    limpiarFormularioModal('#formMateriaPrima');
-                    bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMateriaPrima')).hide();
-                    cargarMateriasPrimas();
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: respuesta.message, confirmButtonColor: '#dc3545' });
+        try {
+            const respuesta = await peticionAjax(urlModulo, {
+                type: 'POST',
+                data: {
+                    nombre: inputNombre.val().trim(),
+                    id_tipo_materia_prima: selectTipo.val(),
+                    costo_unitario: inputCosto.val().trim(),
+                    stock_actual: inputStockActual.val().trim(),
+                    stock_minimo: inputStockMinimo.val().trim(),
+                    unidad_de_medida: selectUnidad.val()
                 }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación.', confirmButtonColor: '#dc3545' });
+            });
+
+            if (respuesta.success) {
+                await alerta('success', 'Completado', respuesta.message, '#10b981');
+                limpiarFormularioModal('#formMateriaPrima');
+                bootstrap.Modal.getInstance(document.getElementById('modalRegistrarMateriaPrima')).hide();
+                await cargarMateriasPrimas();
+            } else {
+                alerta('error', 'Error', respuesta.message);
             }
-        });
+        } catch (error) {
+            alerta('error', 'Error', error.message || 'Error de comunicación.');
+        }
     });
 
-    // EDITAR ACTIVO
-    $('body').on('click', '.btnEditarActivo', function () {
+    // Abrir Modal EDITAR ACTIVO
+    $('body').on('click', '.btnEditarActivo', async function () {
         console.log('Click en Editar Activo');
 
         const id = $(this).data('id');
@@ -304,16 +338,15 @@ $(document).ready(function () {
         $('#edit_activo_stock_minimo').val(stockMinimo);
         $('#edit_activo_unidad').val(unidad);
 
-        llenarSelectTipos().done(function () {
-            $('#edit_activo_id_tipo').val(idTipo);
-            const modal = new bootstrap.Modal(document.getElementById('modalEditarActivo'));
-            modal.show();
-            console.log('Modal Editar Activo mostrado');
-        });
+        await llenarSelectTipos();
+        $('#edit_activo_id_tipo').val(idTipo);
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarActivo'));
+        modal.show();
+        console.log('Modal Editar Activo mostrado');
     });
 
-    // EDITAR INACTIVO
-    $('body').on('click', '.btnEditarInactivo', function () {
+    // Abrir Modal EDITAR INACTIVO
+    $('body').on('click', '.btnEditarInactivo', async function () {
         console.log('Click en Editar Inactivo');
 
         const id = $(this).data('id');
@@ -333,16 +366,15 @@ $(document).ready(function () {
         $('#edit_inactivo_unidad').val(unidad);
         $('#edit_inactivo_estado').val(estado);
 
-        llenarSelectTipos().done(function () {
-            $('#edit_inactivo_id_tipo').val(idTipo);
-            const modal = new bootstrap.Modal(document.getElementById('modalEditarInactivo'));
-            modal.show();
-            console.log('Modal Editar Inactivo mostrado');
-        });
+        await llenarSelectTipos();
+        $('#edit_inactivo_id_tipo').val(idTipo);
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarInactivo'));
+        modal.show();
+        console.log('Modal Editar Inactivo mostrado');
     });
 
-    // Guardar edición activo
-    $('#btnGuardarEdicionActivo').on('click', function (e) {
+    // Guardar Edición Activo
+    $('#btnGuardarEdicionActivo').on('click', async function (e) {
         e.preventDefault();
         const id = $('#edit_activo_id').val();
         const inputNombre = $('#edit_activo_nombre');
@@ -352,53 +384,54 @@ $(document).ready(function () {
         const inputStockMinimo = $('#edit_activo_stock_minimo');
         const selectUnidad = $('#edit_activo_unidad');
 
-        if (!validarCampo(inputNombre, regexNombre, 'Nombre inválido.')) return;
+        if (!validarCampo(inputNombre, 'nombre', 'Nombre inválido.')) return;
+
         if (selectTipo.val() === '') {
             selectTipo.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione un tipo.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione un tipo.');
             return;
         }
-        if (!validarNumero(inputCosto, 'Costo inválido.')) return;
-        if (!validarNumero(inputStockActual, 'Stock inválido.')) return;
-        if (!validarNumero(inputStockMinimo, 'Stock inválido.')) return;
+
+        if (!validarNumero(inputCosto, 'numeroNoNegativo', 'Costo inválido.')) return;
+        if (!validarNumero(inputStockActual, 'numeroNoNegativo', 'Stock actual inválido.')) return;
+        if (!validarNumero(inputStockMinimo, 'numeroNoNegativo', 'Stock mínimo inválido.')) return;
+
         if (selectUnidad.val() === '') {
             selectUnidad.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione una unidad.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione una unidad.');
             return;
         }
 
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                id_accion: id,
-                nuevo_estado: 'Activo',
-                nombre: inputNombre.val().trim(),
-                id_tipo_materia_prima: selectTipo.val(),
-                costo_unitario: inputCosto.val().trim(),
-                stock_actual: inputStockActual.val().trim(),
-                stock_minimo: inputStockMinimo.val().trim(),
-                unidad_de_medida: selectUnidad.val()
-            },
-            dataType: 'json',
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({ icon: 'success', title: 'Actualizado', text: respuesta.message, confirmButtonColor: '#10b981' });
-                    limpiarFormularioModal('#formEditarActivo');
-                    bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
-                    cargarMateriasPrimas();
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: respuesta.message, confirmButtonColor: '#dc3545' });
+        try {
+            const respuesta = await peticionAjax(urlModulo, {
+                type: 'POST',
+                data: {
+                    id_accion: id,
+                    nuevo_estado: 'Activo',
+                    nombre: inputNombre.val().trim(),
+                    id_tipo_materia_prima: selectTipo.val(),
+                    costo_unitario: inputCosto.val().trim(),
+                    stock_actual: inputStockActual.val().trim(),
+                    stock_minimo: inputStockMinimo.val().trim(),
+                    unidad_de_medida: selectUnidad.val()
                 }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar.', confirmButtonColor: '#dc3545' });
+            });
+
+            if (respuesta.success) {
+                await alerta('success', 'Actualizado', respuesta.message, '#10b981');
+                limpiarFormularioModal('#formEditarActivo');
+                bootstrap.Modal.getInstance(document.getElementById('modalEditarActivo')).hide();
+                await cargarMateriasPrimas();
+            } else {
+                alerta('error', 'Error', respuesta.message);
             }
-        });
+        } catch (error) {
+            alerta('error', 'Error', error.message || 'No se pudo actualizar.');
+        }
     });
 
-    // Guardar edición inactivo
-    $('#btnGuardarEdicionInactivo').on('click', function (e) {
+    // Guardar Edición Inactivo
+    $('#btnGuardarEdicionInactivo').on('click', async function (e) {
         e.preventDefault();
         const id = $('#edit_inactivo_id').val();
         const inputNombre = $('#edit_inactivo_nombre');
@@ -409,57 +442,59 @@ $(document).ready(function () {
         const selectUnidad = $('#edit_inactivo_unidad');
         const selectEstado = $('#edit_inactivo_estado');
 
-        if (!validarCampo(inputNombre, regexNombre, 'Nombre inválido.')) return;
+        if (!validarCampo(inputNombre, 'nombre', 'Nombre inválido.')) return;
+
         if (selectTipo.val() === '') {
             selectTipo.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione un tipo.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione un tipo.');
             return;
         }
-        if (!validarNumero(inputCosto, 'Costo inválido.')) return;
-        if (!validarNumero(inputStockActual, 'Stock inválido.')) return;
-        if (!validarNumero(inputStockMinimo, 'Stock inválido.')) return;
+
+        if (!validarNumero(inputCosto, 'numeroNoNegativo', 'Costo inválido.')) return;
+        if (!validarNumero(inputStockActual, 'numeroNoNegativo', 'Stock actual inválido.')) return;
+        if (!validarNumero(inputStockMinimo, 'numeroNoNegativo', 'Stock mínimo inválido.')) return;
+
         if (selectUnidad.val() === '') {
             selectUnidad.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione una unidad.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione una unidad.');
             return;
         }
+
         if (selectEstado.val() === '') {
             selectEstado.addClass('is-invalid');
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Seleccione un estado.', confirmButtonColor: '#dc3545' });
+            alerta('error', 'Error', 'Seleccione un estado.');
             return;
         }
 
-        $.ajax({
-            url: urlModulo,
-            type: 'POST',
-            data: {
-                id_accion: id,
-                nuevo_estado: selectEstado.val(),
-                nombre: inputNombre.val().trim(),
-                id_tipo_materia_prima: selectTipo.val(),
-                costo_unitario: inputCosto.val().trim(),
-                stock_actual: inputStockActual.val().trim(),
-                stock_minimo: inputStockMinimo.val().trim(),
-                unidad_de_medida: selectUnidad.val()
-            },
-            dataType: 'json',
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({ icon: 'success', title: 'Actualizado', text: respuesta.message, confirmButtonColor: '#10b981' });
-                    limpiarFormularioModal('#formEditarInactivo');
-                    bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
-                    cargarMateriasPrimas();
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: respuesta.message, confirmButtonColor: '#dc3545' });
+        try {
+            const respuesta = await peticionAjax(urlModulo, {
+                type: 'POST',
+                data: {
+                    id_accion: id,
+                    nuevo_estado: selectEstado.val(),
+                    nombre: inputNombre.val().trim(),
+                    id_tipo_materia_prima: selectTipo.val(),
+                    costo_unitario: inputCosto.val().trim(),
+                    stock_actual: inputStockActual.val().trim(),
+                    stock_minimo: inputStockMinimo.val().trim(),
+                    unidad_de_medida: selectUnidad.val()
                 }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar.', confirmButtonColor: '#dc3545' });
+            });
+
+            if (respuesta.success) {
+                await alerta('success', 'Actualizado', respuesta.message, '#10b981');
+                limpiarFormularioModal('#formEditarInactivo');
+                bootstrap.Modal.getInstance(document.getElementById('modalEditarInactivo')).hide();
+                await cargarMateriasPrimas();
+            } else {
+                alerta('error', 'Error', respuesta.message);
             }
-        });
+        } catch (error) {
+            alerta('error', 'Error', error.message || 'No se pudo actualizar.');
+        }
     });
 
-    // Inhabilitar
+    // Inhabilitar Registro
     $('body').on('click', '.btnCambiarEstado', function () {
         const id = $(this).data('id');
         const nombre = $(this).data('nombre');
@@ -472,28 +507,27 @@ $(document).ready(function () {
             confirmButtonColor: '#dc3545',
             confirmButtonText: 'Sí',
             cancelButtonText: 'Cancelar'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                $.ajax({
-                    url: urlModulo,
-                    type: 'POST',
-                    data: { id_accion: id, nuevo_estado: 'Inactivo' },
-                    dataType: 'json',
-                    success: function (respuesta) {
-                        if (respuesta.success) {
-                            Swal.fire({ icon: 'success', title: 'Inhabilitado', text: respuesta.message, confirmButtonColor: '#10b981' });
-                            cargarMateriasPrimas();
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: respuesta.message, confirmButtonColor: '#dc3545' });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo inhabilitar.', confirmButtonColor: '#dc3545' });
+                try {
+                    const respuesta = await peticionAjax(urlModulo, {
+                        type: 'POST',
+                        data: { id_accion: id, nuevo_estado: 'Inactivo' }
+                    });
+
+                    if (respuesta.success) {
+                        await alerta('success', 'Inhabilitado', respuesta.message, '#10b981');
+                        await cargarMateriasPrimas();
+                    } else {
+                        alerta('error', 'Error', respuesta.message);
                     }
-                });
+                } catch (error) {
+                    alerta('error', 'Error', error.message || 'No se pudo inhabilitar.');
+                }
             }
         });
     });
 
+    // Inicializar módulo
     cargarMateriasPrimas();
 });

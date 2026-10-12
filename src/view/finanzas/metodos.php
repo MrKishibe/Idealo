@@ -6,7 +6,7 @@
     <title>Idéalo - Métodos de Pago</title>
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -129,11 +129,11 @@
 </div>
 
 <script src="assets/libs/jquery-4.0.0.min.js"></script>
-<script src="assets/js/helpers/expresiones.js"></script>
+<script src="assets/js/helpers/expresiones-legacy.js"></script>
 <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="assets/libs/jquery.dataTables.min.js"></script>
+<script src="assets/libs/dataTables.bootstrap5.min.js"></script>
+<script src="assets/libs/sweetalert2.all.min.js"></script>
 <script src="assets/js/finanzas.js"></script>
 <script>
 function cargarDatosEdicionMetodo(id, nombre) {

@@ -1,3 +1,12 @@
+import $ from 'jquery';
+import { confirmActionAlert, statusAlert } from './helpers/alerts.js';
+import {
+    validarCampo as validarCampoCompartido,
+    marcarCampo,
+    patrones,
+    obtenerFechaLocalISO
+} from './helpers/expresiones.js';
+
 $(document).ready(function () {
     const $tablaBody = $('#tbodyPerdidaMaterial');
     const $formRegistrarPerdida = $('#formRegistrarPerdida');
@@ -5,24 +14,6 @@ $(document).ready(function () {
 
     let perdidas = [];
     let tablaPerdidas;
-
-    function obtenerFechaLocalISO() {
-        const fecha = new Date();
-        fecha.setHours(0, 0, 0, 0);
-        const anio = fecha.getFullYear();
-        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-        const dia = String(fecha.getDate()).padStart(2, '0');
-        return anio + '-' + mes + '-' + dia;
-    }
-
-    function marcarCampo($campo, esValido) {
-        $campo.removeClass('is-valid is-invalid')
-            .addClass(esValido ? 'is-valid' : 'is-invalid')
-            .css({
-                'border-color': esValido ? 'green' : 'red',
-                'box-shadow': esValido ? '0 0 5px green' : '0 0 5px red'
-            });
-    }
 
     function validarCampo($campo) {
         const valor = String($campo.val() || '').trim();
@@ -32,10 +23,17 @@ $(document).ready(function () {
         let esValido = $campo[0].checkValidity();
 
         if (esValido && $campo.attr('name') === 'motivo') {
-            esValido = $.expresionesRegulares.validar('descripcion', valor);
+            esValido = validarCampoCompartido($campo, patrones.descripcion, {
+                requerido: false,
+                estilo: true,
+                feedback: false
+            });
         }
 
-        marcarCampo($campo, esValido);
+        marcarCampo($campo, esValido, {
+            estilo: true,
+            feedback: false
+        });
         return esValido;
     }
 
@@ -56,26 +54,11 @@ $(document).ready(function () {
     }
 
     async function confirmarAccion(titulo, texto) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#198754',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, continuar',
-            cancelButtonText: 'Cancelar'
-        });
+        return await confirmActionAlert(titulo, texto);
     }
 
     async function mostrarAlertaInformativa(titulo, texto, icono) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: icono,
-            timer: 2000,
-            showConfirmButton: false
-        });
+        return await statusAlert(titulo, texto, icono);
     }
 
     function enviarFormulario($form, $modal) {
@@ -107,7 +90,7 @@ $(document).ready(function () {
                 await mostrarAlertaInformativa('¡Éxito!', data.message || 'Guardado correctamente.', 'success');
                 if ($modal.length) $modal.modal('hide');
                 $form[0].reset();
-                actualizarCostoUnitario($form);
+                actualizarCostoPerdida($form);
                 limpiarValidaciones($form);
                 fetchPerdidas();
             } else {
@@ -162,7 +145,7 @@ $(document).ready(function () {
             $fila.append($('<td>').text(perdida.cantidad_perdida || 0));
             $fila.append($('<td>').text(perdida.fecha_de_registro || 'N/A'));
             $fila.append($('<td>').text(perdida.motivo || 'Sin motivo especificado'));
-            $fila.append($('<td>').text('$' + (perdida.costo_unitario || '0.00')));
+            $fila.append($('<td>').text('$' + (Number(perdida.costo_total_perdida || 0).toFixed(2))));
             $fila.append($('<td>').text(materiaPrimaLabel));
             $fila.append($('<td>').text(produccionLabel));
 
@@ -173,7 +156,7 @@ $(document).ready(function () {
                 'data-id_perdida': perdida.id_perdida_material || '',
                 'data-cantidad': perdida.cantidad_perdida || '',
                 'data-fecha': perdida.fecha_de_registro || '',
-                'data-costo': perdida.costo_unitario || '',
+                'data-costo-total': perdida.costo_total_perdida || '',
                 'data-id_produccion': perdida.id_produccion || '',
                 'data-id_materia_prima': perdida.id_materia_prima || '',
                 'data-motivo': perdida.motivo || ''
@@ -208,16 +191,19 @@ $(document).ready(function () {
     const $fechaRegistro = $formRegistrarPerdida.find('[name="fecha_de_registro"]');
     $fechaRegistro.attr('min', obtenerFechaLocalISO());
 
-    function actualizarCostoUnitario($form) {
+    function actualizarCostoPerdida($form) {
         const idProduccion = String($form.find('[name="id_produccion"]').val() || '');
         const idMateriaPrima = String($form.find('[name="id_materia_prima"]').val() || '');
-        const $costo = $form.find('[name="costo_unitario"]');
+        const cantidadPerdida = Number($form.find('[name="cantidad_perdida"]').val());
         const $orden = $form.find('[name="id_produccion"]');
         const $materiaPrima = $form.find('[name="id_materia_prima"]');
+        const $costoUnitario = $form.find('[data-role="costo-unitario"]');
+        const $costoTotal = $form.find('[name="costo_total_perdida"]');
 
         $orden[0].setCustomValidity('');
         $materiaPrima[0].setCustomValidity('');
-        $costo.val('');
+        $costoUnitario.val('');
+        $costoTotal.val('');
 
         if (!idProduccion || !idMateriaPrima) return;
 
@@ -234,15 +220,24 @@ $(document).ready(function () {
             return;
         }
 
-        $costo.val(consumo.costo_unitario);
+        const costoUnitario = Number(consumo.costo_unitario);
+        if (!Number.isFinite(costoUnitario) || costoUnitario < 0) {
+            $orden[0].setCustomValidity('El costo unitario del consumo no es válido.');
+            $materiaPrima[0].setCustomValidity('El costo unitario del consumo no es válido.');
+            return;
+        }
+
+        $costoUnitario.val(costoUnitario.toFixed(2));
+        if (Number.isFinite(cantidadPerdida) && cantidadPerdida > 0) {
+            $costoTotal.val((costoUnitario * cantidadPerdida).toFixed(2));
+        }
     }
 
     [$formRegistrarPerdida, $formEditarPerdida].forEach(function ($form) {
-        $form.on('change', '[name="id_produccion"], [name="id_materia_prima"]', function () {
-            actualizarCostoUnitario($form);
+        $form.on('change input', '[name="id_produccion"], [name="id_materia_prima"], [name="cantidad_perdida"]', function () {
+            actualizarCostoPerdida($form);
             validarCampo($form.find('[name="id_produccion"]'));
             validarCampo($form.find('[name="id_materia_prima"]'));
-            validarCampo($form.find('[name="costo_unitario"]'));
         });
     });
 
@@ -254,6 +249,7 @@ $(document).ready(function () {
 
     $formRegistrarPerdida.on('submit', async function (event) {
         event.preventDefault();
+        actualizarCostoPerdida($(this));
         if (!validarFormulario($(this))) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
             return;
@@ -267,6 +263,7 @@ $(document).ready(function () {
 
     $formEditarPerdida.on('submit', async function (event) {
         event.preventDefault();
+        actualizarCostoPerdida($(this));
         if (!validarFormulario($(this))) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
             return;
@@ -305,10 +302,10 @@ $(document).ready(function () {
         $('#edit_id_perdida_material').val($boton.attr('data-id_perdida') || '');
         $('#edit_cantidad_perdida').val($boton.attr('data-cantidad') || '');
         $('#edit_fecha_de_registro').val($boton.attr('data-fecha') || '');
-        $('#edit_costo_unitario').val($boton.attr('data-costo') || '');
         $('#edit_id_produccion').val($boton.attr('data-id_produccion') || '');
         $('#edit_id_materia_prima').val($boton.attr('data-id_materia_prima') || '');
-        actualizarCostoUnitario($formEditarPerdida);
+        $('#edit_costo_total_perdida').val($boton.attr('data-costo-total') || '');
+        actualizarCostoPerdida($formEditarPerdida);
         $('#edit_motivo').val($boton.attr('data-motivo') || '');
 
         validarFormulario($formEditarPerdida);

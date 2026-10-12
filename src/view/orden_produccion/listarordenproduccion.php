@@ -137,7 +137,9 @@
                                     <option value="">Seleccione un pedido</option>
                                     <?php if (!empty($detallesPedido)): ?>
                                         <?php foreach ($detallesPedido as $detalle): ?>
-                                            <option value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>"><?= htmlspecialchars($detalle['descripcion']) ?></option>
+                                            <option value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>" <?= !empty($detalle['id_produccion']) ? 'disabled' : '' ?>>
+                                                <?= htmlspecialchars($detalle['descripcion']) ?><?= !empty($detalle['id_produccion']) ? ' (Ya tiene una orden de producción)' : '' ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </select>
@@ -254,12 +256,19 @@
     </div>
 
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-    <script src="assets/js/ordenproduccion.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "jquery": "./assets/js/helpers/jquery-bridge.js",
+                "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
+            }
+        }
+    </script>
+    <script type="module" src="assets/js/ordenproduccion.js"></script>
 
 </body>
 

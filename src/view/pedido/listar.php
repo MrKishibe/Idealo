@@ -216,7 +216,7 @@
     </div>
 
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones.js"></script>
+    <script src="assets/js/helpers/expresiones-legacy.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>

@@ -10,7 +10,7 @@ class PerdidaMaterialModel extends Database {
     private $cantidad_perdida;
     private $fecha_de_registro;
     private $motivo;
-    private $costo_unitario;
+    private $costo_total_perdida;
     private $id_produccion;
     private $pdo;
 
@@ -27,8 +27,8 @@ class PerdidaMaterialModel extends Database {
     public function getMotivo(){ return $this->motivo; }
     public function setMotivo($motivo){ $this->motivo = $motivo; }
 
-    public function getCostoUnitario(){ return $this->costo_unitario; }
-    public function setCostoUnitario($costo_unitario){ $this->costo_unitario = $costo_unitario; }
+    public function getCostoTotalPerdida(){ return $this->costo_total_perdida; }
+    public function setCostoTotalPerdida($costo_total_perdida){ $this->costo_total_perdida = $costo_total_perdida; }
 
     public function getIdProduccion(){ return $this->id_produccion; }
     public function setIdProduccion($id_produccion){ $this->id_produccion = $id_produccion; }
@@ -39,7 +39,7 @@ class PerdidaMaterialModel extends Database {
                     pm.cantidad_perdida,
                     pm.fecha_de_registro,
                     pm.motivo,
-                    pm.costo_unitario,
+                    pm.costo_total_perdida,
                     pm.id_consumo_material,
                     cm.cantidad_usada,
                     cm.descripcion_de_consumo,
@@ -160,6 +160,14 @@ class PerdidaMaterialModel extends Database {
             );
         }
 
+        $consumo['costo_total_perdida'] = round(
+            (float) $consumo['costo_unitario'] * $datosValidados['cantidad_perdida'],
+            2
+        );
+        if (!is_finite($consumo['costo_total_perdida']) || $consumo['costo_total_perdida'] > 99999999.99) {
+            throw new InvalidArgumentException('El costo total de la pérdida excede el máximo permitido.');
+        }
+
         return $consumo;
     }
 
@@ -167,16 +175,16 @@ class PerdidaMaterialModel extends Database {
         $datosValidados = $this->validarDatos($datos);
         $consumo = $this->obtenerConsumoSeleccionado($datosValidados);
         $sql = "INSERT INTO perdida_material
-                    (cantidad_perdida, fecha_de_registro, motivo, costo_unitario, id_consumo_material)
+                    (cantidad_perdida, fecha_de_registro, motivo, costo_total_perdida, id_consumo_material)
                 VALUES
-                    (:cantidad_perdida, :fecha_de_registro, :motivo, :costo_unitario, :id_consumo_material)";
+                    (:cantidad_perdida, :fecha_de_registro, :motivo, :costo_total_perdida, :id_consumo_material)";
 
         $stmt = $this->pdo->connect()->prepare($sql);
         $stmt->execute([
             ':cantidad_perdida' => $datosValidados['cantidad_perdida'],
             ':fecha_de_registro' => $datosValidados['fecha_de_registro'],
             ':motivo' => $datosValidados['motivo'],
-            ':costo_unitario' => $consumo['costo_unitario'],
+            ':costo_total_perdida' => $consumo['costo_total_perdida'],
             ':id_consumo_material' => $consumo['id_consumo_material']
         ]);
 
@@ -196,7 +204,7 @@ class PerdidaMaterialModel extends Database {
                 SET cantidad_perdida = :cantidad_perdida,
                     fecha_de_registro = :fecha_de_registro,
                     motivo = :motivo,
-                    costo_unitario = :costo_unitario,
+                    costo_total_perdida = :costo_total_perdida,
                     id_consumo_material = :id_consumo_material
                 WHERE id_perdida = :id_perdida";
 
@@ -205,7 +213,7 @@ class PerdidaMaterialModel extends Database {
             ':cantidad_perdida' => $datosValidados['cantidad_perdida'],
             ':fecha_de_registro' => $datosValidados['fecha_de_registro'],
             ':motivo' => $datosValidados['motivo'],
-            ':costo_unitario' => $consumo['costo_unitario'],
+            ':costo_total_perdida' => $consumo['costo_total_perdida'],
             ':id_consumo_material' => $consumo['id_consumo_material'],
             ':id_perdida' => (int) $idPerdida
         ]);

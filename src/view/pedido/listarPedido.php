@@ -1337,7 +1337,7 @@
 
 <!-- 1. jQuery (Nombre exacto de tu carpeta: jquery-3.7.0.min.js) -->
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones.js"></script>
+    <script src="assets/js/helpers/expresiones-legacy.js"></script>
 
 
     <!-- 2. Bootstrap JS -->

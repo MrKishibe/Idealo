@@ -214,12 +214,17 @@ CREATE TABLE consumo_material (
     FOREIGN KEY (id_produccion) REFERENCES orden_de_produccion(id_produccion) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish2_ci;
 
+-- En bases existentes, migrar una sola vez:
+-- ALTER TABLE perdida_material
+--   CHANGE costo_unitario costo_total_perdida DECIMAL(10,2) NOT NULL;
+-- UPDATE perdida_material
+--   SET costo_total_perdida = ROUND(costo_total_perdida * cantidad_perdida, 2);
 CREATE TABLE perdida_material (
     id_perdida INT AUTO_INCREMENT PRIMARY KEY,
     cantidad_perdida INT NOT NULL,
     fecha_de_registro DATE NOT NULL,
     motivo TEXT,
-    costo_unitario DECIMAL(10,2) NOT NULL,
+    costo_total_perdida DECIMAL(10,2) NOT NULL,
     id_consumo_material INT NOT NULL,
     FOREIGN KEY (id_consumo_material) REFERENCES consumo_material(id_consumo_material) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish2_ci;

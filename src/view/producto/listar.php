@@ -299,7 +299,7 @@ if (!isset($productos)) {
     </div>
 
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones.js"></script>
+    <script src="assets/js/helpers/expresiones-legacy.js"></script>
     <script src="assets/js/helpers/validaciones.js"></script>
     <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>

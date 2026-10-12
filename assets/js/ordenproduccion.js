@@ -1,3 +1,12 @@
+import $ from 'jquery';
+import { confirmActionAlert, statusAlert } from './helpers/alerts.js';
+import {
+    validarCampo as validarCampoCompartido,
+    patrones,
+    obtenerPatron,
+    obtenerFechaLocalISO
+} from './helpers/expresiones.js';
+
 $(document).ready(function () {
     const urlControlador = 'index.php?url=ordenproduccion/listarordenproduccion';
 
@@ -55,86 +64,44 @@ $(document).ready(function () {
     });
 
     
-    function validarCampo(input, patron, obligatorio = true) {
-        let valor = input.val().trim();
-        
-        
-        if (!obligatorio && valor === '') {
-            marcarCampo(input, true);
-            return true;
-        }
-
-        
-        let esValido = $.expresionesRegulares.validar(patron, valor);
-        marcarCampo(input, esValido);
-        return esValido;
+    function validarCampoOrden(input, patron, obligatorio = true) {
+        const regla = typeof patron === 'string' ? obtenerPatron(patron) : patron;
+        return validarCampoCompartido(input, regla, {
+            requerido: obligatorio,
+            estilo: true,
+            feedback: false
+        });
     }
 
-    function marcarCampo(input, esValido) {
-        if (esValido) {
-            input.removeClass('is-invalid').addClass('is-valid');
-            input.css({ 'border-color': 'green', 'box-shadow': '0 0 5px green' });
-        } else {
-            input.removeClass('is-valid').addClass('is-invalid');
-            input.css({ 'border-color': 'red', 'box-shadow': '0 0 5px red' });
-        }
-    }
-
-    function obtenerFechaLocalISO(diasDesdeHoy = 0) {
-        const fecha = new Date();
-        fecha.setHours(0, 0, 0, 0);
-        fecha.setDate(fecha.getDate() + diasDesdeHoy);
-        const anio = fecha.getFullYear();
-        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-        const dia = String(fecha.getDate()).padStart(2, '0');
-        return `${anio}-${mes}-${dia}`;
-    }
-
-    function validarFecha(input, obligatoria, diasMinimosDesdeHoy) {
-        const formatoValido = validarCampo(input, 'fechaISO', obligatoria);
-        const valor = input.val().trim();
-
-        if (!formatoValido || valor === '') {
-            return formatoValido;
-        }
-
-        const esValida = valor >= obtenerFechaLocalISO(diasMinimosDesdeHoy);
-        marcarCampo(input, esValida);
-        return esValida;
+    function validarFechaOrden(input, obligatoria, diasMinimosDesdeHoy) {
+        return validarCampoCompartido(input, {
+            patron: patrones.fechaISO,
+            requerido: obligatoria,
+            estilo: true,
+            feedback: false,
+            validar: function (valor) {
+                return valor >= obtenerFechaLocalISO(diasMinimosDesdeHoy);
+            }
+        });
     }
 
     
-    $('#fecha_de_inicio').on('input change', function() { validarFecha($(this), true, 0); });
-    $('#fecha_terminado').on('input change', function() { validarFecha($(this), false, 1); });
-    $('#id_detalle_pedido').on('change', function() { validarCampo($(this), 'enteroPositivo'); });
+    $('#fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
+    $('#fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
+    $('#id_detalle_pedido').on('change', function() { validarCampoOrden($(this), 'enteroPositivo'); });
     
     
-    $('#edit_fecha_de_inicio').on('input change', function() { validarFecha($(this), true, 0); });
-    $('#edit_fecha_terminado').on('input change', function() { validarFecha($(this), false, 1); });
-    $('#edit_id_detalle_pedido').on('change', function() { validarCampo($(this), 'enteroPositivo'); });
+    $('#edit_fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
+    $('#edit_fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
+    $('#edit_id_detalle_pedido').on('change', function() { validarCampoOrden($(this), 'enteroPositivo'); });
 
 
     async function confirmarAccion(titulo, texto) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#198754',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, continuar',
-            cancelButtonText: 'Cancelar'
-        });
+        return await confirmActionAlert(titulo, texto);
     }
 
     async function mostrarAlertaInformativa(titulo, texto, icono) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: icono,
-            timer: 2000,
-            showConfirmButton: false
-        });
+        return await statusAlert(titulo, texto, icono);
     }
 
 
@@ -142,9 +109,9 @@ $(document).ready(function () {
         e.preventDefault();
 
         
-        let v1 = validarFecha($('#fecha_de_inicio'), true, 0);
-        let v2 = validarFecha($('#fecha_terminado'), false, 1);
-        let v3 = validarCampo($('#id_detalle_pedido'), 'enteroPositivo');
+        let v1 = validarFechaOrden($('#fecha_de_inicio'), true, 0);
+        let v2 = validarFechaOrden($('#fecha_terminado'), false, 1);
+        let v3 = validarCampoOrden($('#id_detalle_pedido'), 'enteroPositivo');
 
         if (!v1 || !v2 || !v3) {
             await mostrarAlertaInformativa('Error', 'Por favor, corrija los campos en rojo.', 'error');
@@ -216,9 +183,9 @@ $(document).ready(function () {
         e.preventDefault();
 
         
-        let v1 = validarFecha($('#edit_fecha_de_inicio'), true, 0);
-        let v2 = validarFecha($('#edit_fecha_terminado'), false, 1);
-        let v3 = validarCampo($('#edit_id_detalle_pedido'), 'enteroPositivo');
+        let v1 = validarFechaOrden($('#edit_fecha_de_inicio'), true, 0);
+        let v2 = validarFechaOrden($('#edit_fecha_terminado'), false, 1);
+        let v3 = validarCampoOrden($('#edit_id_detalle_pedido'), 'enteroPositivo');
 
         if (!v1 || !v2 || !v3) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');

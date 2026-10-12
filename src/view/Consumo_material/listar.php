@@ -224,12 +224,19 @@
     </div>
 
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-    <script src="assets/js/consumo_material.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "jquery": "./assets/js/helpers/jquery-bridge.js",
+                "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
+            }
+        }
+    </script>
+    <script type="module" src="assets/js/consumo_material.js"></script>
 </body>
 
 </html>

@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
             <tr style="background-color:#dc3545; color:white; font-weight:bold; text-align:center;">
                 <th width="8%">ID</th>
                 <th width="9%">Cant.</th>
-                <th width="14%">Costo unit.</th>
+                <th width="14%">Costo total</th>
                 <th width="18%">Materia prima</th>
                 <th width="20%">Producción / Pedido</th>
                 <th width="19%">Motivo</th>
@@ -192,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
             $html .= '<tr style="text-align:center;">
                         <td>' . htmlspecialchars((string) $p['id_perdida_material'], ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars((string) $p['cantidad_perdida'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>$' . number_format((float) $p['costo_unitario'], 2, '.', ',') . '</td>
+                        <td>$' . number_format((float) $p['costo_total_perdida'], 2, '.', ',') . '</td>
                         <td>' . htmlspecialchars($materiaPrimaLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars($produccionLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td>' . htmlspecialchars($p['motivo'] ?? 'Sin motivo', ENT_QUOTES, 'UTF-8') . '</td>

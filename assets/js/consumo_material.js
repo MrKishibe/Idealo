@@ -1,3 +1,12 @@
+import $ from 'jquery';
+import {
+    successAlert,
+    errorAlert,
+    editAlert,
+    confirmActionAlert
+} from './helpers/alerts.js';
+import { patrones } from './helpers/expresiones.js';
+
 $(document).ready(function () {
     const $tablaBody = $('#tbodyConsumos');
     const $formRegistrarConsumo = $('#formRegistrarConsumo');
@@ -27,7 +36,7 @@ $(document).ready(function () {
         }
 
         if (esValido && $campo.attr('name') === 'descripcion_de_consumo' && valor !== '') {
-            esValido = $.expresionesRegulares.validar('descripcion', valor);
+            esValido = patrones.descripcion.test(valor);
         }
 
         marcarCampo($campo, esValido);
@@ -51,26 +60,13 @@ $(document).ready(function () {
     }
 
     async function confirmarAccion(titulo, texto) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#198754',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, continuar',
-            cancelButtonText: 'Cancelar'
-        });
+        return await confirmActionAlert(titulo, texto);
     }
 
     async function mostrarAlertaInformativa(titulo, texto, icono) {
-        return await Swal.fire({
-            title: titulo,
-            text: texto,
-            icon: icono,
-            timer: 2000,
-            showConfirmButton: false
-        });
+        return icono === 'error'
+            ? await errorAlert(titulo, texto)
+            : await successAlert(titulo, texto);
     }
 
     function cargarCostoMateriaPrima(idMateriaPrima) {
@@ -129,7 +125,8 @@ $(document).ready(function () {
             }
         }).done(async function (data) {
             if (data.success) {
-                await mostrarAlertaInformativa('¡Éxito!', data.message || 'Guardado correctamente.', 'success');
+                const alertaExito = $form.is($formEditarConsumo) ? editAlert : successAlert;
+                await alertaExito('¡Éxito!', data.message || 'Guardado correctamente.');
                 if ($modal.length) $modal.modal('hide');
                 $form[0].reset();
                 limpiarValidaciones($form);

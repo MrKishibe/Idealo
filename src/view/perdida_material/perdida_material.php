@@ -15,19 +15,20 @@
     <?php include 'src/view/sidebar.php'; ?>
 
     <main class="main-content">
-        <div class="view-container" style="padding: 2rem max(2vw, 20px);">
-            <header class="page-header d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid #f1f5f9;">
+        <div class="view-container">
+            <header class="page-header">
                 <div>
-                    <h1 class="fw-bold text-dark mb-1">Pérdidas de Material</h1>
-                    <p class="text-muted mb-0">Registra y gestiona las pérdidas o desmarques del material en producción.</p>
+                    <h1 id="tituloVista">Pérdidas de Material</h1>
+                    <p>Registra y gestiona las pérdidas o desmarques del material en producción.</p>
                 </div>
-               <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalFiltrosReportePerdida">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
-                </button>
-                
-                <button type="button" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#modalRegistrarPerdida" style="border-radius: 12px; font-weight: 600;">
-                    <i class="bi bi-trash3-fill me-1"></i> Registrar Pérdida
-                </button>
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-2 py-1" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalFiltrosReportePerdida">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
+                    </button>
+                    <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPerdida">
+                        <i class="bi bi-trash3-fill me-1"></i> Registrar Pérdida
+                    </button>
+                </div>
             </header>
 
             <div class="table-container p-3">
@@ -39,7 +40,7 @@
                                 <th>Cantidad</th>
                                 <th>Fecha</th>
                                 <th>Motivo</th>
-                                <th>Costo Unitario</th>
+                                <th>Costo Total de Pérdida</th>
                                 <th>Materia Prima</th>
                                 <th>Producción</th>
                                 <th class="text-center">Acciones</th>
@@ -118,8 +119,21 @@
                                 <input type="date" class="form-control" name="fecha_de_registro" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Costo unitario (del consumo)</label>
-                                <input type="number" class="form-control" name="costo_unitario" step="0.01" min="0" readonly required placeholder="Se calcula al seleccionar el consumo">
+                                <label class="form-label">Materia prima</label>
+                                <select class="form-select" name="id_materia_prima" required>
+                                    <option value="">Seleccione una materia prima</option>
+                                    <?php foreach ($materiasPrimas as $materiaPrima): ?>
+                                        <?php
+                                        $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
+                                        if (!empty($materiaPrima['unidad_de_medida'])) {
+                                            $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
+                                        }
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
+                                            <?php echo htmlspecialchars($labelMateriaPrima); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Orden de producción</label>
@@ -141,26 +155,17 @@
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" required>
-                                    <option value="">Seleccione una materia prima</option>
-                                    <?php foreach ($materiasPrimas as $materiaPrima): ?>
-                                        <?php
-                                        $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
-                                        if (!empty($materiaPrima['unidad_de_medida'])) {
-                                            $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
-                                        }
-                                        ?>
-                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
-                                            <?php echo htmlspecialchars($labelMateriaPrima); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>
                                 <textarea class="form-control" name="motivo" rows="3" required placeholder="Describa el motivo de la pérdida o desmarque..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Costo unitario de la materia prima</label>
+                                <input type="number" class="form-control" data-role="costo-unitario" step="0.01" min="0" readonly placeholder="Se calcula al seleccionar el material">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Costo total de la pérdida</label>
+                                <input type="number" class="form-control" name="costo_total_perdida" data-role="costo-total-perdida" step="0.01" min="0" readonly placeholder="Costo unitario × cantidad perdida">
                             </div>
                         </div>
                     </div>
@@ -194,8 +199,21 @@
                                 <input type="date" class="form-control" name="fecha_de_registro" id="edit_fecha_de_registro" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Costo unitario (del consumo)</label>
-                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" readonly required>
+                                <label class="form-label">Materia prima</label>
+                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima" required>
+                                    <option value="">Seleccione una materia prima</option>
+                                    <?php foreach ($materiasPrimas as $materiaPrima): ?>
+                                        <?php
+                                        $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
+                                        if (!empty($materiaPrima['unidad_de_medida'])) {
+                                            $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
+                                        }
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
+                                            <?php echo htmlspecialchars($labelMateriaPrima); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Orden de producción</label>
@@ -217,26 +235,17 @@
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima" required>
-                                    <option value="">Seleccione una materia prima</option>
-                                    <?php foreach ($materiasPrimas as $materiaPrima): ?>
-                                        <?php
-                                        $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
-                                        if (!empty($materiaPrima['unidad_de_medida'])) {
-                                            $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
-                                        }
-                                        ?>
-                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
-                                            <?php echo htmlspecialchars($labelMateriaPrima); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>
                                 <textarea class="form-control" name="motivo" id="edit_motivo" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Costo unitario de la materia prima</label>
+                                <input type="number" class="form-control" data-role="costo-unitario" step="0.01" min="0" readonly placeholder="Se calcula al seleccionar el material">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Costo total de la pérdida</label>
+                                <input type="number" class="form-control" name="costo_total_perdida" id="edit_costo_total_perdida" data-role="costo-total-perdida" step="0.01" min="0" readonly placeholder="Costo unitario × cantidad perdida">
                             </div>
                         </div>
                     </div>
@@ -250,13 +259,20 @@
     </div>
 
 <script src="assets/libs/jquery-4.0.0.min.js"></script>
-<script src="assets/js/helpers/expresiones.js"></script>
     <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
 
-    <script src="assets/js/perdida_material.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "jquery": "./assets/js/helpers/jquery-bridge.js",
+                "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
+            }
+        }
+    </script>
+    <script type="module" src="assets/js/perdida_material.js"></script>
 </body>
 </html>
 </body>

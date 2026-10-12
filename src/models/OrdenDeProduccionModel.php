@@ -67,10 +67,13 @@ class OrdenDeProduccionModel extends Database {
     }
     
     public function obtenerPedidosParaProduccion() {
-        $sql = "SELECT dp.id_detalle_pedido, p.descripcion 
+        $sql = "SELECT dp.id_detalle_pedido, p.descripcion, op.id_produccion
                 FROM detalle_pedido dp
                 INNER JOIN pedido p ON dp.id_pedido = p.id_pedido
-                WHERE p.estado_pedido IN ('pendiente', 'en proceso')";
+                LEFT JOIN orden_de_produccion op ON op.id_detalle_pedido = dp.id_detalle_pedido
+                WHERE LOWER(TRIM(p.estado_pedido)) IN ('pendiente', 'en proceso')
+                    OR op.id_produccion IS NOT NULL
+                ORDER BY dp.id_detalle_pedido DESC";
         $stmt = $this->pdo->connect()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

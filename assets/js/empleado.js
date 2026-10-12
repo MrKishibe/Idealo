@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { limpiarValidaciones, validarCampo } from './helpers/validaciones.js';
+
 const URL_EMPLEADO = 'index.php?controller=empleado';
 
 $(document).ready(function () {
@@ -75,7 +78,7 @@ $(document).ready(function () {
             const regla = reglasParaCampo(idCampo);
             if (!regla) return true;
 
-            if (!$.validarCampo($campo, regla)) {
+            if (!validarCampo($campo, regla)) {
                 valido = false;
             }
         });
@@ -88,7 +91,7 @@ $(document).ready(function () {
         const $campo = $(this);
         if ($campo.hasClass('is-invalid')) {
             const regla = reglasParaCampo($campo.attr('id') || '');
-            if (regla) $.validarCampo($campo, regla);
+            if (regla) validarCampo($campo, regla);
         }
     });
 
@@ -216,7 +219,7 @@ $(document).ready(function () {
         let idUsuario = $('#reg_id_usuario').val();
 
         // Validación por campo (marca is-invalid + feedback debajo de cada input)
-        $.limpiarValidaciones('#formEmpleado');
+        limpiarValidaciones('#formEmpleado');
         if (!validarCamposFormulario($('#formEmpleado'), true)) {
             Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
             return;
@@ -281,7 +284,7 @@ $(document).ready(function () {
         let idUsuario = $('#edit_id_usuario').val();
 
         // Validación por campo (la cédula no se valida aquí porque no es editable)
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
         if (!validarCamposFormulario($('#formEditarActivo'), false)) {
             Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
             return;
@@ -389,12 +392,12 @@ $(document).ready(function () {
     $('#modalRegistrarEmpleado').on('hidden.bs.modal', function () {
         $('#formEmpleado')[0].reset();
         $('#formEmpleado').removeClass('was-validated');
-        $.limpiarValidaciones('#formEmpleado');
+        limpiarValidaciones('#formEmpleado');
         $('#reg_usuario_wrap').addClass('d-none');
         $('#reg_id_usuario').html('<option value="">Seleccione el usuario...</option>');
     });
 
     $('#modalEditarActivo').on('hidden.bs.modal', function () {
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
     });
 });

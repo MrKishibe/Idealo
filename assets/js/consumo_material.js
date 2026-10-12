@@ -193,12 +193,18 @@ $(document).ready(function () {
             $fila.append($('<td>', { class: 'fw-bold text-muted' }).text('$' + costoUnitario.toFixed(2)));
             $fila.append($('<td>', { class: 'fw-bold' }).text((consumo.cantidad_usada || 0) + ' ' + (consumo.unidad_de_medida || '')));
             $fila.append($('<td>', { class: 'text-success fw-bold' }).text('$' + costoTotal));
-            $fila.append(
-                $('<td>').append(
+            const $produccion = $('<td>')
+                .append(
                     $('<span>', { class: 'badge bg-secondary' })
-                        .text('OP-' + String(consumo.id_produccion || 0).padStart(4, '0'))
-                )
-            );
+                        .text('Orden #' + (consumo.id_produccion || 'N/A'))
+                );
+            if (consumo.descripcion_pedido) {
+                $produccion.append($('<div>', { class: 'small mt-1' }).text(consumo.descripcion_pedido));
+            }
+            if (consumo.estado_de_produccion) {
+                $produccion.append($('<small>', { class: 'text-muted d-block' }).text(consumo.estado_de_produccion));
+            }
+            $fila.append($produccion);
 
             const $botonEditar = $('<button>', {
                 type: 'button',

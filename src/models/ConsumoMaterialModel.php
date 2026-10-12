@@ -47,10 +47,13 @@ class ConsumoMaterialModel extends Database {
                     cm.id_produccion,
                     mp.nombre_materia_prima,
                     mp.unidad_de_medida,
-                    op.estado_de_produccion
+                    op.estado_de_produccion,
+                    p.descripcion AS descripcion_pedido
                 FROM consumo_material cm
                 INNER JOIN materia_prima mp ON cm.id_materia_prima = mp.id_materia_prima
                 INNER JOIN orden_de_produccion op ON cm.id_produccion = op.id_produccion
+                LEFT JOIN detalle_pedido dp ON op.id_detalle_pedido = dp.id_detalle_pedido
+                LEFT JOIN pedido p ON dp.id_pedido = p.id_pedido
                 ORDER BY cm.id_consumo_material DESC";
 
         $stmt = $this->pdo->connect()->prepare($sql);
@@ -71,8 +74,11 @@ class ConsumoMaterialModel extends Database {
     public function obtenerOrdenesProduccion() {
         $sql = "SELECT 
                     op.id_produccion,
-                    op.estado_de_produccion
+                    op.estado_de_produccion,
+                    p.descripcion AS descripcion_pedido
                 FROM orden_de_produccion op
+                LEFT JOIN detalle_pedido dp ON op.id_detalle_pedido = dp.id_detalle_pedido
+                LEFT JOIN pedido p ON dp.id_pedido = p.id_pedido
                 WHERE op.estado_de_produccion != 'Cancelado'";
 
         $stmt = $this->pdo->connect()->prepare($sql);

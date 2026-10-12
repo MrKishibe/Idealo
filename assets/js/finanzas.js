@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { validar } from './helpers/expresiones.js';
+
 console.log("jQuery se conecto bein.");
 
 let tablaFinanzas;
@@ -73,7 +76,7 @@ $(document).ready(function () {
 
     if (tablaFinanzas) tablaFinanzas.draw();
 
-    // Función de validación adaptada para usar $.expresionesRegulares
+    // Valida con los patrones compartidos del módulo expresiones.js.
     function validarCampo($input, nombrePatron, mensajeError) {
         if (!$input || $input.length === 0) return false;
         
@@ -92,7 +95,7 @@ $(document).ready(function () {
         }
 
         // Llamada al helper externo
-        if ($.expresionesRegulares.validar(nombrePatron, valor)) {
+        if (validar(nombrePatron, valor)) {
             $input.removeClass("is-invalid").addClass("is-valid");
             $feedback.text("Campo válido").css('color', '#198754');
             return true;

@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { validar } from './helpers/expresiones.js';
+
 $(document).ready(function () {
     let tablaDataTable = null;
     let todosLosPedidos = [];
@@ -83,7 +86,7 @@ $(document).ready(function () {
         }
 
         // Validación delegada a expresiones.js
-        if ($.expresionesRegulares && $.expresionesRegulares.validar(nombrePatron, valor)) {
+        if (validar(nombrePatron, valor)) {
             input.removeClass('is-invalid').addClass('is-valid');
             feedback.textContent = 'Campo válido';
             feedback.style.color = '#198754';

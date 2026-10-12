@@ -133,9 +133,17 @@
                                     <option value="">Seleccione una orden</option>
                                     <?php $ordenes = $ordenes ?? []; ?>
                                     <?php foreach ($ordenes as $orden): ?>
+                                        <?php
+                                        $labelOrden = 'Orden #' . ($orden['id_produccion'] ?? 'N/A');
+                                        if (!empty($orden['descripcion_pedido'])) {
+                                            $labelOrden .= ' - ' . $orden['descripcion_pedido'];
+                                        }
+                                        if (!empty($orden['estado_de_produccion'])) {
+                                            $labelOrden .= ' - ' . $orden['estado_de_produccion'];
+                                        }
+                                        ?>
                                         <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
-                                            OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
-                                            - <?php echo htmlspecialchars($orden['estado_de_produccion'] ?? ''); ?>
+                                            <?php echo htmlspecialchars($labelOrden); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -193,9 +201,17 @@
                                 <select class="form-select" name="id_produccion" id="edit_id_produccion" required>
                                     <option value="">Seleccione una orden</option>
                                     <?php foreach ($ordenes as $orden): ?>
+                                        <?php
+                                        $labelOrden = 'Orden #' . ($orden['id_produccion'] ?? 'N/A');
+                                        if (!empty($orden['descripcion_pedido'])) {
+                                            $labelOrden .= ' - ' . $orden['descripcion_pedido'];
+                                        }
+                                        if (!empty($orden['estado_de_produccion'])) {
+                                            $labelOrden .= ' - ' . $orden['estado_de_produccion'];
+                                        }
+                                        ?>
                                         <option value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
-                                            OP-<?php echo str_pad((string)($orden['id_produccion'] ?? 0), 4, '0', STR_PAD_LEFT); ?>
-                                            - <?php echo htmlspecialchars($orden['estado_de_produccion'] ?? ''); ?>
+                                            <?php echo htmlspecialchars($labelOrden); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

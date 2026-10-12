@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { validar } from './helpers/expresiones.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // Definición de URL Base
     const path = window.location.pathname;
@@ -171,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Validaciones del Formulario reutilizando $.expresionesRegulares
+     * Validaciones del formulario reutilizando expresiones.js
      */
     function validarFormulario() {
         el.formPedido.classList.add('was-validated');
@@ -181,35 +184,33 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         }
 
-        const exp = $.expresionesRegulares;
-
         // Validaciones numéricas y de formato utilizando helpers/expresiones.js
-        if (el.cantidad.value && !exp.validar('enteroPositivo', el.cantidad.value)) {
+        if (el.cantidad.value && !validar('enteroPositivo', el.cantidad.value)) {
             alerta('warning', 'Cantidad inválida', 'La cantidad debe ser un número entero positivo.');
             return false;
         }
 
-        if (el.costoManoObra.value && !exp.validar('numeroNoNegativo', el.costoManoObra.value)) {
+        if (el.costoManoObra.value && !validar('numeroNoNegativo', el.costoManoObra.value)) {
             alerta('warning', 'Monto inválido', 'El costo de mano de obra debe ser un valor no negativo.');
             return false;
         }
 
-        if (el.costoMateriales.value && !exp.validar('numeroNoNegativo', el.costoMateriales.value)) {
+        if (el.costoMateriales.value && !validar('numeroNoNegativo', el.costoMateriales.value)) {
             alerta('warning', 'Monto inválido', 'El costo de materiales debe ser un valor no negativo.');
             return false;
         }
 
-        if (el.descuentoProducto.value && !exp.validar('numeroNoNegativo', el.descuentoProducto.value)) {
+        if (el.descuentoProducto.value && !validar('numeroNoNegativo', el.descuentoProducto.value)) {
             alerta('warning', 'Descuento inválido', 'El descuento de producto debe ser un valor no negativo.');
             return false;
         }
 
-        if (el.descuentoDivisa.value && !exp.validar('numeroNoNegativo', el.descuentoDivisa.value)) {
+        if (el.descuentoDivisa.value && !validar('numeroNoNegativo', el.descuentoDivisa.value)) {
             alerta('warning', 'Descuento inválido', 'El descuento general debe ser un valor no negativo.');
             return false;
         }
 
-        if (el.descripcion.value.trim() !== '' && !exp.validar('descripcion', el.descripcion.value)) {
+        if (el.descripcion.value.trim() !== '' && !validar('descripcion', el.descripcion.value)) {
             alerta('warning', 'Descripción inválida', 'La descripción contiene caracteres no permitidos o formato incorrecto.');
             return false;
         }
@@ -218,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const fechaEntrega = el.fechaEntrega.value;
 
         if (fechaEntrega) {
-            if (!exp.validar('fechaISO', fechaEntrega)) {
+            if (!validar('fechaISO', fechaEntrega)) {
                 alerta('warning', 'Fecha inválida', 'La fecha de entrega debe tener formato AAAA-MM-DD.');
                 return false;
             }

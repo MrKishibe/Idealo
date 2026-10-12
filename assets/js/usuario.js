@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { limpiarValidaciones, validarCampo } from './helpers/validaciones.js';
+
 let tablaUsuarios = null;
 
 function initTablaUsuarios() {
@@ -64,10 +67,10 @@ function recargarTabla() {
     });
 }
 
-function limpiarFormularioCrear() {
+window.limpiarFormularioCrear = function () {
     $('#formRegistrarUsuario').trigger('reset');
-    $.limpiarValidaciones('#formRegistrarUsuario');
-}
+    limpiarValidaciones('#formRegistrarUsuario');
+};
 
 function cargarOpcionesEmpleados($select, usuarioActual, esEdicion, empleadoPreseleccionado) {
     $.getJSON('index.php?controller=usuario&action=listarEmpleadosAjax', function (data) {
@@ -100,17 +103,17 @@ function cargarOpcionesEmpleados($select, usuarioActual, esEdicion, empleadoPres
 function validarFormularioUsuario($form) {
     let valido = true;
 
-    valido = $.validarCampo($form.find('#reg_nombre_usuario, #edit_activo_nombre_usuario'), {
+    valido = validarCampo($form.find('#reg_nombre_usuario, #edit_activo_nombre_usuario'), {
         patron: /^[a-zA-Z0-9_]{3,20}$/,
         mensaje: 'El nombre de usuario debe tener entre 3 y 20 caracteres (letras, números o guiones bajos).'
     }) && valido;
 
-    valido = $.validarCampo($form.find('#reg_correo, #edit_activo_correo'), {
+    valido = validarCampo($form.find('#reg_correo, #edit_activo_correo'), {
         patron: 'correo',
         mensaje: 'El correo electrónico no es válido (ej. nombre@dominio.com).'
     }) && valido;
 
-    valido = $.validarCampo($form.find('#reg_id_rol, #edit_activo_id_rol'), {
+    valido = validarCampo($form.find('#reg_id_rol, #edit_activo_id_rol'), {
         patron: /^[0-9]+$/,
         mensaje: 'Seleccione un rol de permisos.'
     }) && valido;
@@ -126,13 +129,13 @@ function validarContrasenas($form) {
 
     let valido = true;
 
-    valido = $.validarCampo($password, {
+    valido = validarCampo($password, {
         requerido: passwordEsObligatoria,
         patron: /^.{6,255}$/,
         mensaje: 'La contraseña debe tener al menos 6 caracteres.'
     }) && valido;
 
-    valido = $.validarCampo($confirmar, {
+    valido = validarCampo($confirmar, {
         requerido: passwordEsObligatoria,
         validar: function (valor) {
             // En edición: si la contraseña nueva está vacía no se exige confirmar
@@ -202,7 +205,7 @@ $(document).ready(function () {
     $('#formRegistrarUsuario').on('submit', function (e) {
         e.preventDefault();
 
-        $.limpiarValidaciones('#formRegistrarUsuario');
+        limpiarValidaciones('#formRegistrarUsuario');
 
         let valido = true;
         valido = validarFormularioUsuario($('#formRegistrarUsuario')) && valido;
@@ -261,7 +264,7 @@ $(document).ready(function () {
         $('#edit_activo_id_rol').val(rol);
         $('#edit_activo_contrasena').val('');
         $('#edit_activo_confirmar_contrasena').val('');
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         const empleadoId = $(this).data('empleado') ? String($(this).data('empleado')) : null;
         const swEdit = document.getElementById('edit_es_empleado');
@@ -277,7 +280,7 @@ $(document).ready(function () {
     $('#formEditarActivo').on('submit', function (e) {
         e.preventDefault();
 
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         let valido = true;
         valido = validarFormularioUsuario($('#formEditarActivo')) && valido;

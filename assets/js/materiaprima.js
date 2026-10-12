@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { validar } from './helpers/expresiones.js';
+
 $(document).ready(function () {
     let tablaDataTable = null;
     let todasLasMateriasPrimas = [];
@@ -65,7 +68,7 @@ $(document).ready(function () {
         return esValido;
     }
 
-    // Validaciones reutilizando $.expresionesRegulares
+    // Reutiliza las validaciones exportadas por expresiones.js.
     function validarCampo(input, patronNombre, mensajeError) {
         if (!input || input.length === 0) return false;
         const valor = input.val().trim();
@@ -74,7 +77,7 @@ $(document).ready(function () {
             return aplicarFeedbackUI(input, false, 'Este campo no puede estar vacío.');
         }
 
-        const esValido = $.expresionesRegulares.validar(patronNombre, valor);
+        const esValido = validar(patronNombre, valor);
         return aplicarFeedbackUI(input, esValido, esValido ? 'Campo válido' : mensajeError);
     }
 
@@ -86,7 +89,7 @@ $(document).ready(function () {
             return aplicarFeedbackUI(input, false, 'Este campo no puede estar vacío.');
         }
 
-        const esValido = $.expresionesRegulares.validar(patronNombre, valor);
+        const esValido = validar(patronNombre, valor);
         return aplicarFeedbackUI(input, esValido, esValido ? 'Campo válido' : mensajeError);
     }
 

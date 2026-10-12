@@ -294,13 +294,14 @@ if (!isset($empleados)) {
     </div>
 
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="assets/js/helpers/expresiones-legacy.js"></script>
-    <script src="assets/js/helpers/validaciones.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-    <script src="assets/js/empleado.js"></script>
+    <script type="importmap">
+        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+    </script>
+    <script type="module" src="assets/js/empleado.js"></script>
 
 </body>
 

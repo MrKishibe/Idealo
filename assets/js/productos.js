@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { limpiarValidaciones, validarCampo } from './helpers/validaciones.js';
+
 const CONFIG_TALLAS = {
     "Ropa": {
         tallas: ["s", "m", "l", "xl", "xxl"],
@@ -84,22 +87,22 @@ function validarFormularioProducto($form) {
 
     let valido = true;
 
-    valido = $.validarCampo($('#' + prefijo + '_nombre_producto'), {
+    valido = validarCampo($('#' + prefijo + '_nombre_producto'), {
         patron: expNombre,
         mensaje: 'El nombre del producto debe tener entre 3 y 150 caracteres.'
     }) && valido;
 
-    valido = $.validarCampo($('#' + prefijo + '_tipo_de_prenda'), {
+    valido = validarCampo($('#' + prefijo + '_tipo_de_prenda'), {
         patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
         mensaje: 'El tipo de prenda o accesorio contiene caracteres no válidos.'
     }) && valido;
 
-    valido = $.validarCampo($('#' + prefijo + '_detalle_material'), {
+    valido = validarCampo($('#' + prefijo + '_detalle_material'), {
         patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
         mensaje: 'El detalle del material contiene caracteres no válidos.'
     }) && valido;
 
-    valido = $.validarCampo($('#' + prefijo + '_color'), {
+    valido = validarCampo($('#' + prefijo + '_color'), {
         patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
         mensaje: 'El color contiene caracteres no válidos.'
     }) && valido;
@@ -164,7 +167,7 @@ $(document).ready(function () {
         $('#edit_activo_detalle_material').val(material);
         $('#edit_activo_color').val(color);
         $('#edit_activo_status_producto').val('activo');
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         actualizarCamposPorTipo('edit', tipo, tallasArray);
 
@@ -260,7 +263,7 @@ $(document).ready(function () {
     $('#formRegistrarProducto').on('submit', function (e) {
         e.preventDefault();
 
-        $.limpiarValidaciones('#formRegistrarProducto');
+        limpiarValidaciones('#formRegistrarProducto');
 
         const valido = validarFormularioProducto($('#formRegistrarProducto'));
 
@@ -308,7 +311,7 @@ $(document).ready(function () {
     $('#formEditarActivo').on('submit', function (e) {
         e.preventDefault();
 
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         const valido = validarFormularioProducto($('#formEditarActivo'));
 
@@ -404,22 +407,22 @@ function obtenerTallasSeleccionadas(prefix) {
     return tallas;
 }
 
-function seleccionarTodasTallas(prefix) {
+window.seleccionarTodasTallas = function (prefix) {
     $('#' + prefix + '_contenedor_tallas').find('input[name="tallas[]"]').prop('checked', true);
-}
+};
 
-function deseleccionarTodasTallas(prefix) {
+window.deseleccionarTodasTallas = function (prefix) {
     $('#' + prefix + '_contenedor_tallas').find('input[name="tallas[]"]').prop('checked', false);
-}
+};
 
-function limpiarFormularioCrear() {
+window.limpiarFormularioCrear = function () {
     const $form = $('#formRegistrarProducto');
     if ($form.length) $form.trigger('reset');
-    $.limpiarValidaciones('#formRegistrarProducto');
+    limpiarValidaciones('#formRegistrarProducto');
 
     const $regTipo = $('#reg_tipo_de_producto');
     if ($regTipo.length) {
         $regTipo.val('Ropa');
         actualizarCamposPorTipo('reg', 'Ropa');
     }
-}
+};

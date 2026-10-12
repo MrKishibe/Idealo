@@ -205,11 +205,13 @@
 
 <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/libs/jquery-4.0.0.min.js"></script>
-<script src="assets/js/helpers/expresiones-legacy.js"></script>
 <script src="assets/libs/jquery.dataTables.min.js"></script>
 <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 <script src="assets/libs/sweetalert2.all.min.js"></script>
-<script src="assets/js/finanzas.js"></script>
+<script type="importmap">
+    {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+</script>
+<script type="module" src="assets/js/finanzas.js"></script>
 <script>
 function cargarDatosEdicionPago(id, pedido, monto, metodo, ref, fecha) {
     document.getElementById('edit_id_pago').value = id;

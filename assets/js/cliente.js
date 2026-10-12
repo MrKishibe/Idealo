@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { validar } from './helpers/expresiones.js';
+
 $(document).ready(function () {
     let tablaClientesDataTable = null;
     let todosLosClientes = [];
@@ -25,7 +28,7 @@ $(document).ready(function () {
             domInput.parentNode.appendChild(feedback);
         }
 
-        const esValido = $.expresionesRegulares.validar(nombrePatron, input.val());
+        const esValido = validar(nombrePatron, input.val());
 
         if (esValido) {
             input.removeClass("is-invalid").addClass("is-valid");

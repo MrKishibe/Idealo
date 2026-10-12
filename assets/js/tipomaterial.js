@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import { obtenerPatron, validar } from './helpers/expresiones.js';
+
 $(document).ready(function () {
     let tablaDataTable = null;
     let todosLosMateriales = [];
@@ -27,8 +30,6 @@ $(document).ready(function () {
     };
 
     function bloqEntradaNoPermitida(input, tipoPatron) {
-        if (!window.jQuery || !$.expresionesRegulares) return;
-
         input.on("keypress", function (e) {
             if (e.ctrlKey || e.altKey || e.metaKey || e.which < 32) return;
 
@@ -39,7 +40,7 @@ $(document).ready(function () {
             const nuevoVal = valActual.slice(0, selStart) + char + valActual.slice(selEnd);
 
             try {
-                const patron = $.expresionesRegulares.obtener(tipoPatron);
+                const patron = obtenerPatron(tipoPatron);
                 const fuente = patron.source.replace(/^\^|\$$/g, "");
                 let regexParcial;
 
@@ -64,7 +65,7 @@ $(document).ready(function () {
             const nuevoVal = valActual.slice(0, selStart) + pastedText + valActual.slice(selEnd);
 
             try {
-                if (!$.expresionesRegulares.validar(tipoPatron, nuevoVal)) {
+                if (!validar(tipoPatron, nuevoVal)) {
                     e.preventDefault();
                 }
             } catch (err) {}
@@ -94,25 +95,16 @@ $(document).ready(function () {
             }
         }
 
-        if (window.jQuery && $.expresionesRegulares) {
-            try {
-                const esValido = $.expresionesRegulares.validar(tipoPatron, valor);
-
-                if (esValido) {
-                    input.removeClass("is-invalid").addClass("is-valid");
-                    $feedback.text("").hide();
-                    return true;
-                } else {
-                    input.removeClass("is-valid").addClass("is-invalid");
-                    $feedback.text("El formato ingresado no es válido.").css("color", "#dc3545").show();
-                    return false;
-                }
-            } catch (error) {}
+        const esValido = validar(tipoPatron, valor);
+        if (esValido) {
+            input.removeClass("is-invalid").addClass("is-valid");
+            $feedback.text("").hide();
+            return true;
         }
 
-        input.removeClass("is-invalid").addClass("is-valid");
-        $feedback.text("").hide();
-        return true;
+        input.removeClass("is-valid").addClass("is-invalid");
+        $feedback.text("El formato ingresado no es válido.").css("color", "#dc3545").show();
+        return false;
     }
 
     function configurarCampo(selector, tipoPatron, esRequerido = true) {

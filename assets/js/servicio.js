@@ -1,17 +1,18 @@
+import $ from 'jquery';
+import { obtenerPatron, validar } from './helpers/expresiones.js';
+
 document.addEventListener("DOMContentLoaded", function () {
     const $txtNombre =$("#nombre_servicio");
     const $editNombre =$("#edit_nombre_servicio");
 
     function bloqEntradaNoPermitida(input, tipoPatron) {
-        if (!window.jQuery || !$.expresionesRegulares) return;
-
         input.on("keypress", function (e) {
             if (e.ctrlKey || e.altKey || e.metaKey || e.which < 32) return;
             const valActual = $(this).val();
             const nuevoVal = valActual.slice(0, this.selectionStart ?? valActual.length) + String.fromCharCode(e.which) + valActual.slice(this.selectionEnd ?? valActual.length);
 
             try {
-                const fuente = $.expresionesRegulares.obtener(tipoPatron).source.replace(/^\^\vert{}\$$/g, "");
+                const fuente = obtenerPatron(tipoPatron).source.replace(/^\^\vert{}\$$/g, "");
                 const regexParcial = new RegExp("^" + (fuente.includes("{") ? fuente.replace(/\{[^}]+\}/, "+") : fuente) + "$");
                 if (!regexParcial.test(nuevoVal)) e.preventDefault();
             } catch (err) {}
@@ -23,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const nuevoVal = valActual.slice(0, this.selectionStart ?? valActual.length) + pasted + valActual.slice(this.selectionEnd ?? valActual.length);
 
             try {
-                if (!$.expresionesRegulares.validar(tipoPatron, nuevoVal)) e.preventDefault();
+                if (!validar(tipoPatron, nuevoVal)) e.preventDefault();
             } catch (err) {}
         });
     }
@@ -43,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return !esRequerido;
         }
 
-        const esValido = $.expresionesRegulares?.validar ? $.expresionesRegulares.validar(tipoPatron, valor) : true;
+        const esValido = validar(tipoPatron, valor);
         input.toggleClass("is-valid", esValido).toggleClass("is-invalid", !esValido);
         $feedback.text(esValido ? "Nombre válido" : "Formato o longitud inválida según reglas.")
                  .css("color", esValido ? "#198754" : "#dc3545").show();

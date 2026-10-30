@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Pérdidas de Material</title> 
@@ -115,8 +116,8 @@
                                 <input type="number" class="form-control" name="cantidad_perdida" step="1" min="1" placeholder="Ej: 2">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Fecha de registro</label>
-                                <input type="date" class="form-control" name="fecha_de_registro">
+                                <label class="form-label" for="fecha_registro_perdida">Fecha de registro</label>
+                                <input type="date" class="form-control" name="fecha_de_registro" id="fecha_registro_perdida">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Materia prima</label>
@@ -136,9 +137,11 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Orden de producción</label>
-                                <select class="form-select" name="id_produccion">
-                                    <option value="">Seleccione una orden</option>
+                                <label class="form-label" for="buscar_orden_produccion">Orden de producción</label>
+                                <div class="orden-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_orden_produccion" data-role="orden-combobox" required>
+                                    <input type="hidden" name="id_produccion" id="id_produccion">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($ordenes as $orden): ?>
                                         <?php
                                         $labelOrden = 'Orden #' . $orden['id_produccion'];
@@ -149,11 +152,13 @@
                                             $labelOrden .= ' - ' . $orden['estado_de_produccion'];
                                         }
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($orden['id_produccion']); ?>">
+                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($orden['id_produccion']); ?>">
                                             <?php echo htmlspecialchars($labelOrden); ?>
-                                        </option>
+                                        </button>
                                     <?php endforeach; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay órdenes que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>
@@ -216,9 +221,11 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Orden de producción</label>
-                                <select class="form-select" name="id_produccion" id="edit_id_produccion" required>
-                                    <option value="">Seleccione una orden</option>
+                                <label class="form-label" for="buscar_edit_orden_produccion">Orden de producción</label>
+                                <div class="orden-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_edit_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_orden_produccion" data-role="orden-combobox" required>
+                                    <input type="hidden" name="id_produccion" id="edit_id_produccion">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_edit_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($ordenes as $orden): ?>
                                         <?php
                                         $labelOrden = 'Orden #' . $orden['id_produccion'];
@@ -229,11 +236,13 @@
                                             $labelOrden .= ' - ' . $orden['estado_de_produccion'];
                                         }
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($orden['id_produccion']); ?>">
+                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($orden['id_produccion']); ?>">
                                             <?php echo htmlspecialchars($labelOrden); ?>
-                                        </option>
+                                        </button>
                                     <?php endforeach; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay órdenes que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>

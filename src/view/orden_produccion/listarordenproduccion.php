@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Gestión de Órdenes de Producción</title>
@@ -132,17 +133,21 @@
                                 <input type="date" class="form-control" name="fecha_terminado" id="fecha_terminado">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Descripción del Pedido</label>
-                                <select class="form-select" name="id_detalle_pedido" id="id_detalle_pedido">
-                                    <option value="">Seleccione un pedido</option>
+                                <label class="form-label" for="buscar_detalle_pedido">Descripción del Pedido</label>
+                                <div class="pedido-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_detalle_pedido" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_detalle_pedido">
+                                    <input type="hidden" name="id_detalle_pedido" id="id_detalle_pedido">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_detalle_pedido" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php if (!empty($detallesPedido)): ?>
                                         <?php foreach ($detallesPedido as $detalle): ?>
-                                            <option value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>" <?= !empty($detalle['id_produccion']) ? 'disabled' : '' ?>>
+                                            <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>" <?= !empty($detalle['id_produccion']) ? 'disabled' : '' ?>>
                                                 <?= htmlspecialchars($detalle['descripcion']) ?><?= !empty($detalle['id_produccion']) ? ' (Ya tiene una orden de producción)' : '' ?>
-                                            </option>
+                                            </button>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay pedidos que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado de Producción</label>
@@ -206,15 +211,21 @@
                                 <input type="date" class="form-control" name="fecha_terminado" id="edit_fecha_terminado">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Descripción del Pedido</label>
-                                <select class="form-select" name="id_detalle_pedido" id="edit_id_detalle_pedido" required>
-                                    <option value="">Seleccione un pedido</option>
+                                <label class="form-label" for="buscar_edit_detalle_pedido">Descripción del Pedido</label>
+                                <div class="pedido-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_edit_detalle_pedido" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_detalle_pedido">
+                                    <input type="hidden" name="id_detalle_pedido" id="edit_id_detalle_pedido">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_edit_detalle_pedido" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php if (!empty($detallesPedido)): ?>
                                         <?php foreach ($detallesPedido as $detalle): ?>
-                                            <option value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>"><?= htmlspecialchars($detalle['descripcion']) ?></option>
+                                            <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>">
+                                                <?= htmlspecialchars($detalle['descripcion']) ?>
+                                            </button>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay pedidos que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado de Producción</label>

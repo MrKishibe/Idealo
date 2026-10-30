@@ -170,6 +170,8 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(TRUE, 10);
         $pdf->AddPage();
+        $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 10, 10, 20, 20);
+        $pdf->SetY(34);
 
         // Título del reporte
         $pdf->SetFont('helvetica', 'B', 16);

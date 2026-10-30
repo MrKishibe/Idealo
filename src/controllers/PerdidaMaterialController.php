@@ -150,6 +150,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
     $pdf->AddPage();
+    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 12, 10, 20, 20);
+    $pdf->SetY(34);
 
     $etiquetaEstado = $estadoNormalizado === ''
         ? 'Todos'
@@ -159,14 +161,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
         . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
 
     $html = '
-    <h2 style="text-align:center; color:#333;">Reporte de Pérdidas de Material</h2>
-    <p><strong>Fecha de registro:</strong> ' . htmlspecialchars($rangoFechas, ENT_QUOTES, 'UTF-8') . '<br>
-       <strong>Estado de producción:</strong> ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
-    <table border="1" cellpadding="5" cellspacing="0" style="width:100%; font-family:sans-serif; font-size:10px;">
+    <h2 style="text-align:center; color:#333; font-family:helvetica; font-size:16pt;">Reporte de Pérdidas de Material</h2>
+    <p style="font-family:helvetica; font-size:10pt;">Fecha de generación: ' . date('d/m/Y') . '<br>
+       Fecha de registro: ' . htmlspecialchars($rangoFechas, ENT_QUOTES, 'UTF-8') . '<br>
+       Estado de producción: ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
+    <table border="1" cellpadding="3" cellspacing="0" style="width:100%; font-family:helvetica; font-size:10pt;">
         <thead>
-            <tr style="background-color:#dc3545; color:white; font-weight:bold; text-align:center;">
-                <th width="8%">ID</th>
-                <th width="9%">Cant.</th>
+            <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
+                <th width="7%">ID</th>
+                <th width="10%">Cant.</th>
                 <th width="14%">Costo total</th>
                 <th width="18%">Materia prima</th>
                 <th width="20%">Producción / Pedido</th>
@@ -190,13 +193,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
             }
             
             $html .= '<tr style="text-align:center;">
-                        <td>' . htmlspecialchars((string) $p['id_perdida_material'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>' . htmlspecialchars((string) $p['cantidad_perdida'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>$' . number_format((float) $p['costo_total_perdida'], 2, '.', ',') . '</td>
-                        <td>' . htmlspecialchars($materiaPrimaLabel, ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>' . htmlspecialchars($produccionLabel, ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>' . htmlspecialchars($p['motivo'] ?? 'Sin motivo', ENT_QUOTES, 'UTF-8') . '</td>
-                        <td>' . htmlspecialchars((string) $p['fecha_de_registro'], ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="7%" align="center">' . htmlspecialchars((string) $p['id_perdida_material'], ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="10%">' . htmlspecialchars((string) $p['cantidad_perdida'], ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="14%">$' . number_format((float) $p['costo_total_perdida'], 2, '.', ',') . '</td>
+                        <td width="18%">' . htmlspecialchars($materiaPrimaLabel, ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="20%">' . htmlspecialchars($produccionLabel, ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="19%">' . htmlspecialchars($p['motivo'] ?? 'Sin motivo', ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="12%">' . htmlspecialchars((string) $p['fecha_de_registro'], ENT_QUOTES, 'UTF-8') . '</td>
                       </tr>';
         }
     }

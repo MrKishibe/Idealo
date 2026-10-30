@@ -157,6 +157,8 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $pdf->setPrintHeader(false); 
     $pdf->setPrintFooter(false); 
     $pdf->AddPage();
+    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 15, 10, 20, 20);
+    $pdf->SetY(34);
 
     $pdf->SetFont('helvetica', 'B', 16);
     

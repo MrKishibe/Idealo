@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Control de Pagos</title>
@@ -222,13 +223,19 @@ function cargarDatosEdicionPago(id, pedido, monto, metodo, ref, fecha) {
     document.getElementById('edit_fecha').value = fecha;
 }
 
+</script>
+<script type="module">
+import { abrirReporteEnPestana } from './assets/js/helpers/report-viewer.js';
+
 document.getElementById('btnGenerarReportePagos').addEventListener('click', function() {
     const btnAlternar = document.getElementById('btnAlternarEstado');
     const vistaActual = btnAlternar ? btnAlternar.getAttribute('data-vista') : 'activos';
     const estadoFiltro = (vistaActual === 'inhabilitados') ? 'inhabilitados' : 'activos';
-    
     const urlReporte = `index.php?controller=Finanzas&action=pagos&accion=generar_reporte&tipo=pagos&estado=${estadoFiltro}`;
-    window.open(urlReporte, '_blank');
+
+    if (!abrirReporteEnPestana(urlReporte)) {
+        window.Swal.fire('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.', 'warning');
+    }
 });
 </script>
 </body>

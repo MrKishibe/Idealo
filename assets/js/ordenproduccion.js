@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { confirmActionAlert, statusAlert } from './helpers/alerts.js';
 import {
     validarCampo as validarCampoCompartido,
@@ -6,6 +7,7 @@ import {
     obtenerPatron,
     obtenerFechaLocalISO
 } from './helpers/expresiones.js';
+import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
 $(document).ready(function () {
     const urlControlador = 'index.php?url=ordenproduccion/listarordenproduccion';
@@ -43,25 +45,138 @@ $(document).ready(function () {
                 }
             }
         ],
-        language: {
-            emptyTable: 'Ningún dato disponible en esta tabla',
-            info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
-            infoEmpty: 'Mostrando registros del 0 al 0 de un total de 0 registros',
-            infoFiltered: '(filtrado de un total de _MAX_ registros)',
-            lengthMenu: 'Mostrar _MENU_ registros',
-            loadingRecords: 'Cargando...',
-            processing: 'Procesando...',
-            search: 'Buscar:',
-            zeroRecords: 'No se encontraron resultados',
-            paginate: {
-                first: 'Primero',
-                last: 'Último',
-                next: 'Siguiente',
-                previous: 'Anterior'
-            }
-        },
-        responsive: true
+        language: lenguajeDataTableEs,
+        pageLength: 10,
+        responsive: true,
+        ordering: false,
+        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
+
+    function configurarBusquedaPedido(inputSelector, idSelector, opcionesSelector) {
+        const $busqueda = $(inputSelector);
+        const $idPedido = $(idSelector);
+        const $opciones = $(opcionesSelector);
+        const $contenedor = $busqueda.closest('.pedido-combobox');
+        const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+
+        function ocultarOpciones() {
+            $opciones.removeClass('show');
+            $busqueda.attr('aria-expanded', 'false').removeAttr('aria-activedescendant');
+            $opciones.find('.active').removeClass('active');
+        }
+
+        function filtrarOpciones(filtro = '') {
+            const textoFiltro = normalizar(filtro);
+            const $opcionesFiltradas = $opciones.find('[data-value]');
+            $opcionesFiltradas.each(function () {
+                $(this).toggle(normalizar(this.textContent).includes(textoFiltro));
+            });
+            $opciones.find('[data-empty-message]').prop('hidden', $opcionesFiltradas.filter(':visible').length > 0);
+            $opciones.addClass('show');
+            $busqueda.attr('aria-expanded', 'true');
+            $opciones.find('.active').removeClass('active');
+        }
+
+        function seleccionarOpcion($opcion) {
+            if (!$opcion.length || $opcion.prop('disabled')) {
+                return;
+            }
+            $opciones.find('[data-value]').attr('aria-selected', 'false');
+            $opcion.attr('aria-selected', 'true');
+            $busqueda.val($opcion.text().trim());
+            $idPedido.val($opcion.data('value')).trigger('change');
+            ocultarOpciones();
+        }
+
+        $busqueda.on('focus', function () {
+            filtrarOpciones(this.value);
+        }).on('input', function () {
+            $idPedido.val('').removeClass('is-valid is-invalid');
+            $opciones.find('[data-value]').attr('aria-selected', 'false');
+            $busqueda.removeClass('is-valid is-invalid').removeAttr('style');
+            filtrarOpciones(this.value);
+        }).on('keydown', function (event) {
+            let $visibles = $opciones.find('[data-value]:visible:not(:disabled)');
+            let indiceActivo = $visibles.index($opciones.find('.active'));
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                filtrarOpciones(this.value);
+                $visibles = $opciones.find('[data-value]:visible:not(:disabled)');
+                if (!$visibles.length) return;
+                indiceActivo = event.key === 'ArrowDown'
+                    ? (indiceActivo + 1) % $visibles.length
+                    : (indiceActivo <= 0 ? $visibles.length - 1 : indiceActivo - 1);
+                const $activo = $visibles.eq(indiceActivo);
+                $opciones.find('.active').removeClass('active');
+                $activo.addClass('active');
+                const idOpcion = `${$opciones.attr('id')}_pedido_${$activo.data('value')}`;
+                $activo.attr('id', idOpcion);
+                $busqueda.attr('aria-activedescendant', idOpcion);
+            } else if (event.key === 'Enter' && $opciones.hasClass('show')) {
+                const $activo = $opciones.find('.active');
+                if ($activo.length) {
+                    event.preventDefault();
+                    seleccionarOpcion($activo);
+                }
+            } else if (event.key === 'Escape') {
+                ocultarOpciones();
+            }
+        });
+
+        $opciones.on('click', '[data-value]', function () {
+            seleccionarOpcion($(this));
+        });
+
+        $(document).on('click', function (event) {
+            if (!$contenedor[0].contains(event.target)) {
+                ocultarOpciones();
+            }
+        });
+
+        $idPedido.on('change', function () {
+            validarPedidoCombobox($idPedido, $busqueda);
+        });
+
+        return {
+            reset: function () {
+                $busqueda.val('').removeClass('is-valid is-invalid').removeAttr('style');
+                $idPedido.val('').removeClass('is-valid is-invalid');
+                $opciones.find('[data-value]').attr('aria-selected', 'false');
+                filtrarOpciones('');
+                ocultarOpciones();
+            },
+            seleccionar: function (idPedido) {
+                seleccionarOpcion($opciones.find(`[data-value="${idPedido}"]`));
+            }
+        };
+    }
+
+    function validarPedidoCombobox($idPedido, $busqueda) {
+        const esValido = validarCampoCompartido($idPedido, obtenerPatron('enteroPositivo'), {
+            requerido: true,
+            estilo: false,
+            feedback: false
+        });
+        $busqueda.toggleClass('is-valid', esValido)
+            .toggleClass('is-invalid', !esValido)
+            .css({
+                'border-color': esValido ? 'green' : 'red',
+                'box-shadow': esValido ? '0 0 5px green' : '0 0 5px red'
+            });
+        return esValido;
+    }
+
+    const busquedaPedidoRegistro = configurarBusquedaPedido(
+        '#buscar_detalle_pedido',
+        '#id_detalle_pedido',
+        '#opciones_detalle_pedido'
+    );
+    const busquedaPedidoEdicion = configurarBusquedaPedido(
+        '#buscar_edit_detalle_pedido',
+        '#edit_id_detalle_pedido',
+        '#opciones_edit_detalle_pedido'
+    );
 
     
     function validarCampoOrden(input, patron, obligatorio = true) {
@@ -88,12 +203,15 @@ $(document).ready(function () {
     
     $('#fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
     $('#fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
-    $('#id_detalle_pedido').on('change', function() { validarCampoOrden($(this), 'enteroPositivo'); });
     
     
     $('#edit_fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
     $('#edit_fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
-    $('#edit_id_detalle_pedido').on('change', function() { validarCampoOrden($(this), 'enteroPositivo'); });
+
+    $('#modalRegistrarOrden').on('show.bs.modal', function () {
+        $('#fecha_de_inicio').val(obtenerFechaLocalISO());
+        busquedaPedidoRegistro.reset();
+    });
 
 
     async function confirmarAccion(titulo, texto) {
@@ -111,7 +229,7 @@ $(document).ready(function () {
         
         let v1 = validarFechaOrden($('#fecha_de_inicio'), true, 0);
         let v2 = validarFechaOrden($('#fecha_terminado'), false, 1);
-        let v3 = validarCampoOrden($('#id_detalle_pedido'), 'enteroPositivo');
+        let v3 = validarPedidoCombobox($('#id_detalle_pedido'), $('#buscar_detalle_pedido'));
 
         if (!v1 || !v2 || !v3) {
             await mostrarAlertaInformativa('Error', 'Por favor, corrija los campos en rojo.', 'error');
@@ -134,6 +252,7 @@ $(document).ready(function () {
                 await mostrarAlertaInformativa('¡Éxito!', data.message, 'success');
                 $('#modalRegistrarOrden').modal('hide');
                 $('#formRegistrarOrden')[0].reset();
+                busquedaPedidoRegistro.reset();
                 $('.is-valid, .is-invalid').removeClass('is-valid is-invalid').removeAttr('style');
                 tablaOrdenes.ajax.reload();
             } else {
@@ -152,7 +271,8 @@ $(document).ready(function () {
         $('#edit_id_orden').val(orden.id_produccion);
         $('#edit_fecha_de_inicio').val(orden.fecha_de_inicio);
         $('#edit_fecha_terminado').val(orden.fecha_terminado || '');
-        $('#edit_id_detalle_pedido').val(orden.id_detalle_pedido);
+        busquedaPedidoEdicion.reset();
+        busquedaPedidoEdicion.seleccionar(orden.id_detalle_pedido);
         $('#edit_estado_de_produccion').val(orden.estado_de_produccion);
         
         
@@ -185,7 +305,7 @@ $(document).ready(function () {
         
         let v1 = validarFechaOrden($('#edit_fecha_de_inicio'), true, 0);
         let v2 = validarFechaOrden($('#edit_fecha_terminado'), false, 1);
-        let v3 = validarCampoOrden($('#edit_id_detalle_pedido'), 'enteroPositivo');
+        let v3 = validarPedidoCombobox($('#edit_id_detalle_pedido'), $('#buscar_edit_detalle_pedido'));
 
         if (!v1 || !v2 || !v3) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
@@ -267,7 +387,7 @@ $(document).ready(function () {
         );
     });
 
-    $('#formReporteOrdenes').on('submit', function (e) {
+    $('#formReporteOrdenes').on('submit', async function (e) {
         e.preventDefault();
 
         const fechaDesde = $('#reporteFechaDesde').val();
@@ -292,7 +412,11 @@ $(document).ready(function () {
         if (fechaDesde) parametros.set('fecha_desde', fechaDesde);
         if (fechaHasta) parametros.set('fecha_hasta', fechaHasta);
 
-        window.open(`${urlControlador}&${parametros.toString()}`, '_blank');
+        const pestanaReporte = abrirReporteEnPestana(`${urlControlador}&${parametros.toString()}`);
+        if (!pestanaReporte) {
+            await mostrarAlertaInformativa('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.', 'warning');
+            return;
+        }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReporteOrdenes')).hide();
     });
 });

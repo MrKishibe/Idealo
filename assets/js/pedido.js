@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
+import { crearPestanaReporte, cargarReporteEnPestana } from './helpers/report-viewer.js';
 
 document.addEventListener(
     'DOMContentLoaded',
@@ -715,6 +716,12 @@ document.addEventListener(
                     formData.append('ids_filtrados', JSON.stringify(ids));
                 }
 
+                const pestanaReporte = crearPestanaReporte();
+                if (!pestanaReporte) {
+                    errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
+                    return;
+                }
+
                 $.ajax({
                     url: `${BASE_URL}&accion=generarreportepdf`,
                     type: 'POST',
@@ -728,14 +735,11 @@ document.addEventListener(
                         if (modalReportePedido) {
                             modalReportePedido.hide();
                         }
-                        const link = document.createElement('a');
-                        link.href = window.URL.createObjectURL(blob);
-                        link.target = '_blank';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                        const urlReporte = window.URL.createObjectURL(blob);
+                        cargarReporteEnPestana(pestanaReporte, urlReporte);
                     },
                     error: async function (xhr) {
+                        pestanaReporte.ventana.close();
                         try {
                             const reader = new FileReader();
                             reader.onload = async function() {

@@ -174,6 +174,8 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
     $pdf->AddPage();
+    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 12, 10, 20, 20);
+    $pdf->SetY(34);
 
     $etiquetaMateria = $idMateriaPrima === ''
         ? 'Todas'
@@ -186,18 +188,19 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
     }
 
     $html = '
-    <h2 style="text-align:center; color:#333;">Reporte de Consumo de Materiales</h2>
-    <p><strong>Materia prima:</strong> ' . htmlspecialchars($etiquetaMateria, ENT_QUOTES, 'UTF-8') . '<br>
-       <strong>Estado de producción:</strong> ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
-    <table border="1" cellpadding="5" cellspacing="0" style="width:100%; font-family:sans-serif; font-size:10px;">
+    <h2 style="text-align:center; color:#333; font-family:helvetica; font-size:16pt;">Reporte de Consumo de Materiales</h2>
+    <p style="font-family:helvetica; font-size:10pt;">Fecha de generación: ' . date('d/m/Y') . '<br>
+       Materia prima: ' . htmlspecialchars($etiquetaMateria, ENT_QUOTES, 'UTF-8') . '<br>
+       Estado de producción: ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
+    <table border="1" cellpadding="3" cellspacing="0" style="width:100%; font-family:helvetica; font-size:10pt;">
         <thead>
-            <tr style="background-color:#0d6efd; color:white; font-weight:bold; text-align:center;">
-                <th width="8%">ID</th>
-                <th width="20%">Materia Prima</th>
+            <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
+                <th width="7%">ID</th>
+                <th width="21%">Materia Prima</th>
                 <th width="13%">Costo Unit.</th>
-                <th width="12%">Cantidad</th>
-                <th width="13%">Costo Total</th>
-                <th width="34%">Orden / Descripción</th>
+                <th width="13%">Cantidad</th>
+                <th width="14%">Costo Total</th>
+                <th width="32%">Orden / Descripción</th>
             </tr>
         </thead>
         <tbody>';
@@ -210,16 +213,16 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
 
             $ordenLabel = htmlspecialchars('OP-' . str_pad((string) $c['id_produccion'], 4, '0', STR_PAD_LEFT), ENT_QUOTES, 'UTF-8');
             if (!empty($c['descripcion_de_consumo'])) {
-                $ordenLabel .= '<br><span style="font-size:8px; color:#555;">' . htmlspecialchars($c['descripcion_de_consumo'], ENT_QUOTES, 'UTF-8') . '</span>';
+                $ordenLabel .= '<br><span style="font-size:10pt; color:#555;">' . htmlspecialchars($c['descripcion_de_consumo'], ENT_QUOTES, 'UTF-8') . '</span>';
             }
             
             $html .= '<tr style="text-align:center;">
-                        <td>' . htmlspecialchars((string) $c['id_consumo_material'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td><strong>' . htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material', ENT_QUOTES, 'UTF-8') . '</strong></td>
-                        <td>$' . number_format((float) $c['costo_unitario'], 2, '.', ',') . '</td>
-                        <td>' . htmlspecialchars((string) $c['cantidad_usada'], ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>
-                        <td style="color:green; font-weight:bold;">$' . number_format($costoTotal, 2, '.', ',') . '</td>
-                        <td>' . $ordenLabel . '</td>
+                        <td width="7%" align="center">' . htmlspecialchars((string) $c['id_consumo_material'], ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="21%"><strong>' . htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material', ENT_QUOTES, 'UTF-8') . '</strong></td>
+                        <td width="13%">$' . number_format((float) $c['costo_unitario'], 2, '.', ',') . '</td>
+                        <td width="13%">' . htmlspecialchars((string) $c['cantidad_usada'], ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="14%" style="color:green; font-weight:bold;">$' . number_format($costoTotal, 2, '.', ',') . '</td>
+                        <td width="32%">' . $ordenLabel . '</td>
                       </tr>';
         }
     }

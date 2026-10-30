@@ -202,6 +202,8 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $pdf->setPrintHeader(false); 
     $pdf->setPrintFooter(false); 
     $pdf->AddPage();
+    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 15, 10, 20, 20);
+    $pdf->SetY(34);
 
     $pdf->SetFont('helvetica', 'B', 16);
     $pdf->Cell(0, 10, 'Reporte de Órdenes de Producción', 0, 1, 'C');
@@ -219,7 +221,15 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $rangoFechas = ($fechaDesde !== '' ? date('d/m/Y', strtotime($fechaDesde)) : 'Sin límite')
         . ' - '
         . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
-    $pdf->MultiCell(0, 6, 'Estados: ' . $etiquetaEstados . "\nFecha de inicio: " . $rangoFechas, 0, 'L');
+    $pdf->MultiCell(
+        0,
+        6,
+        'Fecha de generación: ' . date('d/m/Y')
+            . "\nEstados: " . $etiquetaEstados
+            . "\nFecha de inicio: " . $rangoFechas,
+        0,
+        'L'
+    );
     $pdf->Ln(3);
 
     // Construimos la tabla

@@ -7,6 +7,8 @@
     <title>Idéalo - Iniciar Sesión</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- CSS de SweetAlert2 (Opcional, pero recomendado para prevenir destellos) -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         :root {
             --azul-opaco: #1e293b;
@@ -178,47 +180,21 @@
             transform: translateY(0);
         }
 
-        .alert {
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            animation: fadeIn 0.4s ease;
-        }
-
         @keyframes slideUpIn {
             from {
                 opacity: 0;
                 transform: translateY(30px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
         @keyframes pulseIcon {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -231,36 +207,35 @@
             <p>Gestión de Taller de Sublimación</p>
         </div>
 
-        <?php if (isset($_GET['register']) && $_GET['register'] === 'ok'): ?>
-            <div class="alert alert-success p-2 mb-3 text-center" style="font-size: 14px;">
-                <i class="bi bi-check-circle-fill"></i> Colaborador registrado correctamente.
-            </div>
-        <?php endif; ?>
+        <?php 
+        
+        $swalError = $error ?? $error_login ?? '';
+        $swalSuccess = $success ?? '';
 
-        <?php if (isset($_GET['register']) && $_GET['register'] === 'error'): ?>
-            <div class="alert alert-danger p-2 mb-3 text-center" style="font-size: 14px;">
-                <i class="bi bi-exclamation-triangle-fill"></i> No se pudo procesar el registro.
-            </div>
-        <?php endif; ?>
+        if (isset($_GET['register']) && $_GET['register'] === 'ok') {
+            $swalSuccess = 'Colaborador registrado correctamente.';
+        } elseif (isset($_GET['register']) && $_GET['register'] === 'error') {
+            $swalError = 'No se pudo procesar el registro.';
+        } elseif (isset($_GET['reset']) && $_GET['reset'] === 'ok') {
+            $swalSuccess = 'Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.';
+        }
+        ?>
 
-        <?php if (isset($_GET['reset']) && $_GET['reset'] === 'ok'): ?>
-            <div class="alert alert-success p-2 mb-3 text-center" style="font-size: 14px;">
-                <i class="bi bi-check-circle-fill"></i> Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.
-            </div>
-        <?php endif; ?>
+        
+        <div id="backend-messages" 
+             data-error="<?php echo htmlspecialchars($swalError); ?>" 
+             data-success="<?php echo htmlspecialchars($swalSuccess); ?>" 
+             style="display: none;">
+        </div>
 
-        <?php if (!empty($error_login)): ?>
-            <div class="alert alert-danger p-2 mb-3 text-center" style="font-size: 14px;">
-                <i class="bi bi-exclamation-circle-fill"></i> <?php echo htmlspecialchars($error_login); ?>
-            </div>
-        <?php endif; ?>
-
-        <form action="index.php?controller=auth&action=login" method="POST">
+        
+        <form id="loginForm" action="index.php?controller=auth&action=login" method="POST">
             <div class="mb-3">
-                <label for="cedula_usuario" class="form-label fw-semibold">Usuario o Correo Electrónico</label>
+                
+                <label for="credencial" class="form-label fw-semibold">Usuario o Correo Electrónico</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control ps-1" id="cedula_usuario" name="credencial" placeholder="Usuario o correo electrónico" required autocomplete="off">
+                    <input type="text" class="form-control ps-1" id="credencial" name="credencial" placeholder="Usuario o correo electrónico" autocomplete="off">
                 </div>
             </div>
 
@@ -268,7 +243,7 @@
                 <label for="contrasena" class="form-label fw-semibold">Contraseña de Acceso</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" class="form-control ps-1" id="contrasena" name="contrasena" placeholder="••••••••" required>
+                    <input type="password" class="form-control ps-1" id="contrasena" name="contrasena" placeholder="••••••••">
                 </div>
             </div>
 
@@ -282,10 +257,13 @@
         </form>
     </div>
 
+    
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+ 
+    <script src="assets/js/login.js"></script>
 </body>
 
 </html>
-
-

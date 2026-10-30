@@ -1,9 +1,13 @@
 import $ from 'jquery';
 import { obtenerPatron, validar } from './helpers/expresiones.js';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
 document.addEventListener("DOMContentLoaded", function () {
-    const $txtNombre =$("#nombre_servicio");
-    const $editNombre =$("#edit_nombre_servicio");
+    const $txtNombre = $("#nombre_servicio");
+    const $editNombre = $("#edit_nombre_servicio");
+
+    const urlModulo = 'index.php?controller=servicio';
 
     function bloqEntradaNoPermitida(input, tipoPatron) {
         input.on("keypress", function (e) {
@@ -12,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const nuevoVal = valActual.slice(0, this.selectionStart ?? valActual.length) + String.fromCharCode(e.which) + valActual.slice(this.selectionEnd ?? valActual.length);
 
             try {
-                const fuente = obtenerPatron(tipoPatron).source.replace(/^\^\vert{}\$$/g, "");
+                const fuente = obtenerPatron(tipoPatron).source.replace(/^\^|\$$/g, "");
                 const regexParcial = new RegExp("^" + (fuente.includes("{") ? fuente.replace(/\{[^}]+\}/, "+") : fuente) + "$");
                 if (!regexParcial.test(nuevoVal)) e.preventDefault();
             } catch (err) {}
@@ -35,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let $feedback = input.siblings(".feedback-validacion");
 
         if (!$feedback.length) {
-            $feedback =$('<small class="feedback-validacion form-text d-block"></small>').insertAfter(input);
+            $feedback = $('<small class="feedback-validacion form-text d-block"></small>').insertAfter(input);
         }
 
         if (!valor) {
@@ -53,8 +57,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function configurarCampo(selector, tipoPatron, esRequerido = true) {
-        const $el =$(selector);
-        bloqEntradaNoPermitida($el, tipoPatron);$(document).on("input change", selector, () => validarCampoEntrada($el, tipoPatron, esRequerido));
+        const $el = $(selector);
+        bloqEntradaNoPermitida($el, tipoPatron);
+        $(document).on("input change", selector, () => validarCampoEntrada($el, tipoPatron, esRequerido));
     }
 
     configurarCampo("#nombre_servicio", "nombre", true);
@@ -63,15 +68,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function limpiarFormulario(formSelector, inputsJQuery = null) {
         const $target = formSelector ? $(formSelector) : inputsJQuery;
         if (!$target) return;
-        if (formSelector && $target[0]) $target[0].reset();$target.find('.is-valid, .is-invalid').addBack('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+        if (formSelector && $target[0]) $target[0].reset();
+        $target.find('.is-valid, .is-invalid').addBack('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
         $target.siblings(".feedback-validacion").add($target.find(".feedback-validacion")).remove();
     }
-
-    const enviarPeticion = (url, data) => $.ajax({
-        url, type: 'POST', data, dataType: 'json',
-        processData: !(data instanceof FormData),
-        contentType: (data instanceof FormData) ? false : 'application/x-www-form-urlencoded; charset=UTF-8'
-    });
 
     function prepararModal(idModal, $input, selectorForm) {
         const el = document.getElementById(idModal);
@@ -86,42 +86,77 @@ document.addEventListener("DOMContentLoaded", function () {
     const bsModalRegistrar = prepararModal('modalRegistrarServicio', $txtNombre, "#formRegistrarServicio");
     const bsModalEditar = prepararModal('modalEditarServicio', $editNombre, "#formEditarServicio");
 
-    async function manejarSubmit(e, $input, form, url, bsModal, tituloExito) {
-        e.preventDefault();
-        if (!validarCampoEntrada($input, "nombre", true)) return;
-
+    // ==========================================
+    // 1. AJAX PARA REGISTRAR SERVICIO (POST)
+    // ==========================================
+    async function registrarServicioAjax(formData, formElement, bsModal) {
         try {
-            const data = await enviarPeticion(url, new FormData(form));
+            const data = await $.ajax({
+                url: `${urlModulo}&action=guardar`,
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false
+            });
+
             document.activeElement?.blur();
             
-            Swal.fire({
-                icon: data.success ? 'success' : 'error',
-                title: data.success ? tituloExito : 'Error',
-                text: data.message,
-                confirmButtonColor: data.success ? '#10b981' : '#dc3545',
-                focusConfirm: false, heightAuto: false,
-                didClose: () => {
-                    if (data.success) {
-                        limpiarFormulario(form);
-                        bsModal?.hide();
-                        window.recargarTablaServicios();
-                    } else {
-                        bsModal?.show();
-                    }
-                }
-            });
+            if (data.success) {
+                await successAlert('¡Registrado!', data.message);
+                limpiarFormulario(formElement);
+                bsModal?.hide();
+                window.recargarTablaServicios();
+            } else {
+                await errorAlert('Error', data.message);
+                bsModal?.show();
+            }
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.', confirmButtonColor: '#dc3545', focusConfirm: false, heightAuto: false });
+            await errorAlert('Error', 'Error de comunicación con el servidor.');
         }
     }
 
-    document.getElementById("formRegistrarServicio")?.addEventListener("submit", (e) => 
-        manejarSubmit(e, $txtNombre, e.target, 'index.php?controller=servicio&action=guardar', bsModalRegistrar, '¡Registrado!')
-    );
+    document.getElementById("formRegistrarServicio")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!validarCampoEntrada($txtNombre, "nombre", true)) return;
+        await registrarServicioAjax(new FormData(e.target), e.target, bsModalRegistrar);
+    });
 
-    document.getElementById("formEditarServicio")?.addEventListener("submit", (e) => 
-        manejarSubmit(e, $editNombre, e.target, 'index.php?controller=servicio&action=editar', bsModalEditar, '¡Actualizado!')
-    );
+    // ==========================================
+    // 2. AJAX PARA EDITAR SERVICIO (POST)
+    // ==========================================
+    async function editarServicioAjax(formData, formElement, bsModal) {
+        try {
+            const data = await $.ajax({
+                url: `${urlModulo}&action=editar`,
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false
+            });
+
+            document.activeElement?.blur();
+            
+            if (data.success) {
+                await successAlert('¡Actualizado!', data.message);
+                limpiarFormulario(formElement);
+                bsModal?.hide();
+                window.recargarTablaServicios();
+            } else {
+                await errorAlert('Error', data.message);
+                bsModal?.show();
+            }
+        } catch (err) {
+            await errorAlert('Error', 'Error de comunicación con el servidor.');
+        }
+    }
+
+    document.getElementById("formEditarServicio")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!validarCampoEntrada($editNombre, "nombre", true)) return;
+        await editarServicioAjax(new FormData(e.target), e.target, bsModalEditar);
+    });
 
     window.abrirModalEditarServicio = function (data) {
         $('#edit_id_servicio').val(data.id_servicio);
@@ -138,82 +173,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
 $(document).ready(function () {
     let datatableInstancia = null;
-    let listaServiciosGlobal = [];
     let verEliminados = false;
+    const urlModulo = 'index.php?controller=servicio';
 
-    // Objeto de idioma en español configurado de forma local
-    const lenguajeEspanolDataTables = {
-        processing:     "Procesando...",
-        search:         "Buscar:",
-        lengthMenu:     "Mostrar _MENU_ registros",
-        info:           "Mostrando del _START_ al _END_ de _TOTAL_ registros",
-        infoEmpty:      "Mostrando 0 de 0 registros",
-        infoFiltered:   "(filtrado de _MAX_ registros en total)",
-        infoPostFix:    "",
-        loadingRecords: "Cargando...",
-        zeroRecords:    "No se encontraron coincidencias",
-        emptyTable:     "No hay datos disponibles en la tabla",
-        paginate: {
-            first:      "Primero",
-            previous:   "Anterior",
-            next:       "Siguiente",
-            last:       "Último"
-        },
-        aria: {
-            sortAscending:  ": Activar para ordenar la columna de manera ascendente",
-            sortDescending: ": Activar para ordenar la columna de manera descendente"
+    // ==========================================
+    // 3. INICIALIZACIÓN DEL DATATABLE NATIVO (AJAX)
+    // ==========================================
+    function inicializarDataTableServicios() {
+        if ($.fn.DataTable.isDataTable('#tablaServicios')) {
+            datatableInstancia.destroy();
         }
-    };
 
-    async function cargarServicios() {
-        try {
-            const data = await $.ajax({ url: 'index.php?controller=servicio&action=listarServiciosAjax', type: 'GET', dataType: 'json' });
-            if (data.error) return;
-            listaServiciosGlobal = Array.isArray(data) ? data : [];
-            renderizarTablaServicios(verEliminados ? 'eliminados' : 'activos');
-        } catch (err) {}
-    }
-
-    window.recargarTablaServicios = cargarServicios;
-
-    function renderizarTablaServicios(modo) {
-        const tbody = $('#tbodyServicios');
-        if ($.fn.DataTable.isDataTable('#tablaServicios')) datatableInstancia.destroy();
-        tbody.empty();
-
-        const filtrados = listaServiciosGlobal.filter(s => modo === 'eliminados' ? s.status_servicio !== 'activo' : s.status_servicio === 'activo');
-
-        if (filtrados.length > 0) {
-            const fragmento = $(document.createDocumentFragment());
-            filtrados.forEach(serv => {
-                const esActivo = serv.status_servicio === 'activo';
-                const badge = `<span class="badge bg-${esActivo ? 'success' : 'danger'}-subtle text-${esActivo ? 'success' : 'danger'}" style="padding: 6px 12px; border-radius: 6px;">${esActivo ? 'Activo' : 'Inactivo'}</span>`;
-                const btnEditar = `<button class="btn btn-sm btn-outline-primary btn-editar me-1" style="border-radius:8px;" data-servicio='${JSON.stringify(serv).replace(/'/g, "&apos;")}'>
-                    <i class="bi bi-pencil-square"></i>
-                </button>`;
-                const btnEliminar = `<button class="btn btn-sm btn-outline-danger btn-eliminar" style="border-radius:8px;" data-id="${serv.id_servicio}" data-nombre="${serv.nombre_servicio}">
-                    <i class="bi bi-trash3"></i>
-                </button>`;
-
-                fragmento.append(`
-                    <tr>
-                        <td class="px-4"><div class="fw-semibold text-dark">${serv.nombre_servicio}</div></td>
-                        <td class="px-4">${badge}</td>
-                        <td class="px-4 text-center">${btnEditar}${modo === 'eliminados' ? '' : btnEliminar}</td>
-                    </tr>
-                `);
-            });
-            tbody.append(fragmento);
-        }
+        const modo = verEliminados ? 'eliminados' : 'activos';
 
         datatableInstancia = $('#tablaServicios').DataTable({
-            language: lenguajeEspanolDataTables,
+            ajax: {
+                url: `${urlModulo}&action=listarServiciosAjax`,
+                type: 'GET',
+                dataType: 'json',
+                dataSrc: function (json) {
+                    if (json && json.error) return [];
+                    const lista = Array.isArray(json) ? json : [];
+                    
+                    // Filtrar dinámicamente entre activos e inhabilitados según la vista seleccionada
+                    return lista.filter(s => modo === 'eliminados' ? s.status_servicio !== 'activo' : s.status_servicio === 'activo');
+                },
+                error: function () {
+                    console.error('Error al cargar servicios por AJAX');
+                }
+            },
+            columns: [
+                {
+                    data: 'nombre_servicio',
+                    className: 'px-4',
+                    render: function (data) {
+                        return `<div class="fw-semibold text-dark">${data || ''}</div>`;
+                    }
+                },
+                {
+                    data: 'status_servicio',
+                    className: 'px-4',
+                    render: function (data) {
+                        const esActivo = data === 'activo';
+                        return `<span class="badge bg-${esActivo ? 'success' : 'danger'}-subtle text-${esActivo ? 'success' : 'danger'}" style="padding: 6px 12px; border-radius: 6px;">${esActivo ? 'Activo' : 'Inactivo'}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    className: 'px-4 text-center',
+                    orderable: false,
+                    render: function (data) {
+                        const servicioJson = JSON.stringify(data).replace(/'/g, "&apos;");
+                        let btnAcciones = `<button class="btn btn-sm btn-outline-primary btn-editar me-1" style="border-radius:8px;" data-servicio='${servicioJson}'><i class="bi bi-pencil-square"></i></button>`;
+
+                        if (data.status_servicio === 'activo') {
+                            btnAcciones += `<button class="btn btn-sm btn-outline-danger btn-eliminar" style="border-radius:8px;" data-id="${data.id_servicio}" data-nombre="${data.nombre_servicio}"><i class="bi bi-trash3"></i></button>`;
+                        }
+                        return btnAcciones;
+                    }
+                }
+            ],
+            language: lenguajeDataTableEs,
             pageLength: 10,
             responsive: true,
             ordering: false,
             dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
         });
     }
+
+    // Función global para recargar la tabla de forma limpia mediante DataTables Ajax
+    window.recargarTablaServicios = function () {
+        if (datatableInstancia) {
+            datatableInstancia.ajax.reload(null, false);
+        } else {
+            inicializarDataTableServicios();
+        }
+    };
 
     $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
@@ -223,7 +258,9 @@ $(document).ready(function () {
         $('#txtBotonEstado').text(verEliminados ? 'Ver Activos' : 'Ver Inhabilitados');
         $('#iconoEstado').toggleClass('bi-eye-slash-fill', !verEliminados).toggleClass('bi-eye-fill', verEliminados);
         $('#tituloVista').text(verEliminados ? 'Servicios (Inhabilitados)' : 'Servicios');
-        renderizarTablaServicios(verEliminados ? 'eliminados' : 'activos');
+        
+        // Recargar los datos con el nuevo filtro de estado
+        inicializarDataTableServicios();
     });
 
     $(document).on('click', '.btn-editar', function () {
@@ -231,36 +268,33 @@ $(document).ready(function () {
         if (data) window.abrirModalEditarServicio(data);
     });
 
+    // ==========================================
+    // 4. AJAX PARA INHABILITAR / ELIMINAR (GET/POST)
+    // ==========================================
     $(document).on('click', '.btn-eliminar', function () {
         const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
         document.activeElement?.blur();
 
-        Swal.fire({
-            title: '¿Inhabilitar este servicio?',
-            text: `¿Desea cambiar el estado de "${nombre}" a inactivo dentro del catálogo?`,
-            icon: 'warning', showCancelButton: true,
-            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, inhabilitar', cancelButtonText: 'Cancelar',
-            focusConfirm: false, heightAuto: false
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const data = await $.ajax({ url: `index.php?controller=servicio&action=eliminar&id=${id}`, type: 'GET', dataType: 'json' });
-                    Swal.fire({
-                        icon: data.success ? 'success' : 'error',
-                        title: data.success ? 'Inhabilitado' : 'Error de base de datos',
-                        text: data.message,
-                        confirmButtonColor: data.success ? '#10b981' : '#dc3545',
-                        focusConfirm: false, heightAuto: false
-                    });
-                    if (data.success) cargarServicios();
-                } catch (err) {
-                    Swal.fire({ icon: 'error', title: 'Error de comunicación', text: 'No se pudo completar la solicitud.', confirmButtonColor: '#dc3545', focusConfirm: false, heightAuto: false });
+        confirmDeleteAlert(async () => {
+            try {
+                const data = await $.ajax({ 
+                    url: `${urlModulo}&action=eliminar&id=${id}`, 
+                    type: 'GET', 
+                    dataType: 'json' 
+                });
+                
+                if (data.success) {
+                    await successAlert('Inhabilitado', data.message);
+                    window.recargarTablaServicios();
+                } else {
+                    await errorAlert('Error de base de datos', data.message);
                 }
+            } catch (err) {
+                await errorAlert('Error de comunicación', 'No se pudo completar la solicitud.');
             }
         });
     });
 
-    cargarServicios();
+    // Carga inicial
+    inicializarDataTableServicios();
 });

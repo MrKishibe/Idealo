@@ -1,73 +1,125 @@
 import $ from 'jquery';
-import { validar } from './helpers/expresiones.js';
+import { soloNumerosTeclado, soloLetrasTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
 $(document).ready(function () {
-    let tablaClientesDataTable = null;
-    let todosLosClientes = [];
     let verEliminados = false;
     let debeReiniciarModal = false;
 
-    function soloNumerosTeclado(e) {
-        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
-        if (!/^[0-9]$/.test(e.key)) e.preventDefault();
-    }
+    const urlControlador = 'index.php?url=cliente/listar';
 
-    function soloLetrasTeclado(e) {
-        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter', '.'].includes(e.key)) return;
-        if (!/^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]$/.test(e.key)) e.preventDefault();
-    }
+    // Inicialización del DataTable con la estructura basada en Ajax y Columnas
+    let tablaClientesDataTable = $('#tablaClientes').DataTable({
+        ajax: {
+            url: `${urlControlador}&ajax=listar`,
+            method: 'GET',
+            data: { 'Consultar': 'yes' },
+            dataSrc: function (json) {
+                let clientes = [];
+                if (json && json.success === false) {
+                    console.error("PHP rechazó la consulta explícitamente:", json.message);
+                } else if (json && typeof json === 'object' && Array.isArray(json.clientes)) {
+                    clientes = json.clientes;
+                } else if (Array.isArray(json)) {
+                    clientes = json;
+                }
 
-    function validarCampoNombrePatron(input, nombrePatron, mensajeError) {
-        if (!input || input.length === 0) return false;
-        const domInput = input[0];
-        let feedback = domInput.nextElementSibling;
+                // Filtrar dinámicamente entre activos e inhabilitados según la vista seleccionada
+                return clientes.filter(cliente => {
+                    let esActivo = cliente.status_cliente === 'activo' || parseInt(cliente.estado) === 1 || cliente.status_cliente === '1';
+                    return verEliminados ? !esActivo : esActivo;
+                });
+            }
+        },
+        columns: [
+            {
+                data: null,
+                className: "px-4",
+                render: function (data) {
+                    let tipoDoc = data.tipo_de_documento || 'Natural';
+                    let numLimpio = data.numero_de_documento || '';
+                    let documentoFormateado = '';
 
-        if (!feedback || !feedback.classList.contains("feedback-validación")) {
-            feedback = document.createElement("small");
-            feedback.classList.add("feedback-validación", "form-text");
-            domInput.parentNode.appendChild(feedback);
-        }
-
-        const esValido = validar(nombrePatron, input.val());
-
-        if (esValido) {
-            input.removeClass("is-invalid").addClass("is-valid");
-            feedback.textContent = "Campo válido";
-            feedback.style.color = "#198754";
-            return true;
-        } else {
-            input.removeClass("is-valid").addClass("is-invalid");
-            feedback.textContent = mensajeError;
-            feedback.style.color = "#dc3545";
-            return false;
-        }
-    }
-
-    function apiObtenerClientes() {
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: 'index.php?url=cliente/listar&ajax=listar',
-                type: 'GET',
-                dataType: 'text',
-                success: (respuestaCruda) => {
-                    try {
-                        const data = JSON.parse(respuestaCruda);
-                        resolve(data);
-                    } catch (e) {
-                        console.error("%cERROR DETECTADO DESDE PHP (No es un JSON válido):", "color: #ff3333; font-weight: bold; font-size: 14px;");
-                        console.log(respuestaCruda);
-                        reject(e);
+                    if (/^[VvEeJjGgCc]/.test(numLimpio)) {
+                        documentoFormateado = numLimpio.toUpperCase();
+                    } else {
+                        let inicial = tipoDoc.toLowerCase() === 'extranjero' ? 'E' : ((tipoDoc.toLowerCase() === 'jurídico' || tipoDoc.toLowerCase() === 'juridico') ? 'J' : 'V');
+                        documentoFormateado = `${inicial}-${numLimpio}`;
                     }
-                },
-                error: (err) => reject(err)
-            });
-        });
+                    return `<div class="fw-bold text-dark">${documentoFormateado}</div>`;
+                }
+            },
+            {
+                data: null,
+                className: "px-4",
+                render: function (data) {
+                    return `<div class="fw-semibold text-secondary">${data.nombre_razon_social || ''} ${data.apellido || ''}</div>`;
+                }
+            },
+            {
+                data: null,
+                className: "px-4",
+                render: function (data) {
+                    return `
+                        <div class="small text-dark"><i class="bi bi-telephone text-muted me-1"></i> ${data.telefono || 'N/A'}</div>
+                        <div class="small text-muted"><i class="bi bi-envelope text-muted me-1"></i> ${data.correo || 'N/A'}</div>
+                    `;
+                }
+            },
+            {
+                data: null,
+                className: "px-4",
+                render: function (data) {
+                    let esActivo = data.status_cliente === 'activo' || parseInt(data.estado) === 1 || data.status_cliente === '1';
+                    return esActivo
+                        ? '<span class="badge bg-success-subtle text-success" style="padding: 6px 12px; border-radius: 6px;">Activo</span>'
+                        : '<span class="badge bg-danger-subtle text-danger" style="padding: 6px 12px; border-radius: 6px;">Inactivo</span>';
+                }
+            },
+            {
+                data: null,
+                className: "px-4 text-center",
+                orderable: false,
+                render: function (data) {
+                    let esActivo = data.status_cliente === 'activo' || parseInt(data.estado) === 1 || data.status_cliente === '1';
+                    let clienteJson = JSON.stringify(data).replace(/'/g, "&apos;");
+                    
+                    let btnAcciones = `<button type="button" class="btn btn-sm btn-outline-primary btn-editar me-1" style="border-radius:8px;" data-cliente='${clienteJson}'><i class="bi bi-pencil-square"></i></button>`;
+
+                    if (esActivo) {
+                        btnAcciones += `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar" style="border-radius:8px;" data-id="${data.id_cliente}" data-nombre="${data.nombre_razon_social}"><i class="bi bi-trash3"></i></button>`;
+                    }
+                    return btnAcciones;
+                }
+            }
+        ],
+        language: lenguajeDataTableEs,
+        pageLength: 10,
+        responsive: true,
+        ordering: false,
+        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+    });
+
+    // Función global para recargar la tabla mediante Ajax de DataTables
+    window.recargarTablaClientes = function () {
+        tablaClientesDataTable.ajax.reload(null, false);
+    };
+
+    function limpiarFormularioModal(formId) {
+        const $form = $(formId);
+        if ($form.length) {
+            $form[0].reset();
+            $form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+            $form.find('.feedback-validación').remove();
+        }
     }
 
+    // Funciones API para guardar, duplicados e inhabilitar
     function apiGuardarCliente(datosFormulario) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: 'index.php?url=cliente/listar',
+                url: urlControlador,
                 type: 'POST',
                 data: $.param(datosFormulario),
                 dataType: 'json',
@@ -80,7 +132,7 @@ $(document).ready(function () {
     function apiVerificarDuplicado(numDoc) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: 'index.php?url=cliente/listar',
+                url: urlControlador,
                 type: 'POST',
                 data: { numero_de_documento: numDoc },
                 dataType: 'json',
@@ -93,128 +145,12 @@ $(document).ready(function () {
     function apiInhabilitarCliente(id) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: `index.php?url=cliente/listar&accion=eliminar&id=${id}`,
+                url: `${urlControlador}&accion=eliminar&id=${id}`,
                 type: 'GET',
                 dataType: 'json',
                 success: (data) => resolve(data),
                 error: (err) => reject(err)
             });
-        });
-    }
-
-    async function cargarClientes() {
-        try {
-            const data = await apiObtenerClientes();
-
-            if (data && data.success === false) {
-                console.error("PHP rechazó la consulta explícitamente:", data.message);
-                todosLosClientes = [];
-            } else if (data && typeof data === 'object' && Array.isArray(data.clientes)) {
-                todosLosClientes = data.clientes;
-            } else if (Array.isArray(data)) {
-                todosLosClientes = data;
-            } else {
-                console.error("Error estructural interno inesperado. Tipo:", typeof data);
-                todosLosClientes = [];
-            }
-        } catch (error) {
-            console.error("Error crítico de comunicación HTTP de red:", error);
-            todosLosClientes = [];
-        } finally {
-            renderizarTabla(verEliminados ? 'eliminados' : 'activos');
-        }
-    }
-
-    window.recargarTablaClientes = cargarClientes;
-
-    function limpiarFormularioModal(formId) {
-        const $form =$(formId);
-        if ($form.length) {$form[0].reset();
-            $form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');$form.find('.feedback-validación').remove();
-        }
-    }
-
-    function renderizarTabla(modo) {
-        const tbody = $('#tbodyClientes');
-
-        if ($.fn.DataTable.isDataTable('#tablaClientes')) {
-            tablaClientesDataTable.destroy();
-        }
-        tbody.empty();
-
-        if (!Array.isArray(todosLosClientes)) {
-            todosLosClientes = [];
-        }
-
-        const filtrados = todosLosClientes.filter(cliente => {
-            let esActivo = cliente.status_cliente === 'activo' || parseInt(cliente.estado) === 1 || cliente.status_cliente === '1';
-            return modo === 'eliminados' ? !esActivo : esActivo;
-        });
-
-        if (filtrados.length > 0) {
-            filtrados.forEach(cliente => {
-                let tipoDoc = cliente.tipo_de_documento || 'Natural';
-                let documentoFormateado = '';
-                let numLimpio = cliente.numero_de_documento || '';
-
-                if (/^[VvEeJjGgCc]/.test(numLimpio)) {
-                    documentoFormateado = numLimpio.toUpperCase();
-                } else {
-                    let inicial = tipoDoc.toLowerCase() === 'extranjero' ? 'E' : ((tipoDoc.toLowerCase() === 'jurídico' || tipoDoc.toLowerCase() === 'juridico') ? 'J' : 'V');
-                    documentoFormateado = `${inicial}-${numLimpio}`;
-                }
-
-                let esActivo = cliente.status_cliente === 'activo' || parseInt(cliente.estado) === 1 || cliente.status_cliente === '1';
-                let estadoBadge = esActivo
-                    ? '<span class="badge bg-success-subtle text-success" style="padding: 6px 12px; border-radius: 6px;">Activo</span>'
-                    : '<span class="badge bg-danger-subtle text-danger" style="padding: 6px 12px; border-radius: 6px;">Inactivo</span>';
-
-                let btnAcciones = `<button class="btn btn-sm btn-outline-primary btn-editar me-1" style="border-radius:8px;" data-cliente='${JSON.stringify(cliente).replace(/'/g, "&apos;")}'><i class="bi bi-pencil-square"></i></button>`;
-
-                if (esActivo) {
-                    btnAcciones += `<button class="btn btn-sm btn-outline-danger btn-eliminar" style="border-radius:8px;" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre_razon_social}"><i class="bi bi-trash3"></i></button>`;
-                }
-
-                tbody.append(`<tr>
-                    <td class="px-4"><div class="fw-bold text-dark">${documentoFormateado}</div></td>
-                    <td class="px-4"><div class="fw-semibold text-secondary">${cliente.nombre_razon_social} ${cliente.apellido || ''}</div></td>
-                    <td class="px-4">
-                        <div class="small text-dark"><i class="bi bi-telephone text-muted me-1"></i> ${cliente.telefono || 'N/A'}</div>
-                        <div class="small text-muted"><i class="bi bi-envelope text-muted me-1"></i> ${cliente.correo || 'N/A'}</div>
-                    </td>
-                    <td class="px-4">${estadoBadge}</td>
-                    <td class="px-4 text-center">${btnAcciones}</td>
-                </tr>`);
-            });
-        }
-
-        tablaClientesDataTable = $('#tablaClientes').DataTable({
-            language: {
-                processing:     "Procesando...",
-                search:         "Buscar:",
-                lengthMenu:     "Mostrar _MENU_ registros",
-                info:           "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty:      "Mostrando 0 a 0 de 0 registros",
-                infoFiltered:   "(filtrado de _MAX_ registros totales)",
-                infoPostFix:    "",
-                loadingRecords: "Cargando...",
-                zeroRecords:    "No se encontraron resultados",
-                emptyTable:     "No hay registros en esta vista",
-                paginate: {
-                    first:      "Primero",
-                    previous:   "Anterior",
-                    next:       "Siguiente",
-                    last:       "Último"
-                },
-                aria: {
-                    sortAscending:  ": Activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": Activar para ordenar la columna de manera descendente"
-                }
-            },
-            pageLength: 10,
-            responsive: true,
-            ordering: false,
-            dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
         });
     }
 
@@ -259,16 +195,17 @@ $(document).ready(function () {
     $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
         if (verEliminados) {
-            $(this).attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');$('#txtBotonEstado').text('Ver Activos');
+            $(this).attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');
+            $('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
             $('#tituloVista').text('Clientes Inhabilitados');
-            renderizarTabla('eliminados');
         } else {
-            $(this).attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');$('#txtBotonEstado').text('Ver Inhabilitados');
+            $(this).attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');
+            $('#txtBotonEstado').text('Ver Inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Gestión de Clientes');
-            renderizarTabla('activos');
         }
+        window.recargarTablaClientes();
     });
 
     $("#formRegistrarCliente").on("submit", async function (e) {
@@ -281,7 +218,7 @@ $(document).ready(function () {
         let vTel = validarCampoNombrePatron($("#telefono"), "telefonoVenezuela", "Revise este campo.");
 
         if (!vDoc || !vNom || !vApe || !vCor || !vTel || $("#numero_de_documento").hasClass("is-invalid")) {
-            Swal.fire({ icon: 'error', title: 'Campos Inválidos', text: 'Por favor complete correctamente las casillas resaltadas.', confirmButtonColor: '#dc3545' });
+            await errorAlert('Campos Inválidos', 'Por favor complete correctamente las casillas resaltadas.');
             return;
         }
 
@@ -290,19 +227,19 @@ $(document).ready(function () {
         try {
             const data = await apiGuardarCliente(datosEnviados);
             if (data.success) {
-                Swal.fire({ icon: 'success', title: 'Guardado', text: data.message, confirmButtonColor: '#10b981' });
+                await successAlert('Guardado', data.message);
                 debeReiniciarModal = true;
                 bootstrap.Modal.getInstance(document.getElementById('modalRegistrarCliente')).hide();
-                await cargarClientes();
+                window.recargarTablaClientes();
             } else {
-                Swal.fire({ icon: 'error', title: 'Error de Validación', text: data.message, confirmButtonColor: '#dc3545' });
+                await errorAlert('Error de Validación', data.message);
             }
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Error interno o de comunicación con el servidor.', confirmButtonColor: '#dc3545' });
+            await errorAlert('Error', 'Error interno o de comunicación con el servidor.');
         }
     });
 
-    $(document).on('click', '.btn-editar', function () {
+    $('#tablaClientes tbody').on('click', '.btn-editar', function () {
         const data = $(this).data('cliente');
         if (!data) return;
 
@@ -337,7 +274,7 @@ $(document).ready(function () {
         let vTel = validarCampoNombrePatron($("#edit_telefono"), "telefonoVenezuela", "Revise este campo.");
 
         if (!vDoc || !vNom || !vApe || !vCor || !vTel) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Campos inválidos en el formulario de edición.', confirmButtonColor: '#dc3545' });
+            await errorAlert('Error', 'Campos inválidos en el formulario de edición.');
             return;
         }
 
@@ -351,52 +288,37 @@ $(document).ready(function () {
             if (dataDup.duplicado && dataDup.id_cliente_duplicado != idCliente) {
                 inputDoc.removeClass("is-valid").addClass("is-invalid");
                 if (feedback) feedback.textContent = "Documento duplicado.";
-                Swal.fire({ icon: 'error', title: 'Documento Duplicado', text: 'Esta cédula ya pertenece a otro cliente.', confirmButtonColor: '#dc3545' });
+                await errorAlert('Documento Duplicado', 'Esta cédula ya pertenece a otro cliente.');
             } else {
                 const response = await apiGuardarCliente(datosModificados);
                 if (response.success) {
-                    Swal.fire({ icon: 'success', title: 'Actualizado', text: response.message, confirmButtonColor: '#10b981' });
+                    await successAlert('Actualizado', response.message);
                     bootstrap.Modal.getInstance(document.getElementById('modalEditarCliente')).hide();
-                    await cargarClientes();
+                    window.recargarTablaClientes();
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: response.message, confirmButtonColor: '#dc3545' });
+                    await errorAlert('Error', response.message);
                 }
             }
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Error interno o de comunicación con el servidor.', confirmButtonColor: '#dc3545' });
+            await errorAlert('Error', 'Error interno o de comunicación con el servidor.');
         }
     });
 
-    $(document).on('click', '.btn-eliminar', function () {
+    $('#tablaClientes tbody').on('click', '.btn-eliminar', async function () {
         const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
 
-        Swal.fire({
-            title: '¿Inhabilitar cliente?',
-            text: `¿Cambiar el estado de "${nombre}" a inactivo?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Inhabilitar',
-            cancelButtonText: 'Cancelar'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const data = await apiInhabilitarCliente(id);
-                    if (data.success) {
-                        Swal.fire({ icon: 'success', title: 'Inhabilitado', text: data.message, confirmButtonColor: '#10b981' });
-                        await cargarClientes();
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#dc3545' });
-                    }
-                } catch (err) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Error al procesar la inhabilitación.', confirmButtonColor: '#dc3545' });
+        confirmDeleteAlert(async () => {
+            try {
+                const data = await apiInhabilitarCliente(id);
+                if (data.success) {
+                    await successAlert('Inhabilitado', data.message);
+                    window.recargarTablaClientes();
+                } else {
+                    await errorAlert('Error', data.message);
                 }
+            } catch (err) {
+                await errorAlert('Error', 'Error al procesar la inhabilitación.');
             }
         });
     });
-
-    // Carga inicial
-    cargarClientes();
 });

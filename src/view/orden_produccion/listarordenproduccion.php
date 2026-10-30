@@ -125,7 +125,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Fecha de Inicio</label>
-                                <input type="date" class="form-control" name="fecha_de_inicio" id="fecha_de_inicio" required>
+                                <input type="date" class="form-control" name="fecha_de_inicio" id="fecha_de_inicio">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Fecha de Finalización</label>
@@ -133,7 +133,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Descripción del Pedido</label>
-                                <select class="form-select" name="id_detalle_pedido" id="id_detalle_pedido" required>
+                                <select class="form-select" name="id_detalle_pedido" id="id_detalle_pedido">
                                     <option value="">Seleccione un pedido</option>
                                     <?php if (!empty($detallesPedido)): ?>
                                         <?php foreach ($detallesPedido as $detalle): ?>
@@ -146,7 +146,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado de Producción</label>
-                                <select class="form-select" name="estado_de_produccion" id="estado_de_produccion" required>
+                                <select class="form-select" name="estado_de_produccion" id="estado_de_produccion">
                                     <option value="Planificado">Planificado</option>
                                     <option value="En Proceso">En Proceso</option>
                                     <option value="Finalizado">Finalizado</option>
@@ -218,7 +218,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado de Producción</label>
-                                <select class="form-select" name="estado_de_produccion" id="edit_estado_de_produccion" required>
+                                <select class="form-select" name="estado_de_produccion" id="edit_estado_de_produccion">
                                     <option value="Planificado">Planificado</option>
                                     <option value="En Proceso">En Proceso</option>
                                     <option value="Finalizado">Finalizado</option>

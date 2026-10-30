@@ -112,15 +112,15 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Cantidad perdida</label>
-                                <input type="number" class="form-control" name="cantidad_perdida" step="1" min="1" required placeholder="Ej: 2">
+                                <input type="number" class="form-control" name="cantidad_perdida" step="1" min="1" placeholder="Ej: 2">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Fecha de registro</label>
-                                <input type="date" class="form-control" name="fecha_de_registro" required>
+                                <input type="date" class="form-control" name="fecha_de_registro">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" required>
+                                <select class="form-select" name="id_materia_prima">
                                     <option value="">Seleccione una materia prima</option>
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
                                         <?php
@@ -137,7 +137,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Orden de producción</label>
-                                <select class="form-select" name="id_produccion" required>
+                                <select class="form-select" name="id_produccion">
                                     <option value="">Seleccione una orden</option>
                                     <?php foreach ($ordenes as $orden): ?>
                                         <?php
@@ -157,7 +157,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>
-                                <textarea class="form-control" name="motivo" rows="3" required placeholder="Describa el motivo de la pérdida o desmarque..."></textarea>
+                                <textarea class="form-control" name="motivo" rows="3" placeholder="Describa el motivo de la pérdida o desmarque..."></textarea>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Costo unitario de la materia prima</label>
@@ -192,15 +192,15 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Cantidad perdida</label>
-                                <input type="number" class="form-control" name="cantidad_perdida" id="edit_cantidad_perdida" step="1" min="1" required>
+                                <input type="number" class="form-control" name="cantidad_perdida" id="edit_cantidad_perdida" step="1" min="1">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Fecha de registro</label>
-                                <input type="date" class="form-control" name="fecha_de_registro" id="edit_fecha_de_registro" required>
+                                <input type="date" class="form-control" name="fecha_de_registro" id="edit_fecha_de_registro">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima" required>
+                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima">
                                     <option value="">Seleccione una materia prima</option>
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
                                         <?php
@@ -237,7 +237,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Motivo</label>
-                                <textarea class="form-control" name="motivo" id="edit_motivo" rows="3" required></textarea>
+                                <textarea class="form-control" name="motivo" id="edit_motivo" rows="3"></textarea>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Costo unitario de la materia prima</label>

@@ -129,7 +129,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Orden de producción</label>
-                                <select class="form-select" name="id_produccion" id="registrar_id_produccion" required>
+                                <select class="form-select" name="id_produccion" id="registrar_id_produccion">
                                     <option value="">Seleccione una orden</option>
                                     <?php $ordenes = $ordenes ?? []; ?>
                                     <?php foreach ($ordenes as $orden): ?>
@@ -154,7 +154,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cantidad usada</label>
-                                <input type="number" class="form-control" name="cantidad_usada" step="1" min="1" required placeholder="Ej. 5">
+                                <input type="number" class="form-control" name="cantidad_usada" step="1" min="1" placeholder="Ej. 5">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Descripción del consumo</label>
@@ -218,11 +218,11 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Costo unitario</label>
-                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" required readonly>
+                                <input type="number" class="form-control" name="costo_unitario" id="edit_costo_unitario" step="0.01" min="0" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cantidad usada</label>
-                                <input type="number" class="form-control" name="cantidad_usada" id="edit_cantidad_usada" step="1" min="1" required>
+                                <input type="number" class="form-control" name="cantidad_usada" id="edit_cantidad_usada" step="1" min="1">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Descripción del consumo</label>

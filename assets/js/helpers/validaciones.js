@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import { obtenerPatron } from './expresiones.js';
+import { obtenerPatron, validar } from './expresiones.js';
 
 export function obtenerFeedback($campo) {
     let $fb = $campo.siblings(".feedback-validacion");
@@ -13,17 +13,48 @@ export function obtenerFeedback($campo) {
 export function limpiarValidaciones(contenedor) {
     const $c = $(contenedor);
     $c.find(".is-valid, .is-invalid").removeClass("is-valid is-invalid");
-    $c.find(".feedback-validacion").remove();
+    $c.find(".feedback-validacion, .feedback-validación").remove();
+}
+
+export function soloNumerosTeclado(e) {
+    if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+    if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+}
+
+export function soloLetrasTeclado(e) {
+    if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter', '.'].includes(e.key)) return;
+    if (!/^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]$/.test(e.key)) e.preventDefault();
+}
+
+export function validarCampoNombrePatron(input, nombrePatron, mensajeError) {
+    if (!input || input.length === 0) return false;
+    const $input = $(input);
+    const domInput = $input[0];
+    let feedback = domInput.nextElementSibling;
+
+    if (!feedback || !feedback.classList.contains("feedback-validación")) {
+        feedback = document.createElement("small");
+        feedback.classList.add("feedback-validación", "form-text");
+        domInput.parentNode.appendChild(feedback);
+    }
+
+    const esValido = validar(nombrePatron, $input.val());
+
+    if (esValido) {
+        $input.removeClass("is-invalid").addClass("is-valid");
+        feedback.textContent = "Campo válido";
+        feedback.style.color = "#198754";
+        return true;
+    } else {
+        $input.removeClass("is-valid").addClass("is-invalid");
+        feedback.textContent = mensajeError;
+        feedback.style.color = "#dc3545";
+        return false;
+    }
 }
 
 /**
  * Valida un campo con jQuery.
- * opciones:
- *   - requerido   (bool, true)       campo obligatorio
- *   - patron      (string|RegExp)    patrón de expresiones.js o regex directo
- *   - mensaje     (string)           mensaje de formato inválido
- *   - mensajeVacio(string)           mensaje cuando está vacío
- *   - validar     (function)         validación adicional: devolver true o un string de error
  */
 export function validarCampo($campo, opciones) {
     opciones = opciones || {};

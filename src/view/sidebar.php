@@ -1,3 +1,10 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado'); 
+?>
 <link rel="stylesheet" href="assets/libs/css/sidebar.css">
 <aside class="sidebar">
     <div class="sidebar-header">
@@ -8,7 +15,6 @@
     </div>
     <nav class="sidebar-menu">
         <ul>
-
             <li>
                 <a href="index.php?controller=auth&action=dashboard" class="menu-item">
                     <img src="assets/Img/Iconos/speedometer2.svg" alt="Panel de Control" class="menu-icon">
@@ -16,6 +22,7 @@
                 </a>
             </li>
 
+            <?php if (in_array($rolActual, ['administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-empleados')">
                     <div class="trigger-left">
@@ -33,8 +40,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
-
+            <?php if (in_array($rolActual, ['contador', 'administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-inventario')">
                     <div class="trigger-left">
@@ -64,7 +72,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
+            <?php if (in_array($rolActual, ['recepcionista', 'administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-pedidos')">
                     <div class="trigger-left">
@@ -94,7 +104,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
+            <?php if (in_array($rolActual, ['recepcionista', 'administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-clientes-grupo')">
                     <div class="trigger-left">
@@ -112,7 +124,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
+            <?php if (in_array($rolActual, ['recepcionista', 'administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-produccion')">
                     <div class="trigger-left">
@@ -142,7 +156,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
+            <?php if (in_array($rolActual, ['contador', 'administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-finanzas')">
                     <div class="trigger-left">
@@ -172,7 +188,9 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
+            <?php if (in_array($rolActual, ['administrador', 'superadministrador'])): ?>
             <li class="menu-group">
                 <button type="button" class="menu-item trigger" onclick="toggleMenu('sub-usuarios')">
                     <div class="trigger-left">
@@ -190,6 +208,7 @@
                     </li>
                 </ul>
             </li>
+            <?php endif; ?>
 
             <li>
                 <a href="index.php?controller=usuario&action=perfil" class="menu-item">

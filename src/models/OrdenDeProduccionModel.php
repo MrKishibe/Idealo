@@ -163,7 +163,7 @@ class OrdenDeProduccionModel extends Database {
             throw new Exception('La fecha de inicio no tiene un formato válido (YYYY-MM-DD).');
         }
 
-        $hoy = date('Y-m-d');
+        $hoy = (new \DateTimeImmutable('now', new \DateTimeZone('America/Caracas')))->format('Y-m-d');
         if ($fecha_inicio < $hoy) {
             throw new Exception('La fecha de inicio no puede ser anterior a hoy.');
         }

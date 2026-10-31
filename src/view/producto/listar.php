@@ -33,7 +33,7 @@ if (!isset($productos)) {
                         <img src="assets/Img/Iconos/eye-slash.svg" id="iconoEstado" class="icono-svg icono-sm icono-gris me-1" alt="Icono">
                         <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
-                    <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarProducto" onclick="limpiarFormularioCrear()">
+                    <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarProducto">
                         <img src="assets/Img/Iconos/box-seam.svg" class="icono-svg icono-sm icono-blanco me-1" alt="Registrar">
                         <span>Registrar Producto</span>
                     </button>
@@ -307,7 +307,7 @@ if (!isset($productos)) {
     <script type="importmap">
         {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
     </script>
-    <script type="module" src="assets/js/productos.js"></script>
+    <script type="module" src="assets/js/productos.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/productos.js') ?>"></script>
 
 </body>
 

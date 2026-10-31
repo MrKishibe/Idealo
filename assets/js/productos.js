@@ -1,3 +1,5 @@
+import { limpiarValidaciones, validarCampo } from './helpers/validaciones.js';
+
 let tablaDataTable = null;
 let verEliminados = false;
 
@@ -78,13 +80,14 @@ $(document).ready(function () {
 
     function filtrarVistaActual() {
         if (!tablaDataTable) return;
+        const estado = verEliminados ? 'inactivo' : 'activo';
+        tablaDataTable.column(7).search(`(^|[^a-z])${estado}([^a-z]|$)`, true, false).draw();
+
         if (verEliminados) {
-            tablaDataTable.column(7).search('^inactivo$', true, false).draw();
             $('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye.svg');
             $('#tituloVista').text('Productos Inhabilitados');
         } else {
-            tablaDataTable.column(7).search('^activo$', true, false).draw();
             $('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye-slash.svg');
             $('#tituloVista').text('Catálogo de Productos');
@@ -97,22 +100,22 @@ $(document).ready(function () {
 
         let valido = true;
 
-        valido = $.validarCampo($('#' + prefijo + '_nombre_producto'), {
+        valido = validarCampo($('#' + prefijo + '_nombre_producto'), {
             patron: expNombre,
             mensaje: 'El nombre del producto debe tener entre 3 y 150 caracteres.'
         }) && valido;
 
-        valido = $.validarCampo($('#' + prefijo + '_tipo_de_prenda'), {
+        valido = validarCampo($('#' + prefijo + '_tipo_de_prenda'), {
             patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
             mensaje: 'El tipo de prenda o accesorio contiene caracteres no válidos.'
         }) && valido;
 
-        valido = $.validarCampo($('#' + prefijo + '_detalle_material'), {
+        valido = validarCampo($('#' + prefijo + '_detalle_material'), {
             patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
             mensaje: 'El detalle del material contiene caracteres no válidos.'
         }) && valido;
 
-        valido = $.validarCampo($('#' + prefijo + '_color'), {
+        valido = validarCampo($('#' + prefijo + '_color'), {
             patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
             mensaje: 'El color contiene caracteres no válidos.'
         }) && valido;
@@ -162,7 +165,7 @@ $(document).ready(function () {
     function limpiarFormularioCrear() {
         const $form = $('#formRegistrarProducto');
         if ($form.length) $form.trigger('reset');
-        $.limpiarValidaciones('#formRegistrarProducto');
+        limpiarValidaciones('#formRegistrarProducto');
 
         const $regTipo = $('#reg_tipo_de_producto');
         if ($regTipo.length) {
@@ -215,7 +218,7 @@ $(document).ready(function () {
         $('#edit_activo_detalle_material').val(material);
         $('#edit_activo_color').val(color);
         $('#edit_activo_status_producto').val('activo');
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         actualizarCamposPorTipo('edit', tipo, tallasArray);
 
@@ -297,7 +300,7 @@ $(document).ready(function () {
 
     $('#formRegistrarProducto').on('submit', function (e) {
         e.preventDefault();
-        $.limpiarValidaciones('#formRegistrarProducto');
+        limpiarValidaciones('#formRegistrarProducto');
 
         const valido = validarFormularioProducto($('#formRegistrarProducto'));
         if (obtenerTallasSeleccionadas('reg').length === 0) {
@@ -332,7 +335,7 @@ $(document).ready(function () {
 
     $('#formEditarActivo').on('submit', function (e) {
         e.preventDefault();
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
 
         const valido = validarFormularioProducto($('#formEditarActivo'));
         if (obtenerTallasSeleccionadas('edit').length === 0) {
@@ -374,7 +377,7 @@ $(document).ready(function () {
     });
 
     $('#modalEditarActivo').on('hidden.bs.modal', function () {
-        $.limpiarValidaciones('#formEditarActivo');
+        limpiarValidaciones('#formEditarActivo');
     });
 
     initDataTable();

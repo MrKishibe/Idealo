@@ -173,10 +173,13 @@ $(document).ready(function () {
         function filtrarOpciones(filtro = '') {
             const textoFiltro = normalizar(filtro);
             const $opcionesFiltradas = $opciones.find('[data-value]');
+            let cantidadCoincidencias = 0;
             $opcionesFiltradas.each(function () {
-                $(this).toggle(normalizar(this.textContent).includes(textoFiltro));
+                const coincide = normalizar(this.textContent).includes(textoFiltro);
+                $(this).toggle(coincide);
+                if (coincide) cantidadCoincidencias++;
             });
-            $opciones.find('[data-empty-message]').prop('hidden', $opcionesFiltradas.filter(':visible').length > 0);
+            $opciones.find('[data-empty-message]').prop('hidden', cantidadCoincidencias > 0);
             $opciones.addClass('show');
             $busqueda.attr('aria-expanded', 'true');
             $opciones.find('.active').removeClass('active');
@@ -257,6 +260,113 @@ $(document).ready(function () {
         };
     }
 
+    function configurarComboboxMateriaPrima(inputSelector, idSelector, opcionesSelector) {
+        const $busqueda = $(inputSelector);
+        const $idMateriaPrima = $(idSelector);
+        const $opciones = $(opcionesSelector);
+        const $contenedor = $busqueda.closest('.materia-combobox');
+        const mensajeSeleccion = 'Seleccione una materia prima de la lista.';
+        const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+
+        function ocultarOpciones() {
+            $opciones.removeClass('show');
+            $busqueda.attr('aria-expanded', 'false').removeAttr('aria-activedescendant');
+            $opciones.find('.active').removeClass('active');
+        }
+
+        function filtrarOpciones(filtro = '') {
+            const textoFiltro = normalizar(filtro);
+            const $opcionesFiltradas = $opciones.find('[data-value]');
+            let cantidadCoincidencias = 0;
+            $opcionesFiltradas.each(function () {
+                const coincide = normalizar(this.textContent).includes(textoFiltro);
+                $(this).toggle(coincide);
+                if (coincide) cantidadCoincidencias++;
+            });
+            $opciones.find('[data-empty-message]').prop('hidden', cantidadCoincidencias > 0);
+            $opciones.addClass('show');
+            $busqueda.attr('aria-expanded', 'true');
+            $opciones.find('.active').removeClass('active');
+        }
+
+        function seleccionarOpcion($opcion) {
+            if (!$opcion.length) return;
+            $opciones.find('[data-value]').attr('aria-selected', 'false');
+            $opcion.attr('aria-selected', 'true');
+            $busqueda.val($opcion.text().trim()).get(0).setCustomValidity('');
+            $idMateriaPrima.val($opcion.data('value')).trigger('change');
+            ocultarOpciones();
+        }
+
+        $busqueda.get(0).setCustomValidity(mensajeSeleccion);
+        $busqueda.on('focus', function () {
+            filtrarOpciones(this.value);
+        }).on('input', function () {
+            $idMateriaPrima.val('').removeClass('is-valid is-invalid');
+            $opciones.find('[data-value]').attr('aria-selected', 'false');
+            this.setCustomValidity(mensajeSeleccion);
+            filtrarOpciones(this.value);
+            $idMateriaPrima.trigger('change');
+        }).on('keydown', function (event) {
+            let $visibles = $opciones.find('[data-value]:visible:not(:disabled)');
+            let indiceActivo = $visibles.index($opciones.find('.active'));
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                filtrarOpciones(this.value);
+                $visibles = $opciones.find('[data-value]:visible:not(:disabled)');
+                if (!$visibles.length) return;
+                indiceActivo = event.key === 'ArrowDown'
+                    ? (indiceActivo + 1) % $visibles.length
+                    : (indiceActivo <= 0 ? $visibles.length - 1 : indiceActivo - 1);
+                const $activo = $visibles.eq(indiceActivo);
+                $opciones.find('.active').removeClass('active');
+                $activo.addClass('active');
+                const idOpcion = `${$opciones.attr('id')}_materia_${$activo.data('value')}`;
+                $activo.attr('id', idOpcion);
+                $busqueda.attr('aria-activedescendant', idOpcion);
+            } else if (event.key === 'Enter' && $opciones.hasClass('show')) {
+                const $activo = $opciones.find('.active');
+                if ($activo.length) {
+                    event.preventDefault();
+                    seleccionarOpcion($activo);
+                }
+            } else if (event.key === 'Escape') {
+                ocultarOpciones();
+            }
+        });
+
+        $opciones.on('click', '[data-value]', function () {
+            seleccionarOpcion($(this));
+        });
+
+        $(document).on('click', function (event) {
+            if (!$contenedor[0].contains(event.target)) ocultarOpciones();
+        });
+
+        $idMateriaPrima.on('change', function () {
+            $busqueda.get(0).setCustomValidity(this.value ? '' : mensajeSeleccion);
+            validarCampo($busqueda);
+        });
+
+        return {
+            reset: function () {
+                $busqueda.val('').removeClass('is-valid is-invalid').removeAttr('style');
+                $busqueda.get(0).setCustomValidity(mensajeSeleccion);
+                $idMateriaPrima.val('').removeClass('is-valid is-invalid');
+                $opciones.find('[data-value]').attr('aria-selected', 'false');
+                filtrarOpciones('');
+                ocultarOpciones();
+            },
+            seleccionar: function (idMateriaPrima) {
+                const $opcion = $opciones.find('[data-value]').filter(function () {
+                    return String($(this).data('value')) === String(idMateriaPrima);
+                }).first();
+                seleccionarOpcion($opcion);
+            }
+        };
+    }
+
     async function confirmarAccion(titulo, texto) {
         return await confirmActionAlert(titulo, texto);
     }
@@ -296,6 +406,8 @@ $(document).ready(function () {
                 $form[0].reset();
                 if ($form.is($formRegistrarPerdida)) comboboxOrdenRegistro.reset();
                 if ($form.is($formEditarPerdida)) comboboxOrdenEdicion.reset();
+                if ($form.is($formRegistrarPerdida)) comboboxMateriaRegistro.reset();
+                if ($form.is($formEditarPerdida)) comboboxMateriaEdicion.reset();
                 actualizarCostoPerdida($form);
                 limpiarValidaciones($form);
                 tablaPerdidas.ajax.reload();
@@ -323,10 +435,21 @@ $(document).ready(function () {
         '#edit_id_produccion',
         '#opciones_edit_orden_produccion'
     );
+    const comboboxMateriaRegistro = configurarComboboxMateriaPrima(
+        '#buscar_materia_prima',
+        '#id_materia_prima',
+        '#opciones_materia_prima'
+    );
+    const comboboxMateriaEdicion = configurarComboboxMateriaPrima(
+        '#buscar_edit_materia_prima',
+        '#edit_id_materia_prima',
+        '#opciones_edit_materia_prima'
+    );
 
     $('#modalRegistrarPerdida').on('show.bs.modal', function () {
         $fechaRegistro.val(obtenerFechaLocalISO());
         comboboxOrdenRegistro.reset();
+        comboboxMateriaRegistro.reset();
     });
 
     function actualizarCostoPerdida($form) {
@@ -334,12 +457,12 @@ $(document).ready(function () {
         const idMateriaPrima = String($form.find('[name="id_materia_prima"]').val() || '');
         const cantidadPerdida = Number($form.find('[name="cantidad_perdida"]').val());
         const $orden = $form.find('[data-role="orden-combobox"]');
-        const $materiaPrima = $form.find('[name="id_materia_prima"]');
+        const $materiaPrima = $form.find('[data-role="materia-combobox"]');
         const $costoUnitario = $form.find('[data-role="costo-unitario"]');
         const $costoTotal = $form.find('[name="costo_total_perdida"]');
 
         $orden[0].setCustomValidity(idProduccion ? '' : 'Seleccione una orden de producción de la lista.');
-        $materiaPrima[0].setCustomValidity('');
+        $materiaPrima[0].setCustomValidity(idMateriaPrima ? '' : 'Seleccione una materia prima de la lista.');
         $costoUnitario.val('');
         $costoTotal.val('');
 
@@ -375,7 +498,7 @@ $(document).ready(function () {
         $form.on('change input', '[name="id_produccion"], [name="id_materia_prima"], [name="cantidad_perdida"]', function () {
             actualizarCostoPerdida($form);
             validarCampo($form.find('[data-role="orden-combobox"]'));
-            validarCampo($form.find('[name="id_materia_prima"]'));
+            validarCampo($form.find('[data-role="materia-combobox"]'));
         });
     });
 
@@ -448,7 +571,8 @@ $(document).ready(function () {
         $('#edit_fecha_de_registro').val($boton.attr('data-fecha') || '');
         comboboxOrdenEdicion.reset();
         comboboxOrdenEdicion.seleccionar($boton.attr('data-id_produccion') || '');
-        $('#edit_id_materia_prima').val($boton.attr('data-id_materia_prima') || '');
+        comboboxMateriaEdicion.reset();
+        comboboxMateriaEdicion.seleccionar($boton.attr('data-id_materia_prima') || '');
         $('#edit_costo_total_perdida').val($boton.attr('data-costo-total') || '');
         actualizarCostoPerdida($formEditarPerdida);
         $('#edit_motivo').val($boton.attr('data-motivo') || '');

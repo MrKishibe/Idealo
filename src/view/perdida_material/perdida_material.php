@@ -120,9 +120,11 @@
                                 <input type="date" class="form-control" name="fecha_de_registro" id="fecha_registro_perdida">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima">
-                                    <option value="">Seleccione una materia prima</option>
+                                <label class="form-label" for="buscar_materia_prima">Materia prima</label>
+                                <div class="materia-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_materia_prima" data-role="materia-combobox" required>
+                                    <input type="hidden" name="id_materia_prima" id="id_materia_prima">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
                                         <?php
                                         $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
@@ -130,11 +132,13 @@
                                             $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
                                         }
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
+                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
                                             <?php echo htmlspecialchars($labelMateriaPrima); ?>
-                                        </option>
+                                        </button>
                                     <?php endforeach; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay materias primas que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_orden_produccion">Orden de producción</label>
@@ -204,9 +208,11 @@
                                 <input type="date" class="form-control" name="fecha_de_registro" id="edit_fecha_de_registro">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Materia prima</label>
-                                <select class="form-select" name="id_materia_prima" id="edit_id_materia_prima">
-                                    <option value="">Seleccione una materia prima</option>
+                                <label class="form-label" for="buscar_edit_materia_prima">Materia prima</label>
+                                <div class="materia-combobox position-relative">
+                                    <input type="search" class="form-control" id="buscar_edit_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_materia_prima" data-role="materia-combobox" required>
+                                    <input type="hidden" name="id_materia_prima" id="edit_id_materia_prima">
+                                    <div class="dropdown-menu w-100 p-0" id="opciones_edit_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
                                         <?php
                                         $labelMateriaPrima = $materiaPrima['nombre_materia_prima'];
@@ -214,11 +220,13 @@
                                             $labelMateriaPrima .= ' (' . $materiaPrima['unidad_de_medida'] . ')';
                                         }
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
+                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($materiaPrima['id_materia_prima']); ?>">
                                             <?php echo htmlspecialchars($labelMateriaPrima); ?>
-                                        </option>
+                                        </button>
                                     <?php endforeach; ?>
-                                </select>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay materias primas que coincidan.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_edit_orden_produccion">Orden de producción</label>

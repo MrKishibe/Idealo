@@ -36,7 +36,7 @@ if (!isset($roles)) {
                         <img src="assets/Img/Iconos/eye-slash.svg" id="iconoEstado" class="icono-svg icono-sm icono-gris me-1" alt="Icono">
                         <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
-                    <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarUsuario" onclick="limpiarFormularioCrear()">
+                    <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarUsuario">
                         <img src="assets/Img/Iconos/person-plus-fill.svg" class="icono-svg icono-sm icono-blanco me-1" alt="Registrar">
                         <span>Registrar Usuario</span>
                     </button>
@@ -286,9 +286,9 @@ if (!isset($roles)) {
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script type="importmap">
-        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
     </script>
-    <script type="module" src="assets/js/usuario.js"></script>
+    <script type="module" src="assets/js/usuario.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/usuario.js') ?>"></script>
 
 </body>
 

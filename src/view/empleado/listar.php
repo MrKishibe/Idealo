@@ -300,7 +300,7 @@ if (!isset($empleados)) {
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script type="importmap">
-        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
     </script>
     <script type="module" src="assets/js/empleado.js"></script>
 

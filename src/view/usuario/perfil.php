@@ -8,6 +8,10 @@ $subRol          = ucfirst($perfil['tipo_de_usuario'] ?? 'Sin rol');
 $estadoReal      = strtolower($perfil['status_usuario'] ?? 'activo');
 $estadoBadge     = $estadoReal === 'activo' ? 'bg-success' : 'bg-danger';
 $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
+
+$imagenPerfil = trim($perfil['imagen'] ?? '');
+$tieneFoto    = $imagenPerfil !== '' && is_file(__DIR__ . '/../../../' . ltrim($imagenPerfil, '/'));
+$rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -104,6 +108,7 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
             align-items: center;
             box-shadow: var(--shadow-md);
             transition: var(--transition-smooth);
+            position: relative;
         }
 
         .profile-card:hover .profile-avatar {
@@ -113,6 +118,75 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
         .profile-avatar img {
             width: 72px;
             height: 72px;
+        }
+
+        .profile-avatar img.perfil-foto {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .btn-foto-perfil {
+            position: absolute;
+            right: 3px;
+            bottom: 3px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 3px solid var(--blanco);
+            background-color: var(--verde-opaco);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-fast);
+            padding: 0;
+            z-index: 2;
+        }
+
+        .btn-foto-perfil:hover,
+        .btn-foto-perfil:focus-visible {
+            background-color: var(--azul-opaco);
+            transform: scale(1.08);
+            outline: none;
+        }
+
+        .btn-foto-perfil img {
+            width: 18px;
+            height: 18px;
+            filter: brightness(0) invert(1);
+        }
+
+        .profile-avatar.cargando-foto::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 3;
+        }
+
+        .profile-avatar.cargando-foto::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            margin: -15px 0 0 -15px;
+            border: 3px solid var(--verde-glow);
+            border-top-color: var(--verde-opaco);
+            border-radius: 50%;
+            animation: girarFotoPerfil 0.8s linear infinite;
+            z-index: 4;
+        }
+
+        @keyframes girarFotoPerfil {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .profile-header-text {
@@ -217,7 +291,105 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
             transform: translateY(-2px);
         }
 
+        /* Recorte de foto de perfil */
+        .recorte-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .recorte-viewport {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            max-width: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--gris-sidebar);
+            touch-action: none;
+            cursor: grab;
+            user-select: none;
+            box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.35), var(--shadow-md);
+        }
+
+        .recorte-viewport.arrastrando {
+            cursor: grabbing;
+        }
+
+        .recorte-viewport:focus-visible {
+            outline: 3px solid var(--verde-opaco);
+            outline-offset: 4px;
+        }
+
+        .recorte-viewport img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            max-width: none;
+            transform-origin: center;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        .recorte-viewport::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .recorte-preview-wrap {
+            text-align: center;
+        }
+
+        .recorte-preview-wrap span {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--gris-mutado);
+        }
+
+        #recortePreview {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            background-color: var(--blanco);
+            border: 4px solid var(--blanco);
+            box-shadow: var(--shadow-md);
+        }
+
+        .recorte-controles {
+            margin-top: 22px;
+        }
+
+        .recorte-controles .form-label {
+            font-weight: 600;
+            color: var(--gris-texto);
+        }
+
+        .recorte-controles .form-text {
+            font-size: 0.8rem;
+        }
+
         @media (max-width: 576px) {
+            .recorte-viewport {
+                width: 240px;
+                height: 240px;
+            }
+
+            #recortePreview {
+                width: 96px;
+                height: 96px;
+            }
+
             .profile-body {
                 padding: 20px;
             }
@@ -275,8 +447,16 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
                         <div class="profile-body">
 
                             <div class="profile-avatar-wrapper">
-                                <div class="profile-avatar">
-                                    <img src="assets/Img/Iconos/person-fill.svg" class="icono-svg icono-gris" alt="Avatar">
+                                <div class="profile-avatar" id="perfilAvatar">
+                                    <img id="perfilAvatarImg"
+                                        src="<?php echo htmlspecialchars($rutaFoto); ?>"
+                                        class="<?php echo $tieneFoto ? 'perfil-foto' : 'icono-svg icono-gris'; ?>"
+                                        alt="Foto de perfil">
+                                    <button type="button" class="btn-foto-perfil" id="btnCambiarFoto"
+                                        title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil">
+                                        <img src="assets/Img/Iconos/camera-fill.svg" alt="">
+                                    </button>
+                                    <input type="file" id="inputFotoPerfil" accept="image/jpeg,image/png,image/webp" hidden>
                                 </div>
                             </div>
 
@@ -360,10 +540,13 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
                             <hr class="profile-separator">
 
                             <div class="profile-actions">
+                                <button type="button" class="btn-idealo-secondary" id="btnCambiarFotoAccion">
+                                    <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris" alt="Cambiar foto"> Cambiar Foto
+                                </button>
                                 <button class="btn-idealo-secondary" data-bs-toggle="modal" data-bs-target="#modalCambiarContrasena">
                                     <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-gris" alt="Cambiar contraseña"> Cambiar Contraseña
                                 </button>
-                                <button class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalEditarPerfil" onclick="cargarPerfilEdicion()">
+                                <button class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalEditarPerfil">
                                     <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-blanco" alt="Editar perfil"> Editar Perfil
                                 </button>
                             </div>
@@ -448,10 +631,47 @@ $tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
         </div>
     </div>
 
+    <!-- MODAL RECORTAR FOTO -->
+    <div class="modal fade modal-idealo" id="modalRecortarFoto" tabindex="-1" aria-labelledby="tituloRecortarFoto" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="tituloRecortarFoto">
+                        <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-sm icono-gris" alt="">
+                        <span>Ajustar Foto de Perfil</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="recorte-layout">
+                        <div class="recorte-viewport" id="recorteViewport" tabindex="0"
+                            role="application" aria-label="Área de recorte. Arrastra o usa las flechas para centrar la imagen.">
+                            <img id="recorteImagen" alt="Vista de recorte" draggable="false">
+                        </div>
+                        <div class="recorte-preview-wrap">
+                            <span>Vista previa</span>
+                            <canvas id="recortePreview" width="128" height="128"
+                                role="img" aria-label="Vista previa de la foto recortada"></canvas>
+                        </div>
+                    </div>
+                    <div class="recorte-controles">
+                        <label for="recorteZoom" class="form-label">Zoom</label>
+                        <input type="range" class="form-range" id="recorteZoom" min="1" max="3" step="0.01" value="1" disabled>
+                        <div class="form-text">Arrastra la imagen para centrarla y ajusta el zoom a tu gusto.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnConfirmarRecorte" disabled>Confirmar Foto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-    <script src="assets/js/perfil.js"></script>
+    <script src="assets/js/perfil.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/perfil.js') ?>"></script>
 
 </body>
 

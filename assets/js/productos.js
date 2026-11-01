@@ -1,385 +1,344 @@
-import { limpiarValidaciones, validarCampo } from './helpers/validaciones.js';
-
-let tablaDataTable = null;
-let verEliminados = false;
+import $ from 'jquery';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
+import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
+import { limpiarValidaciones } from './helpers/validaciones.js';
 
 const CONFIG_TALLAS = {
-    "Ropa": {
-        tallas: ["s", "m", "l", "xl", "xxl"],
-        lblPrenda: "Tipo de Prenda",
-        placeholderPrenda: "Ej: Camiseta, Camisa, Pantalón",
-        placeholderMaterial: "Ej: Algodón, Poliéster, Lino",
-        lblTalla: "Tallas disponibles (Ropa)"
+    Ropa: {
+        tallas: ['s', 'm', 'l', 'xl', 'xxl'],
+        lblPrenda: 'Tipo de Prenda',
+        placeholderPrenda: 'Ej: Camiseta, Camisa, Pantalón',
+        placeholderMaterial: 'Ej: Algodón, Poliéster, Lino',
+        lblTalla: 'Tallas disponibles (Ropa)'
     },
-    "Accesorio": {
-        tallas: ["pequeño", "mediano", "grande", "extragrande"],
-        lblPrenda: "Tipo de Accesorio",
-        placeholderPrenda: "Ej: Bolso, Gorra, Mochila, Cartera",
-        placeholderMaterial: "Ej: Cuero, Lona, Sintético, Metal",
-        lblTalla: "Tamaños / Medidas (Accesorio)"
+    Accesorio: {
+        tallas: ['pequeño', 'mediano', 'grande', 'extragrande'],
+        lblPrenda: 'Tipo de Accesorio',
+        placeholderPrenda: 'Ej: Bolso, Gorra, Mochila, Cartera',
+        placeholderMaterial: 'Ej: Cuero, Lona, Sintético, Metal',
+        lblTalla: 'Tamaños / Medidas (Accesorio)'
     }
 };
 
-$(document).ready(function () {
+const CAMPOS_TIPO = {
+    reg: {
+        label: 'reg_lbl_subtipo', prenda: 'reg_tipo_de_prenda', material: 'reg_detalle_material',
+        tallaLabel: 'reg_lbl_talla', contenedor: 'reg_contenedor_tallas'
+    },
+    edit: {
+        label: 'edit_lbl_subtipo', prenda: 'edit_activo_tipo_de_prenda', material: 'edit_activo_detalle_material',
+        tallaLabel: 'edit_lbl_talla', contenedor: 'edit_contenedor_tallas'
+    }
+};
 
-    const URL_PRODUCTO = 'index.php?controller=producto';
+$(function () {
+    const URL = 'index.php?controller=producto';
+    let tabla = null;
+    let verInactivos = false;
 
-    function initDataTable() {
-        const tabla = $('#tablaProductos');
-        if ($.fn.DataTable.isDataTable('#tablaProductos')) {
-            tabla.DataTable().destroy();
-            tablaDataTable = null;
-        }
+    const REGLAS = {
+        nombre_producto: {
+            patron: obtenerPatron('producto'),
+            mensaje: 'El nombre del producto debe tener entre 3 y 150 caracteres.',
+            mensajeVacio: 'El nombre del producto es obligatorio.'
+        },
+        tipo_de_prenda: {
+            patron: obtenerPatron('detalleProducto'),
+            mensaje: 'El tipo de prenda o accesorio contiene caracteres no válidos.',
+            mensajeVacio: 'El tipo de prenda o accesorio es obligatorio.'
+        },
+        detalle_material: {
+            patron: obtenerPatron('detalleProducto'),
+            mensaje: 'El detalle del material contiene caracteres no válidos.',
+            mensajeVacio: 'El detalle del material es obligatorio.'
+        },
+        color: {
+            patron: obtenerPatron('detalleProducto'),
+            mensaje: 'El color contiene caracteres no válidos.',
+            mensajeVacio: 'El color es obligatorio.'
+        },
+        tipo_de_producto: { mensajeVacio: 'Seleccione un tipo de producto.' }
+    };
 
-        tablaDataTable = tabla.DataTable({
-            language: {
-                lengthMenu: "Mostrar _MENU_ registros",
-                zeroRecords: "No se encontraron resultados",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de un total de _MAX_ registros)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                }
-            },
-            pageLength: 10,
-            responsive: true,
-            order: [[0, 'desc']]
-        });
+    const FORMS = {
+        registro: { form: '#formRegistrarProducto', prefijo: 'reg', modal: 'modalRegistrarProducto', titulo: '¡Registrado!', reiniciar: true },
+        edicion: { form: '#formEditarActivo', prefijo: 'edit', modal: 'modalEditarActivo', titulo: '¡Actualizado!', reiniciar: false }
+    };
+
+    const escapar = (texto) => $('<div>').text(texto ?? '').html();
+    const activo = (producto) => String(producto.status_producto || '').trim().toLowerCase() === 'activo';
+    const recargar = (reiniciar) => tabla.ajax.reload(null, Boolean(reiniciar));
+
+    function deFila($boton) {
+        const fila = tabla.row($boton.closest('tr'));
+        return fila && fila.data() ? fila.data() : null;
     }
 
-    function cargarProductos() {
-        $.ajax({
-            url: window.location.href,
-            type: 'GET',
-            dataType: 'html',
-            success: function (html) {
-                const doc = $('<div></div>').html(html);
-                const nuevoTbody = doc.find('#tablaProductos tbody');
-                const tbodyActual = $('#tablaProductos tbody');
+    function boton(clases, icono, alt, id) {
+        return `<button type="button" class="${clases}" data-id="${escapar(id)}" title="${alt}">` +
+            `<img src="assets/Img/Iconos/${icono}" class="icono-svg" alt="${alt}"></button>`;
+    }
 
-                if (nuevoTbody.length && tbodyActual.length) {
-                    if ($.fn.DataTable.isDataTable('#tablaProductos')) {
-                        $('#tablaProductos').DataTable().destroy();
-                        tablaDataTable = null;
-                    }
-                    tbodyActual.html(nuevoTbody.html());
-                    initDataTable();
-                    filtrarVistaActual();
-                }
-            },
-            error: function () {
-                location.reload();
+    function reactivar(id) {
+        return `<button type="button" class="btn-accion-reactivar btnEditarInactivo" data-id="${escapar(id)}">` +
+            '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">' +
+            '<span>Editar / Reactivar</span></button>';
+    }
+
+    function badgeEstado(valor) {
+        return activo({ status_producto: valor })
+            ? '<span class="badge bg-success">Activo</span>'
+            : '<span class="badge bg-danger">Inactivo</span>';
+    }
+
+    function badgeTallas(tallas) {
+        const lista = Array.isArray(tallas) ? tallas : [];
+        if (!lista.length) return '<span class="text-muted small">Sin tallas</span>';
+
+        return '<div class="d-flex flex-wrap gap-1">' + $.map(lista, (talla) =>
+            '<span class="badge bg-light text-primary border px-2 py-1" style="text-transform: uppercase;">' +
+            escapar(talla) + '</span>').join('') + '</div>';
+    }
+
+    function acciones(producto) {
+        const botones = activo(producto)
+            ? boton('btn-accion-edit btnEditarActivo', 'pencil-square.svg', 'Editar Producto', producto.id_producto) +
+              boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Producto', producto.id_producto)
+            : reactivar(producto.id_producto);
+
+        return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
+    }
+
+    async function peticion(url, datos, titulo) {
+        try {
+            const respuesta = await $.ajax({ url, type: 'POST', dataType: 'json', data: datos });
+
+            if (respuesta.status !== 'success') {
+                await errorAlert('Error', respuesta.message || 'No se pudo completar la operación.');
+                return null;
             }
-        });
-    }
 
-    function filtrarVistaActual() {
-        if (!tablaDataTable) return;
-        const estado = verEliminados ? 'inactivo' : 'activo';
-        tablaDataTable.column(7).search(`(^|[^a-z])${estado}([^a-z]|$)`, true, false).draw();
-
-        if (verEliminados) {
-            $('#txtBotonEstado').text('Ver Activos');
-            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye.svg');
-            $('#tituloVista').text('Productos Inhabilitados');
-        } else {
-            $('#txtBotonEstado').text('Ver inhabilitados');
-            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye-slash.svg');
-            $('#tituloVista').text('Catálogo de Productos');
+            await successAlert(titulo, respuesta.message);
+            return respuesta;
+        } catch (error) {
+            await errorAlert('Error', 'No se pudo conectar con el servidor.');
+            return null;
         }
     }
 
     function validarFormularioProducto($form) {
-        const prefijo = $form.is('#formRegistrarProducto') ? 'reg' : 'edit_activo';
-        const expNombre = /^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ\s.,#\-]{3,150}$/;
-
         let valido = true;
 
-        valido = validarCampo($('#' + prefijo + '_nombre_producto'), {
-            patron: expNombre,
-            mensaje: 'El nombre del producto debe tener entre 3 y 150 caracteres.'
-        }) && valido;
-
-        valido = validarCampo($('#' + prefijo + '_tipo_de_prenda'), {
-            patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
-            mensaje: 'El tipo de prenda o accesorio contiene caracteres no válidos.'
-        }) && valido;
-
-        valido = validarCampo($('#' + prefijo + '_detalle_material'), {
-            patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
-            mensaje: 'El detalle del material contiene caracteres no válidos.'
-        }) && valido;
-
-        valido = validarCampo($('#' + prefijo + '_color'), {
-            patron: /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s.,#\-/&()']{1,150}$/,
-            mensaje: 'El color contiene caracteres no válidos.'
-        }) && valido;
+        $form.find('input, select').each(function () {
+            if (!validarCampoProducto($(this))) valido = false;
+        });
 
         return valido;
     }
 
-    function actualizarCamposPorTipo(prefix, tipo, tallasSeleccionadas = []) {
-        const tipoKey = (tipo.toLowerCase().includes('accesorio')) ? 'Accesorio' : 'Ropa';
-        const config = CONFIG_TALLAS[tipoKey];
-
-        const $lblPrenda = $('#' + prefix + '_lbl_subtipo');
-        const $inputPrenda = $('#' + prefix + '_tipo_de_prenda');
-        const $inputMaterial = $('#' + prefix + '_detalle_material');
-        const $lblTalla = $('#' + prefix + '_lbl_talla');
-        const $contenedorTallas = $('#' + prefix + '_contenedor_tallas');
-
-        if ($lblPrenda.length) $lblPrenda.text(config.lblPrenda);
-        if ($inputPrenda.length) $inputPrenda.attr('placeholder', config.placeholderPrenda);
-        if ($inputMaterial.length) $inputMaterial.attr('placeholder', config.placeholderMaterial);
-        if ($lblTalla.length) $lblTalla.text(config.lblTalla);
-
-        if ($contenedorTallas.length) {
-            $contenedorTallas.empty();
-            config.tallas.forEach((talla, index) => {
-                const idCheck = prefix + '_talla_' + index + '_' + talla;
-                const estaMarcada = tallasSeleccionadas.some(t => t.toLowerCase() === talla.toLowerCase());
-
-                $contenedorTallas.append(
-                    $('<input>').attr('type', 'checkbox').addClass('btn-check').attr('name', 'tallas[]').attr('id', idCheck).attr('value', talla).attr('autocomplete', 'off').prop('checked', estaMarcada),
-                    $('<label>').addClass('btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold').attr('for', idCheck).text(talla.toUpperCase())
-                );
-            });
-        }
+    function validarCampoProducto($campo) {
+        const campo = String($campo.attr('id') || '').replace(/^(?:reg_|edit_activo_)/, '');
+        return REGLAS[campo] ? validarCampo($campo, REGLAS[campo]) : true;
     }
 
-    function obtenerTallasSeleccionadas(prefix) {
-        const $contenedor = $('#' + prefix + '_contenedor_tallas');
-        if ($contenedor.length === 0) return [];
-        const tallas = [];
-        $contenedor.find('input[name="tallas[]"]:checked').each(function () {
-            tallas.push($(this).val());
+    function actualizarCamposPorTipo(prefijo, tipo, tallasSeleccionadas = []) {
+        const campos = CAMPOS_TIPO[prefijo];
+        const config = CONFIG_TALLAS[String(tipo || '').toLowerCase().includes('accesorio') ? 'Accesorio' : 'Ropa'];
+
+        $('#' + campos.label).text(config.lblPrenda);
+        $('#' + campos.prenda).attr('placeholder', config.placeholderPrenda);
+        $('#' + campos.material).attr('placeholder', config.placeholderMaterial);
+        $('#' + campos.tallaLabel).text(config.lblTalla);
+
+        const $contenedor = $('#' + campos.contenedor);
+        if (!$contenedor.length) return;
+
+        $contenedor.empty();
+
+        $.each(config.tallas, function (indice, talla) {
+            const id = `${prefijo}_talla_${indice}_${talla}`;
+            const marcada = $.grep(tallasSeleccionadas, (seleccionada) =>
+                String(seleccionada).toLowerCase() === talla.toLowerCase()).length > 0;
+
+            $contenedor.append(
+                $('<input>', { type: 'checkbox', class: 'btn-check', name: 'tallas[]', id, value: talla, autocomplete: 'off' })
+                    .prop('checked', marcada),
+                $('<label>', {
+                    class: 'btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold',
+                    for: id,
+                    text: talla.toUpperCase()
+                })
+            );
         });
-        return tallas;
+    }
+
+    function obtenerTallasSeleccionadas(prefijo) {
+        const campos = CAMPOS_TIPO[prefijo];
+        return $('#' + campos.contenedor + ' input[name="tallas[]"]:checked').map(function () {
+            return $(this).val();
+        }).get();
     }
 
     function limpiarFormularioCrear() {
         const $form = $('#formRegistrarProducto');
-        if ($form.length) $form.trigger('reset');
-        limpiarValidaciones('#formRegistrarProducto');
-
-        const $regTipo = $('#reg_tipo_de_producto');
-        if ($regTipo.length) {
-            $regTipo.val('Ropa');
-            actualizarCamposPorTipo('reg', 'Ropa');
-        }
-        $('#reg_contenedor_tallas').find('input[name="tallas[]"]').prop('checked', false);
+        $form[0].reset();
+        limpiarValidaciones($form);
+        $('#reg_tipo_de_producto').val('Ropa');
+        actualizarCamposPorTipo('reg', 'Ropa');
     }
 
-    $('#btnAlternarEstado').on('click', function () {
-        verEliminados = !verEliminados;
-        if (verEliminados) {
-            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
-        } else {
-            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
+    async function guardarProducto(config) {
+        const $form = $(config.form);
+        limpiarValidaciones($form);
+
+        if (!validarFormularioProducto($form)) {
+            return errorAlert('Datos inválidos', 'Revise los campos marcados en rojo.');
         }
-        filtrarVistaActual();
+
+        if (obtenerTallasSeleccionadas(config.prefijo).length === 0) {
+            return errorAlert('Talla requerida', 'Debe seleccionar al menos una talla o medida para el producto.');
+        }
+
+        const respuesta = await peticion(URL + '&action=guardar', $form.serialize(), config.titulo);
+        if (!respuesta) return;
+
+        $('#' + config.modal).modal('hide');
+        recargar(config.reiniciar);
+    }
+
+    async function cambiarEstado(id, estado, modal, titulo) {
+        const respuesta = await peticion(URL + '&action=cambiarEstado', { id_producto: id, status_producto: estado }, titulo);
+        if (!respuesta) return;
+
+        if (modal) $('#' + modal).modal('hide');
+        recargar();
+    }
+
+    // Validación en vivo
+    $('#modalRegistrarProducto, #modalEditarActivo').on('input change', 'input, select', function () {
+        const $campo = $(this);
+        if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
+
+        validarCampoProducto($campo);
     });
 
+    // Activos / inhabilitados
+    $('#btnAlternarEstado').on('click', function () {
+        verInactivos = !verInactivos;
+        $(this).toggleClass('btn-outline-secondary', !verInactivos).toggleClass('btn-secondary', verInactivos);
+        $('#txtBotonEstado').text(verInactivos ? 'Ver Activos' : 'Ver inhabilitados');
+        $('#iconoEstado').attr('src', verInactivos ? 'assets/Img/Iconos/eye.svg' : 'assets/Img/Iconos/eye-slash.svg');
+        $('#tituloVista').text(verInactivos ? 'Productos Inhabilitados' : 'Catálogo de Productos');
+        recargar(true);
+    });
+
+    // Cambios de tipo y selección de tallas
     $('#reg_tipo_de_producto').on('change', function () {
         actualizarCamposPorTipo('reg', this.value);
     });
 
     $('#edit_activo_tipo_de_producto').on('change', function () {
-        const seleccionadas = obtenerTallasSeleccionadas('edit');
-        actualizarCamposPorTipo('edit', this.value, seleccionadas);
+        actualizarCamposPorTipo('edit', this.value, obtenerTallasSeleccionadas('edit'));
     });
 
-    $('#modalRegistrarProducto, #modalEditarActivo').on('input change', 'input, select', function () {
-        const $campo = $(this);
-        if ($campo.hasClass('is-invalid')) {
-            validarFormularioProducto($campo.closest('form'));
-        }
+    $('#modalRegistrarProducto, #modalEditarActivo').on('click', '.btnSeleccionarTallas, .btnLimpiarTallas', function () {
+        const $boton = $(this);
+        const marcar = $boton.hasClass('btnSeleccionarTallas');
+        $('#' + $boton.data('prefijo') + '_contenedor_tallas input[name="tallas[]"]').prop('checked', marcar);
     });
 
-    $(document).on('click', '.btnEditarActivo', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-        const tipo = $(this).data('tipo') || 'Ropa';
-        const prenda = $(this).data('prenda');
-        const material = $(this).data('material');
-        const color = $(this).data('color');
-        const tallasStr = $(this).data('tallas') || '';
-        const tallasArray = tallasStr ? tallasStr.toString().split(',').map(s => s.trim()) : [];
-
-        $('#edit_activo_id_producto').val(id);
-        $('#edit_activo_nombre_producto').val(nombre);
-        $('#edit_activo_tipo_de_producto').val(tipo);
-        $('#edit_activo_tipo_de_prenda').val(prenda);
-        $('#edit_activo_detalle_material').val(material);
-        $('#edit_activo_color').val(color);
-        $('#edit_activo_status_producto').val('activo');
-        limpiarValidaciones('#formEditarActivo');
-
-        actualizarCamposPorTipo('edit', tipo, tallasArray);
-
-        $('#modalEditarActivo').modal('show');
-    });
-
-    $(document).on('click', '.btnEditarInactivo', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-
-        $('#edit_inactivo_id_producto').val(id);
-        $('#edit_inactivo_nombre').val(nombre);
-        $('#edit_inactivo_status').val('inactivo');
-        $('#modalEditarInactivo').modal('show');
-    });
-
-    $('#btnGuardarEdicionInactivo').on('click', function () {
-        const id = $('#edit_inactivo_id_producto').val();
-        const nuevoEstado = $('#edit_inactivo_status').val();
-
-        if (nuevoEstado === 'inactivo') {
-            $('#modalEditarInactivo').modal('hide');
-            return;
-        }
-
-        $.ajax({
-            url: URL_PRODUCTO + '&action=cambiarEstado',
-            type: 'POST',
-            data: { id_producto: id, status_producto: nuevoEstado },
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalEditarInactivo').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Reactivado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarProductos());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
-    });
-
-    $(document).on('click', '.btnCambiarEstado', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-
-        Swal.fire({
-            title: '¿Inactivar producto?',
-            text: 'El producto "' + nombre + '" y sus variantes pasarán a la sección de inhabilitados.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Sí, inactivar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: URL_PRODUCTO + '&action=cambiarEstado',
-                    type: 'POST',
-                    data: { id_producto: id, status_producto: 'inactivo' },
-                    dataType: 'json',
-                    success: function (data) {
-                        if (data.status === 'success') {
-                            Swal.fire({ icon: 'success', title: '¡Inactivado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarProductos());
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-                    }
-                });
-            }
-        });
-    });
+    // Registrar
+    $('#modalRegistrarProducto').on('show.bs.modal hidden.bs.modal', limpiarFormularioCrear);
 
     $('#formRegistrarProducto').on('submit', function (e) {
         e.preventDefault();
-        limpiarValidaciones('#formRegistrarProducto');
+        guardarProducto(FORMS.registro);
+    });
 
-        const valido = validarFormularioProducto($('#formRegistrarProducto'));
-        if (obtenerTallasSeleccionadas('reg').length === 0) {
-            Swal.fire({ icon: 'warning', title: 'Talla requerida', text: 'Debe seleccionar al menos una talla o medida para el producto.' });
-            return;
-        }
-        if (!valido) {
-            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
-            return;
-        }
+    // Editar activo
+    $('#tablaProductos tbody').on('click', '.btnEditarActivo', function () {
+        const producto = deFila($(this));
+        if (!producto) return;
 
-        $.ajax({
-            url: URL_PRODUCTO + '&action=guardar',
-            type: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalRegistrarProducto').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarProductos());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
+        $('#edit_activo_id_producto').val(producto.id_producto);
+        $('#edit_activo_nombre_producto').val(producto.nombre_producto);
+        $('#edit_activo_tipo_de_producto').val(producto.tipo_de_producto);
+        $('#edit_activo_tipo_de_prenda').val(producto.tipo_de_prenda);
+        $('#edit_activo_detalle_material').val(producto.detalle_material);
+        $('#edit_activo_color').val(producto.color);
+        $('#edit_activo_status_producto').val('activo');
+        limpiarValidaciones('#formEditarActivo');
+
+        actualizarCamposPorTipo('edit', producto.tipo_de_producto, producto.tallas_array || []);
+        $('#modalEditarActivo').modal('show');
     });
 
     $('#formEditarActivo').on('submit', function (e) {
         e.preventDefault();
-        limpiarValidaciones('#formEditarActivo');
+        guardarProducto(FORMS.edicion);
+    });
 
-        const valido = validarFormularioProducto($('#formEditarActivo'));
-        if (obtenerTallasSeleccionadas('edit').length === 0) {
-            Swal.fire({ icon: 'warning', title: 'Talla requerida', text: 'Debe seleccionar al menos una talla o medida para el producto.' });
+    // Inactivar
+    $('#tablaProductos tbody').on('click', '.btnCambiarEstado', async function () {
+        const producto = deFila($(this));
+        if (!producto) return;
+
+        const confirmacion = await confirmActionAlert(
+            '¿Inactivar producto?',
+            'El producto "' + producto.nombre_producto + '" y sus variantes pasarán a la sección de inhabilitados.'
+        );
+
+        if (confirmacion.isConfirmed) await cambiarEstado(producto.id_producto, 'inactivo', null, '¡Inactivado!');
+    });
+
+    // Editar / reactivar inactivo
+    $('#tablaProductos tbody').on('click', '.btnEditarInactivo', function () {
+        const producto = deFila($(this));
+        if (!producto) return;
+
+        $('#edit_inactivo_id_producto').val(producto.id_producto);
+        $('#edit_inactivo_nombre').val(producto.nombre_producto);
+        $('#edit_inactivo_status').val('inactivo');
+        $('#modalEditarInactivo').modal('show');
+    });
+
+    $('#btnGuardarEdicionInactivo').on('click', async function () {
+        const id = $('#edit_inactivo_id_producto').val();
+        const estado = $('#edit_inactivo_status').val();
+
+        if (estado === 'inactivo') {
+            $('#modalEditarInactivo').modal('hide');
             return;
         }
-        if (!valido) {
-            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
-            return;
-        }
 
-        $.ajax({
-            url: URL_PRODUCTO + '&action=guardar',
-            type: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalEditarActivo').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Actualizado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarProductos());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
+        const confirmacion = await confirmActionAlert('¿Reactivar producto?', 'El producto volverá a estar activo en el catálogo.');
+        if (confirmacion.isConfirmed) await cambiarEstado(id, estado, 'modalEditarInactivo', '¡Reactivado!');
     });
 
-    $('#modalRegistrarProducto').on('show.bs.modal', function () {
-        limpiarFormularioCrear();
+    // Tabla
+    tabla = $('#tablaProductos').DataTable({
+        ajax: {
+            url: URL + '&action=listarProductosAjax',
+            dataSrc: (json) => $.grep(json && json.productos ? json.productos : [], (producto) => verInactivos ? !activo(producto) : activo(producto))
+        },
+        columns: [
+            { data: 'id_producto', render: (id, tipo) => tipo === 'display' ? `<code>#${escapar(id)}</code>` : id },
+            { data: 'nombre_producto', className: 'fw-bold text-dark', render: escapar },
+            { data: 'tipo_de_producto', render: escapar },
+            { data: 'tipo_de_prenda', render: (valor) => escapar(valor || 'N/A') },
+            { data: 'detalle_material', render: (valor) => escapar(valor || 'N/A') },
+            { data: 'color', render: (valor) => escapar(valor || 'N/A') },
+            { data: 'tallas_array', render: badgeTallas },
+            { data: 'status_producto', render: badgeEstado },
+            { data: null, orderable: false, render: acciones }
+        ],
+        columnDefs: [
+            { targets: 0, type: 'num' },
+            { targets: [6, 8], orderable: false }
+        ],
+        language: lenguajeDataTableEs,
+        pageLength: 10,
+        order: [[0, 'desc']]
     });
-
-    $('#modalRegistrarProducto').on('hidden.bs.modal', function () {
-        limpiarFormularioCrear();
-    });
-
-    $('#modalEditarActivo').on('hidden.bs.modal', function () {
-        limpiarValidaciones('#formEditarActivo');
-    });
-
-    initDataTable();
-    filtrarVistaActual();
 });

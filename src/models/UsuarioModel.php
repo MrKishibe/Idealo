@@ -200,6 +200,7 @@ class UsuarioModel extends Database
         $sql = "SELECT u.id_usuario,
                        u.nombre_usuario,
                        u.correo,
+                       u.imagen,
                        u.status_usuario,
                        u.id_rol,
                        r.tipo_de_usuario,
@@ -331,6 +332,53 @@ class UsuarioModel extends Database
         return [
             'success' => true,
             'message' => 'Perfil actualizado con éxito.'
+        ];
+    }
+
+    /**
+     * Devuelve la ruta de la foto de perfil actual (o null si no tiene).
+     */
+    public function obtenerImagen(int $idUsuario): ?string
+    {
+        if ($idUsuario <= 0) {
+            return null;
+        }
+
+        $sql = "SELECT imagen FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([':id_usuario' => $idUsuario]);
+        $imagen = $stmt->fetchColumn();
+
+        return $imagen !== false && trim((string) $imagen) !== '' ? trim((string) $imagen) : null;
+    }
+
+    /**
+     * Guarda la ruta de la foto de perfil del usuario.
+     */
+    public function actualizarImagen(int $idUsuario, string $ruta): array
+    {
+        $ruta = trim($ruta);
+
+        if ($idUsuario <= 0) {
+            throw new Exception("[Validación] El ID del usuario no es válido.");
+        }
+        if ($ruta === '') {
+            throw new Exception("[Validación] La ruta de la imagen no es válida.");
+        }
+
+        $sql = "UPDATE usuario
+                SET imagen = :imagen
+                WHERE id_usuario = :id_usuario";
+        $stmt = $this->conex->prepare($sql);
+        $stmt->execute([
+            ':imagen'     => $ruta,
+            ':id_usuario' => $idUsuario
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Foto de perfil actualizada con éxito.',
+            'imagen'  => $ruta
         ];
     }
 

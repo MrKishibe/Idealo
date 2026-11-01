@@ -6,7 +6,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../models/UsuarioModel.php';
+require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
 
+use Idealo\Helpers\ImagenPerfilHelper;
 use Idealo\Models\UsuarioModel;
 
 
@@ -241,6 +243,31 @@ if ($action === 'actualizarPerfil') {
         echo json_encode([
             'status'  => !empty($resultado['success']) ? 'success' : 'error',
             'message' => $resultado['message'] ?? 'No se pudo actualizar el perfil.',
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+if ($action === 'subirFotoPerfil') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $idUsuario = intval($_SESSION['usuario'] ?? 0);
+        $resultado = ImagenPerfilHelper::subirFotoPerfil(
+            $idUsuario,
+            $_FILES['foto_perfil'] ?? null
+        );
+
+        echo json_encode([
+            'status'  => 'success',
+            'message' => $resultado['message'],
+            'url'     => $resultado['url']
         ]);
         exit();
     } catch (Throwable $e) {

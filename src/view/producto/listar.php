@@ -170,8 +170,8 @@ if (!isset($productos)) {
                                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
                                         <label class="form-label fw-bold mb-0 text-dark" id="reg_lbl_talla">Tallas disponibles (Ropa)</label>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-link p-0 me-2 text-decoration-none" onclick="seleccionarTodasTallas('reg')">Seleccionar todas</button>
-                                            <button type="button" class="btn btn-sm btn-link p-0 text-muted text-decoration-none" onclick="deseleccionarTodasTallas('reg')">Limpiar</button>
+                                            <button type="button" class="btn btn-sm btn-link p-0 me-2 text-decoration-none btnSeleccionarTallas" data-prefijo="reg">Seleccionar todas</button>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-muted text-decoration-none btnLimpiarTallas" data-prefijo="reg">Limpiar</button>
                                         </div>
                                     </div>
                                     <div class="d-flex flex-wrap gap-2" id="reg_contenedor_tallas">
@@ -242,8 +242,8 @@ if (!isset($productos)) {
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <label class="form-label fw-bold mb-0 text-dark" id="edit_lbl_talla">Tallas disponibles</label>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-link p-0 me-2 text-decoration-none" onclick="seleccionarTodasTallas('edit')">Seleccionar todas</button>
-                                            <button type="button" class="btn btn-sm btn-link p-0 text-muted text-decoration-none" onclick="deseleccionarTodasTallas('edit')">Limpiar</button>
+                                            <button type="button" class="btn btn-sm btn-link p-0 me-2 text-decoration-none btnSeleccionarTallas" data-prefijo="edit">Seleccionar todas</button>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-muted text-decoration-none btnLimpiarTallas" data-prefijo="edit">Limpiar</button>
                                         </div>
                                     </div>
                                     <div class="d-flex flex-wrap gap-2" id="edit_contenedor_tallas">
@@ -305,7 +305,7 @@ if (!isset($productos)) {
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script type="importmap">
-        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
     </script>
     <script type="module" src="assets/js/productos.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/productos.js') ?>"></script>
 

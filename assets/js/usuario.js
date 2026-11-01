@@ -1,371 +1,319 @@
-let tablaDataTable = null;
-let verEliminados = false;
+import $ from 'jquery';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
+import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
+import { limpiarValidaciones } from './helpers/validaciones.js';
 
-$(document).ready(function () {
+$(function () {
+    const URL = 'index.php?controller=usuario';
+    let tabla = null;
+    let verInactivos = false;
 
-    const URL_USUARIO = 'index.php?controller=usuario';
+    const REGLAS = {
+        nombre_usuario: {
+            patron: obtenerPatron('usuario'),
+            mensaje: 'El nombre de usuario debe tener entre 3 y 20 caracteres (letras, números o guiones bajos).',
+            mensajeVacio: 'El nombre de usuario es obligatorio.'
+        },
+        correo: {
+            patron: obtenerPatron('correo'),
+            mensaje: 'El correo electrónico no es válido (ej. nombre@dominio.com).',
+            mensajeVacio: 'El correo electrónico es obligatorio.'
+        },
+        id_rol: { mensajeVacio: 'Seleccione un rol de permisos.' }
+    };
 
-    function initDataTable() {
-        const tabla = $('#tablaUsuarios');
-        if ($.fn.DataTable.isDataTable('#tablaUsuarios')) {
-            tabla.DataTable().destroy();
-            tablaDataTable = null;
+    const FORMS = {
+        registro: {
+            form: '#formRegistrarUsuario', prefijo: 'reg_', accion: 'guardar', modal: 'modalRegistrarUsuario',
+            titulo: '¡Registrado!', check: '#reg_es_empleado', select: '#reg_id_empleado', esRegistro: true, reiniciar: true
+        },
+        edicion: {
+            form: '#formEditarActivo', prefijo: 'edit_activo_', accion: 'editar', modal: 'modalEditarActivo',
+            titulo: '¡Actualizado!', check: '#edit_es_empleado', select: '#edit_id_empleado', esRegistro: false, reiniciar: false
         }
+    };
 
-        tablaDataTable = tabla.DataTable({
-            language: {
-                lengthMenu: "Mostrar _MENU_ registros",
-                zeroRecords: "No se encontraron resultados",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de un total de _MAX_ registros)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                }
-            },
-            pageLength: 10,
-            responsive: true,
-            order: [[0, 'desc']]
-        });
+    const escapar = (texto) => $('<div>').text(texto ?? '').html();
+    const activo = (usuario) => String(usuario.status_usuario || '').trim().toLowerCase() === 'activo';
+    const recargar = (reiniciar) => tabla.ajax.reload(null, Boolean(reiniciar));
+
+    function deFila($boton) {
+        const fila = tabla.row($boton.closest('tr'));
+        return fila && fila.data() ? fila.data() : null;
     }
 
-    function cargarUsuarios() {
-        $.ajax({
-            url: window.location.href,
-            type: 'GET',
-            dataType: 'html',
-            success: function (html) {
-                const doc = $('<div></div>').html(html);
-                const nuevoTbody = doc.find('#tablaUsuarios tbody');
-                const tbodyActual = $('#tablaUsuarios tbody');
+    function boton(clases, icono, alt, id) {
+        return `<button type="button" class="${clases}" data-id="${escapar(id)}" title="${alt}">` +
+            `<img src="assets/Img/Iconos/${icono}" class="icono-svg" alt="${alt}"></button>`;
+    }
 
-                if (nuevoTbody.length && tbodyActual.length) {
-                    if ($.fn.DataTable.isDataTable('#tablaUsuarios')) {
-                        $('#tablaUsuarios').DataTable().destroy();
-                        tablaDataTable = null;
-                    }
-                    tbodyActual.html(nuevoTbody.html());
-                    initDataTable();
-                    filtrarVistaActual();
-                }
-            },
-            error: function () {
-                location.reload();
+    function reactivar(id) {
+        return `<button type="button" class="btn-accion-reactivar btnEditarInactivo" data-id="${escapar(id)}">` +
+            '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">' +
+            '<span>Editar / Reactivar</span></button>';
+    }
+
+    function badgeRol(rol) {
+        const nombre = escapar(rol ? rol.charAt(0).toUpperCase() + rol.slice(1) : 'Sin rol');
+        return '<span class="badge bg-light text-primary border px-2 py-1" style="font-weight: 600; font-size: 12px; border-radius: 6px;">' +
+            '<img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-gris me-1">' + nombre + '</span>';
+    }
+
+    function badgeEstado(valor) {
+        return activo({ status_usuario: valor })
+            ? '<span class="badge bg-success">Activo</span>'
+            : '<span class="badge bg-danger">Inactivo</span>';
+    }
+
+    function acciones(usuario) {
+        const botones = activo(usuario)
+            ? boton('btn-accion-edit btnEditarActivo', 'pencil-square.svg', 'Editar Usuario', usuario.id_usuario) +
+              boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Usuario', usuario.id_usuario)
+            : reactivar(usuario.id_usuario);
+
+        return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
+    }
+
+    async function peticion(url, datos, titulo) {
+        try {
+            const respuesta = await $.ajax({ url, type: 'POST', dataType: 'json', data: datos });
+
+            if (respuesta.status !== 'success') {
+                await errorAlert('Error', respuesta.message || 'No se pudo completar la operación.');
+                return null;
             }
-        });
-    }
 
-    function filtrarVistaActual() {
-        if (!tablaDataTable) return;
-        if (verEliminados) {
-            tablaDataTable.column(4).search('^inactivo$', true, false).draw();
-            $('#txtBotonEstado').text('Ver Activos');
-            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye.svg');
-            $('#tituloVista').text('Usuarios Inhabilitados');
-        } else {
-            tablaDataTable.column(4).search('^activo$', true, false).draw();
-            $('#txtBotonEstado').text('Ver inhabilitados');
-            $('#iconoEstado').attr('src', 'assets/Img/Iconos/eye-slash.svg');
-            $('#tituloVista').text('Gestión de Usuarios');
+            await successAlert(titulo, respuesta.message);
+            return respuesta;
+        } catch (error) {
+            await errorAlert('Error', 'No se pudo conectar con el servidor.');
+            return null;
         }
     }
 
-    function cargarOpcionesEmpleados($select, usuarioActual, esEdicion, empleadoPreseleccionado) {
-        $.getJSON(URL_USUARIO + '&action=listarEmpleadosAjax', function (data) {
-            if (data.status !== 'success') return;
+    function cargarEmpleados($select, usuarioActual, esEdicion, preseleccionado) {
+        $select.html('<option value="">Cargando...</option>');
 
-            const opciones = ['<option value="">Seleccione el empleado...</option>'];
+        $.ajax({ url: URL + '&action=listarEmpleadosAjax', dataType: 'json' })
+            .done(function (respuesta) {
+                if (!respuesta || respuesta.status !== 'success') {
+                    return $select.html('<option value="">No se pudieron cargar los empleados</option>');
+                }
 
-            (data.empleados || []).forEach(function (emp) {
-                const vinculado = emp.id_usuario_vinculado ? String(emp.id_usuario_vinculado) : null;
-                const esActivoEmp = emp.status_empleado === 'Activo';
+                const opciones = $.map(respuesta.empleados || [], function (empleado) {
+                    const vinculado = empleado.id_usuario_vinculado ? String(empleado.id_usuario_vinculado) : null;
+                    const esActivo = String(empleado.status_empleado || '').trim().toLowerCase() === 'activo';
+                    const noDisponible = esEdicion ? (vinculado && vinculado !== String(usuarioActual)) : (vinculado || !esActivo);
+                    if (noDisponible) return null;
 
-                const disponible = !esEdicion
-                    ? (vinculado === null && esActivoEmp)
-                    : (vinculado === null || vinculado === String(usuarioActual));
+                    return $('<option>', {
+                        value: empleado.id_empleado,
+                        text: [empleado.nombres, empleado.apellidos].filter(Boolean).join(' ') +
+                            ' — ' + (empleado.cedula || 'Sin cédula') + (esActivo ? '' : ' (inactivo)')
+                    })[0];
+                });
 
-                if (!disponible) return;
+                $select.empty()
+                    .append($('<option>', { value: '', text: 'Seleccione el empleado...' }))
+                    .append(opciones);
 
-                const sufijo = esActivoEmp ? '' : ' (inactivo)';
-                opciones.push('<option value="' + emp.id_empleado + '">' + emp.nombres + ' ' + emp.apellidos + ' — ' + emp.cedula + sufijo + '</option>');
-            });
-
-            $select.html(opciones.join(''));
-            if (empleadoPreseleccionado) {
-                $select.val(empleadoPreseleccionado);
-            }
-        }).fail(function () {});
+                if (preseleccionado) $select.val(String(preseleccionado));
+            })
+            .fail(() => $select.html('<option value="">No se pudieron cargar los empleados</option>'));
     }
 
-    function validarFormularioUsuario($form) {
+    function validarUsuario(config) {
         let valido = true;
 
-        valido = $.validarCampo($form.find('#reg_nombre_usuario, #edit_activo_nombre_usuario'), {
-            patron: /^[a-zA-Z0-9_]{3,20}$/,
-            mensaje: 'El nombre de usuario debe tener entre 3 y 20 caracteres (letras, números o guiones bajos).'
-        }) && valido;
+        $.each(REGLAS, function (campo, regla) {
+            if (!validarCampo('#' + config.prefijo + campo, regla)) valido = false;
+        });
 
-        valido = $.validarCampo($form.find('#reg_correo, #edit_activo_correo'), {
-            patron: 'correo',
-            mensaje: 'El correo electrónico no es válido (ej. nombre@dominio.com).'
-        }) && valido;
+        const $password = $('#' + config.prefijo + 'contrasena');
+        const $confirmar = $('#' + config.prefijo + 'confirmar_contrasena');
+        const password = String($password.val() || '');
 
-        valido = $.validarCampo($form.find('#reg_id_rol, #edit_activo_id_rol'), {
-            patron: /^[0-9]+$/,
-            mensaje: 'Seleccione un rol de permisos.'
-        }) && valido;
-
-        return valido;
-    }
-
-    function validarContrasenas($form) {
-        const esRegistro = $form.is('#formRegistrarUsuario');
-        const $password = $form.find(esRegistro ? '#reg_contrasena' : '#edit_activo_contrasena');
-        const $confirmar = $form.find(esRegistro ? '#reg_confirmar_contrasena' : '#edit_activo_confirmar_contrasena');
-        const passwordEsObligatoria = esRegistro;
-
-        let valido = true;
-
-        valido = $.validarCampo($password, {
-            requerido: passwordEsObligatoria,
+        if (!validarCampo($password, {
+            requerido: config.esRegistro,
             patron: /^.{6,255}$/,
-            mensaje: 'La contraseña debe tener al menos 6 caracteres.'
-        }) && valido;
+            mensaje: 'La contraseña debe tener al menos 6 caracteres.',
+            mensajeVacio: 'La contraseña es obligatoria.'
+        })) valido = false;
 
-        valido = $.validarCampo($confirmar, {
-            requerido: passwordEsObligatoria,
-            validar: function (valor) {
-                if (!passwordEsObligatoria && ($password.val() || '') === '') return true;
-                if (valor === '') return 'Confirma la nueva contraseña.';
-                return valor === $password.val() ? true : 'Las contraseñas no coinciden.';
-            }
-        }) && valido;
+        if (!validarCampo($confirmar, {
+            requerido: config.esRegistro || password !== '',
+            mensajeVacio: 'Confirme la contraseña.',
+            mensaje: 'Las contraseñas no coinciden.',
+            validar: (valor) => valor === password || 'Las contraseñas no coinciden.'
+        })) valido = false;
 
         return valido;
     }
 
-    function limpiarFormularioCrear() {
-        $('#formRegistrarUsuario').trigger('reset');
-        $.limpiarValidaciones('#formRegistrarUsuario');
-        $('#reg_empleado_wrap').addClass('d-none');
-        $('#reg_id_empleado').html('<option value="">Seleccione el empleado...</option>');
-        $('#reg_es_empleado').prop('checked', false);
+    function validarCampoUsuario($campo, config) {
+        const campo = String($campo.attr('id') || '').replace(/^(?:edit_activo_|reg_|edit_)/, '');
+
+        if (REGLAS[campo]) return validarCampo($campo, REGLAS[campo]);
+
+        if (campo === 'id_empleado') {
+            return validarCampo($campo, {
+                requerido: $(config.check).prop('checked'),
+                mensajeVacio: 'Seleccione el empleado asociado.'
+            });
+        }
+
+        return /contrasena|confirmar_contrasena/.test(campo) ? validarUsuario(config) : true;
     }
 
-    $('#btnAlternarEstado').on('click', function () {
-        verEliminados = !verEliminados;
-        if (verEliminados) {
-            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
-        } else {
-            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
+    async function guardarUsuario(config) {
+        const $form = $(config.form);
+        limpiarValidaciones($form);
+
+        if (!validarUsuario(config)) {
+            return errorAlert('Datos inválidos', 'Revise los campos marcados en rojo.');
         }
-        filtrarVistaActual();
-    });
 
-    $('#reg_es_empleado').on('change', function () {
-        $('#reg_empleado_wrap').toggleClass('d-none', !this.checked);
-        if (!this.checked) $('#reg_id_empleado').val('');
-    });
+        const $empleado = $(config.select);
 
-    $('#edit_es_empleado').on('change', function () {
-        $('#edit_empleado_wrap').toggleClass('d-none', !this.checked);
-        if (!this.checked) $('#edit_id_empleado').val('');
-    });
+        if ($(config.check).prop('checked') && !$empleado.val()) {
+            validarCampo($empleado, { mensajeVacio: 'Seleccione el empleado asociado.' });
+            return errorAlert('Empleado requerido', 'Seleccione el empleado asociado al usuario.');
+        }
 
-    $('#modalRegistrarUsuario').on('show.bs.modal', function () {
-        limpiarFormularioCrear();
-        cargarOpcionesEmpleados($('#reg_id_empleado'), null, false, null);
-    });
+        const respuesta = await peticion(URL + '&action=' + config.accion, $form.serialize(), config.titulo);
+        if (!respuesta) return;
 
+        $('#' + config.modal).modal('hide');
+        recargar(config.reiniciar);
+    }
+
+    async function cambiarEstado(id, estado, modal, titulo) {
+        const respuesta = await peticion(URL + '&action=cambiarEstado', { id_usuario: id, status_usuario: estado }, titulo);
+        if (!respuesta) return;
+
+        if (modal) $('#' + modal).modal('hide');
+        recargar();
+    }
+
+    // Validación en vivo
     $('#modalRegistrarUsuario, #modalEditarActivo').on('input change', 'input, select', function () {
         const $campo = $(this);
-        if (!$campo.hasClass('is-invalid')) return;
-        const $form = $campo.closest('form');
-        if (/contrasena|confirmar/.test($campo.attr('id') || '')) {
-            validarContrasenas($form);
-        } else {
-            validarFormularioUsuario($form);
-        }
+        if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
+
+        const config = $campo.closest('form').is('#formRegistrarUsuario') ? FORMS.registro : FORMS.edicion;
+        validarCampoUsuario($campo, config);
+    });
+
+    // Activos / inhabilitados
+    $('#btnAlternarEstado').on('click', function () {
+        verInactivos = !verInactivos;
+        $(this).toggleClass('btn-outline-secondary', !verInactivos).toggleClass('btn-secondary', verInactivos);
+        $('#txtBotonEstado').text(verInactivos ? 'Ver Activos' : 'Ver inhabilitados');
+        $('#iconoEstado').attr('src', verInactivos ? 'assets/Img/Iconos/eye.svg' : 'assets/Img/Iconos/eye-slash.svg');
+        $('#tituloVista').text(verInactivos ? 'Usuarios Inhabilitados' : 'Gestión de Usuarios');
+        recargar(true);
+    });
+
+    // Empleado asociado
+    $('#reg_es_empleado, #edit_es_empleado').on('change', function () {
+        const config = $(this).closest('form').is('#formRegistrarUsuario') ? FORMS.registro : FORMS.edicion;
+        $(config.select).closest('[id$="_empleado_wrap"]').toggleClass('d-none', !this.checked);
+
+        if (!this.checked) $(config.select).val('').removeClass('is-valid is-invalid');
+    });
+
+    // Registrar
+    $('#modalRegistrarUsuario').on('show.bs.modal', function () {
+        const $form = $('#formRegistrarUsuario');
+        $form[0].reset();
+        limpiarValidaciones($form);
+        $('#reg_es_empleado').prop('checked', false).trigger('change');
+        cargarEmpleados($('#reg_id_empleado'), null, false, null);
     });
 
     $('#formRegistrarUsuario').on('submit', function (e) {
         e.preventDefault();
-
-        $.limpiarValidaciones('#formRegistrarUsuario');
-
-        let valido = validarFormularioUsuario($('#formRegistrarUsuario')) && validarContrasenas($('#formRegistrarUsuario'));
-        if ($('#reg_es_empleado').prop('checked') && !$('#reg_id_empleado').val()) {
-            Swal.fire({ icon: 'warning', title: 'Empleado requerido', text: 'Si el usuario es empleado, seleccione el empleado asociado.' });
-            return;
-        }
-        if (!valido) {
-            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
-            return;
-        }
-
-        $.ajax({
-            url: URL_USUARIO + '&action=guardar',
-            type: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalRegistrarUsuario').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarUsuarios());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
+        guardarUsuario(FORMS.registro);
     });
 
-    $(document).on('click', '.btnEditarActivo', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-        const rol = $(this).data('rol');
-        const correo = $(this).data('correo');
+    // Editar activo
+    $('#tablaUsuarios tbody').on('click', '.btnEditarActivo', function () {
+        const usuario = deFila($(this));
+        if (!usuario) return;
 
-        $('#edit_activo_id_usuario').val(id);
-        $('#edit_activo_nombre_usuario').val(nombre);
-        $('#edit_activo_correo').val(correo);
-        $('#edit_activo_id_rol').val(rol);
-        $('#edit_activo_contrasena').val('');
-        $('#edit_activo_confirmar_contrasena').val('');
-        $.limpiarValidaciones('#formEditarActivo');
+        $('#edit_activo_id_usuario').val(usuario.id_usuario);
+        $('#edit_activo_nombre_usuario').val(usuario.nombre_usuario);
+        $('#edit_activo_correo').val(usuario.correo);
+        $('#edit_activo_id_rol').val(usuario.id_rol);
+        $('#edit_activo_contrasena, #edit_activo_confirmar_contrasena').val('');
+        limpiarValidaciones('#formEditarActivo');
 
-        const empleadoId = $(this).data('empleado') ? String($(this).data('empleado')) : null;
-        const swEdit = document.getElementById('edit_es_empleado');
-        if (swEdit) {
-            swEdit.checked = !!empleadoId;
-            swEdit.dispatchEvent(new Event('change'));
-        }
-        cargarOpcionesEmpleados($('#edit_id_empleado'), id, true, empleadoId);
-
+        const empleado = usuario.id_empleado_vinculado ? String(usuario.id_empleado_vinculado) : null;
+        $('#edit_es_empleado').prop('checked', Boolean(empleado)).trigger('change');
+        cargarEmpleados($('#edit_id_empleado'), usuario.id_usuario, true, empleado);
         $('#modalEditarActivo').modal('show');
     });
 
     $('#formEditarActivo').on('submit', function (e) {
         e.preventDefault();
-
-        $.limpiarValidaciones('#formEditarActivo');
-
-        let valido = validarFormularioUsuario($('#formEditarActivo')) && validarContrasenas($('#formEditarActivo'));
-        if ($('#edit_es_empleado').prop('checked') && !$('#edit_id_empleado').val()) {
-            Swal.fire({ icon: 'warning', title: 'Empleado requerido', text: 'Si el usuario es empleado, seleccione el empleado asociado.' });
-            return;
-        }
-        if (!valido) {
-            Swal.fire('Datos inválidos', 'Corrige los campos marcados en rojo.', 'warning');
-            return;
-        }
-
-        $.ajax({
-            url: URL_USUARIO + '&action=editar',
-            type: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalEditarActivo').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Actualizado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarUsuarios());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
+        guardarUsuario(FORMS.edicion);
     });
 
-    $(document).on('click', '.btnEditarInactivo', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
+    // Inactivar
+    $('#tablaUsuarios tbody').on('click', '.btnCambiarEstado', async function () {
+        const usuario = deFila($(this));
+        if (!usuario) return;
 
-        $('#edit_inactivo_id_usuario').val(id);
-        $('#edit_inactivo_nombre_usuario').val(nombre);
+        const confirmacion = await confirmActionAlert(
+            '¿Inactivar usuario?',
+            'El usuario "' + usuario.nombre_usuario + '" no podrá iniciar sesión hasta ser reactivado.'
+        );
+
+        if (confirmacion.isConfirmed) await cambiarEstado(usuario.id_usuario, 'inactivo', null, '¡Inactivado!');
+    });
+
+    // Editar / reactivar inactivo
+    $('#tablaUsuarios tbody').on('click', '.btnEditarInactivo', function () {
+        const usuario = deFila($(this));
+        if (!usuario) return;
+
+        $('#edit_inactivo_id_usuario').val(usuario.id_usuario);
+        $('#edit_inactivo_nombre_usuario').val(usuario.nombre_usuario);
         $('#edit_inactivo_status').val('inactivo');
         $('#modalEditarInactivo').modal('show');
     });
 
-    $('#btnGuardarEdicionInactivo').on('click', function () {
+    $('#btnGuardarEdicionInactivo').on('click', async function () {
         const id = $('#edit_inactivo_id_usuario').val();
-        const nuevoEstado = $('#edit_inactivo_status').val();
+        const estado = $('#edit_inactivo_status').val();
 
-        if (nuevoEstado === 'inactivo') {
+        if (estado === 'inactivo') {
             $('#modalEditarInactivo').modal('hide');
             return;
         }
 
-        $.ajax({
-            url: URL_USUARIO + '&action=cambiarEstado',
-            type: 'POST',
-            data: { id_usuario: id, status_usuario: nuevoEstado },
-            dataType: 'json',
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#modalEditarInactivo').modal('hide');
-                    Swal.fire({ icon: 'success', title: '¡Reactivado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarUsuarios());
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-            }
-        });
+        const confirmacion = await confirmActionAlert('¿Reactivar usuario?', 'El usuario volverá a estar activo en el sistema.');
+        if (confirmacion.isConfirmed) await cambiarEstado(id, estado, 'modalEditarInactivo', '¡Reactivado!');
     });
 
-    $(document).on('click', '.btnCambiarEstado', function () {
-        const id = $(this).data('id');
-        const nombre = $(this).data('nombre');
-
-        Swal.fire({
-            title: '¿Inactivar usuario?',
-            text: `El usuario "${nombre}" no podrá iniciar sesión hasta ser reactivado.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Sí, inactivar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: URL_USUARIO + '&action=cambiarEstado',
-                    type: 'POST',
-                    data: { id_usuario: id, status_usuario: 'inactivo' },
-                    dataType: 'json',
-                    success: function (data) {
-                        if (data.status === 'success') {
-                            Swal.fire({ icon: 'success', title: '¡Inactivado!', text: data.message, confirmButtonColor: '#1e5631' }).then(() => cargarUsuarios());
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Error de comunicación con el servidor.' });
-                    }
-                });
-            }
-        });
+    // Tabla
+    tabla = $('#tablaUsuarios').DataTable({
+        ajax: {
+            url: URL + '&action=listarUsuariosAjax',
+            dataSrc: (json) => $.grep(json && json.usuarios ? json.usuarios : [], (usuario) => verInactivos ? !activo(usuario) : activo(usuario))
+        },
+        columns: [
+            { data: 'id_usuario', render: (id, tipo) => tipo === 'display' ? `<code>#${escapar(id)}</code>` : id },
+            { data: 'nombre_usuario', className: 'fw-bold text-dark', render: escapar },
+            { data: 'correo', className: 'text-muted small', render: escapar },
+            { data: 'tipo_de_usuario', render: badgeRol },
+            { data: 'status_usuario', render: badgeEstado },
+            { data: null, orderable: false, render: acciones }
+        ],
+        columnDefs: [{ targets: 0, type: 'num' }],
+        language: lenguajeDataTableEs,
+        pageLength: 10,
+        order: [[0, 'desc']]
     });
-
-    $('#modalRegistrarUsuario').on('hidden.bs.modal', function () {
-        limpiarFormularioCrear();
-    });
-
-    initDataTable();
-    filtrarVistaActual();
 });

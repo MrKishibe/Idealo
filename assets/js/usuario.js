@@ -27,10 +27,6 @@ $(function () {
         registro: {
             form: '#formRegistrarUsuario', prefijo: 'reg_', accion: 'guardar', modal: 'modalRegistrarUsuario',
             titulo: '¡Registrado!', check: '#reg_es_empleado', select: '#reg_id_empleado', esRegistro: true, reiniciar: true
-        },
-        edicion: {
-            form: '#formEditarActivo', prefijo: 'edit_activo_', accion: 'editar', modal: 'modalEditarActivo',
-            titulo: '¡Actualizado!', check: '#edit_es_empleado', select: '#edit_id_empleado', esRegistro: false, reiniciar: false
         }
     };
 
@@ -50,8 +46,8 @@ $(function () {
 
     function reactivar(id) {
         return `<button type="button" class="btn-accion-reactivar btnEditarInactivo" data-id="${escapar(id)}">` +
-            '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">' +
-            '<span>Editar / Reactivar</span></button>';
+            '<img src="assets/Img/Iconos/arrow-counterclockwise.svg" class="icono-svg icono-amarillo" alt="Reactivar">' +
+            '<span>Reactivar</span></button>';
     }
 
     function badgeRol(rol) {
@@ -68,8 +64,7 @@ $(function () {
 
     function acciones(usuario) {
         const botones = activo(usuario)
-            ? boton('btn-accion-edit btnEditarActivo', 'pencil-square.svg', 'Editar Usuario', usuario.id_usuario) +
-              boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Usuario', usuario.id_usuario)
+            ? boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Usuario', usuario.id_usuario)
             : reactivar(usuario.id_usuario);
 
         return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
@@ -197,12 +192,11 @@ $(function () {
     }
 
     // Validación en vivo
-    $('#modalRegistrarUsuario, #modalEditarActivo').on('input change', 'input, select', function () {
+    $('#modalRegistrarUsuario').on('input change', 'input, select', function () {
         const $campo = $(this);
         if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
 
-        const config = $campo.closest('form').is('#formRegistrarUsuario') ? FORMS.registro : FORMS.edicion;
-        validarCampoUsuario($campo, config);
+        validarCampoUsuario($campo, FORMS.registro);
     });
 
     // Activos / inhabilitados
@@ -216,8 +210,8 @@ $(function () {
     });
 
     // Empleado asociado
-    $('#reg_es_empleado, #edit_es_empleado').on('change', function () {
-        const config = $(this).closest('form').is('#formRegistrarUsuario') ? FORMS.registro : FORMS.edicion;
+    $('#reg_es_empleado').on('change', function () {
+        const config = FORMS.registro;
         $(config.select).closest('[id$="_empleado_wrap"]').toggleClass('d-none', !this.checked);
 
         if (!this.checked) $(config.select).val('').removeClass('is-valid is-invalid');
@@ -235,29 +229,6 @@ $(function () {
     $('#formRegistrarUsuario').on('submit', function (e) {
         e.preventDefault();
         guardarUsuario(FORMS.registro);
-    });
-
-    // Editar activo
-    $('#tablaUsuarios tbody').on('click', '.btnEditarActivo', function () {
-        const usuario = deFila($(this));
-        if (!usuario) return;
-
-        $('#edit_activo_id_usuario').val(usuario.id_usuario);
-        $('#edit_activo_nombre_usuario').val(usuario.nombre_usuario);
-        $('#edit_activo_correo').val(usuario.correo);
-        $('#edit_activo_id_rol').val(usuario.id_rol);
-        $('#edit_activo_contrasena, #edit_activo_confirmar_contrasena').val('');
-        limpiarValidaciones('#formEditarActivo');
-
-        const empleado = usuario.id_empleado_vinculado ? String(usuario.id_empleado_vinculado) : null;
-        $('#edit_es_empleado').prop('checked', Boolean(empleado)).trigger('change');
-        cargarEmpleados($('#edit_id_empleado'), usuario.id_usuario, true, empleado);
-        $('#modalEditarActivo').modal('show');
-    });
-
-    $('#formEditarActivo').on('submit', function (e) {
-        e.preventDefault();
-        guardarUsuario(FORMS.edicion);
     });
 
     // Inactivar

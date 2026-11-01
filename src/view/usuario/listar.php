@@ -89,7 +89,7 @@ if (!isset($roles)) {
                                                         data-id="<?php echo $user['id_usuario']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>">
                                                         <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">
-                                                        <span>Editar / Reactivar</span>
+                                                        <span>Reactivar</span>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -173,84 +173,14 @@ if (!isset($roles)) {
         </div>
     </div>
 
-    <!-- MODAL EDITAR ACTIVO -->
-    <div class="modal fade modal-idealo" id="modalEditarActivo" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md icono-azul" alt="Editar">
-                        <span>Editar Usuario</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formEditarActivo" class="needs-validation" novalidate>
-                    <input type="hidden" id="edit_activo_id_usuario" name="id_usuario">
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Nombre de Usuario</label>
-                                <input type="text" class="form-control" id="edit_activo_nombre_usuario" name="nombre_usuario" maxlength="20" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Correo Electrónico</label>
-                                <input type="email" class="form-control" id="edit_activo_correo" name="correo" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Nueva Contraseña <small class="text-muted">(opcional)</small></label>
-                                <input type="password" class="form-control" id="edit_activo_contrasena" name="contrasena" minlength="6" placeholder="Dejar vacío para mantener la actual">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Confirmar Nueva Contraseña</label>
-                                <input type="password" class="form-control" id="edit_activo_confirmar_contrasena" minlength="6" placeholder="Repite la nueva contraseña">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Rol de Permisos</label>
-                                <select class="form-select" id="edit_activo_id_rol" name="id_rol" required>
-                                    <option value="">Seleccione un rol</option>
-                                    <?php foreach ($roles as $rol): ?>
-                                        <option value="<?php echo $rol['id_rol']; ?>"><?php echo htmlspecialchars(ucfirst($rol['tipo_de_usuario'])); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
-                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
-                                    <div class="flex-grow-1">
-                                        <label class="form-label fw-semibold mb-0" for="edit_es_empleado">Este usuario es un empleado</label>
-                                        <small class="text-muted d-block">Márcalo si la persona pertenece a la planilla de empleados.</small>
-                                    </div>
-                                    <div class="form-check form-switch ps-0 mb-0">
-                                        <input class="form-check-input" type="checkbox" id="edit_es_empleado" name="es_empleado" value="1" role="switch">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 d-none" id="edit_empleado_wrap">
-                                <label class="form-label">Empleado Asociado</label>
-                                <select class="form-select" id="edit_id_empleado" name="id_empleado">
-                                    <option value="">Seleccione el empleado...</option>
-                                </select>
-                                <small class="text-muted">Solo se muestran empleados sin usuario asociado.</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="btnGuardarEdicionActivo">Guardar Cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL EDITAR INACTIVO / REACTIVAR -->
     <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md" alt="Editar">
-                        <span>Editar Registro Inhabilitado</span>
+                        <img src="assets/Img/Iconos/arrow-counterclockwise.svg" class="icono-svg icono-md" alt="Reactivar">
+                        <span>Reactivar Usuario</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

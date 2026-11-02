@@ -3,6 +3,8 @@ import { obtenerPatron, validar } from './helpers/expresiones.js';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
+//NO TOCAR LO QUE YA FUNCIONA, PORQUE LUEGO LO DAÑAN
+
 document.addEventListener("DOMContentLoaded", function () {
     const $txtNombre = $("#nombre_servicio");
     const $editNombre = $("#edit_nombre_servicio");
@@ -86,9 +88,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const bsModalRegistrar = prepararModal('modalRegistrarServicio', $txtNombre, "#formRegistrarServicio");
     const bsModalEditar = prepararModal('modalEditarServicio', $editNombre, "#formEditarServicio");
 
-    // ==========================================
-    // 1. AJAX PARA REGISTRAR SERVICIO (POST)
-    // ==========================================
     async function registrarServicioAjax(formData, formElement, bsModal) {
         try {
             const data = await $.ajax({
@@ -122,9 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
         await registrarServicioAjax(new FormData(e.target), e.target, bsModalRegistrar);
     });
 
-    // ==========================================
-    // 2. AJAX PARA EDITAR SERVICIO (POST)
-    // ==========================================
     async function editarServicioAjax(formData, formElement, bsModal) {
         try {
             const data = await $.ajax({
@@ -176,9 +172,7 @@ $(document).ready(function () {
     let verEliminados = false;
     const urlModulo = 'index.php?controller=servicio';
 
-    // ==========================================
-    // 3. INICIALIZACIÓN DEL DATATABLE NATIVO (AJAX)
-    // ==========================================
+    
     function inicializarDataTableServicios() {
         if ($.fn.DataTable.isDataTable('#tablaServicios')) {
             datatableInstancia.destroy();
@@ -195,7 +189,6 @@ $(document).ready(function () {
                     if (json && json.error) return [];
                     const lista = Array.isArray(json) ? json : [];
                     
-                    // Filtrar dinámicamente entre activos e inhabilitados según la vista seleccionada
                     return lista.filter(s => modo === 'eliminados' ? s.status_servicio !== 'activo' : s.status_servicio === 'activo');
                 },
                 error: function () {
@@ -205,6 +198,7 @@ $(document).ready(function () {
             columns: [
                 {
                     data: 'nombre_servicio',
+                    type: 'string',
                     className: 'px-4',
                     render: function (data) {
                         return `<div class="fw-semibold text-dark">${data || ''}</div>`;
@@ -212,6 +206,7 @@ $(document).ready(function () {
                 },
                 {
                     data: 'status_servicio',
+                    type: 'string',
                     className: 'px-4',
                     render: function (data) {
                         const esActivo = data === 'activo';
@@ -222,6 +217,7 @@ $(document).ready(function () {
                     data: null,
                     className: 'px-4 text-center',
                     orderable: false,
+                    searchable: false,
                     render: function (data) {
                         const servicioJson = JSON.stringify(data).replace(/'/g, "&apos;");
                         let btnAcciones = `<button class="btn btn-sm btn-outline-primary btn-editar me-1" style="border-radius:8px;" data-servicio='${servicioJson}'><i class="bi bi-pencil-square"></i></button>`;
@@ -236,12 +232,12 @@ $(document).ready(function () {
             language: lenguajeDataTableEs,
             pageLength: 10,
             responsive: true,
-            ordering: false,
+            ordering: true,
+            order: [[0, 'asc']],
             dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
         });
     }
 
-    // Función global para recargar la tabla de forma limpia mediante DataTables Ajax
     window.recargarTablaServicios = function () {
         if (datatableInstancia) {
             datatableInstancia.ajax.reload(null, false);
@@ -259,7 +255,6 @@ $(document).ready(function () {
         $('#iconoEstado').toggleClass('bi-eye-slash-fill', !verEliminados).toggleClass('bi-eye-fill', verEliminados);
         $('#tituloVista').text(verEliminados ? 'Servicios (Inhabilitados)' : 'Servicios');
         
-        // Recargar los datos con el nuevo filtro de estado
         inicializarDataTableServicios();
     });
 
@@ -268,9 +263,7 @@ $(document).ready(function () {
         if (data) window.abrirModalEditarServicio(data);
     });
 
-    // ==========================================
-    // 4. AJAX PARA INHABILITAR / ELIMINAR (GET/POST)
-    // ==========================================
+
     $(document).on('click', '.btn-eliminar', function () {
         const id = $(this).data('id');
         document.activeElement?.blur();

@@ -116,7 +116,7 @@ document.addEventListener(
         }
 
         // ==========================================
-        // ESTRUCTURA DATATABLE BASADA EN TU IMAGEN[cite: 2]
+        // ESTRUCTURA DATATABLE CON ORDENAMIENTO ACTIVO Y FLECHITAS
         // ==========================================
         function inicializarDataTable() {
             if ($.fn.DataTable.isDataTable('#tablaTipoMaterial')) {
@@ -132,7 +132,6 @@ document.addEventListener(
                     data: { Consultar: 'yes', estado: estadoFiltro },
                     dataSrc: function (json) {
                         const lista = (json && Array.isArray(json.materiales)) ? json.materiales : [];
-                        // Filtramos en el cliente según el estado activo/inactivo actual
                         return lista.filter(mat => {
                             const estadoReal = mat.status_tipo_materia || mat.status_tipo_material;
                             return estadoReal === estadoFiltro;
@@ -142,6 +141,7 @@ document.addEventListener(
                 columns: [
                     {
                         data: 'nombre_de_material',
+                        type: 'string', // Orden alfabético activo por nombre
                         render: function (data, type, row) {
                             const nombre = data || row.nombre || '';
                             return `<span class="fw-bold">${nombre}</span>`;
@@ -149,12 +149,14 @@ document.addEventListener(
                     },
                     {
                         data: 'descripcion',
+                        type: 'string', // Orden alfabético activo por descripción
                         render: function (data) {
                             return data && data.trim() !== '' ? data : 'Sin especificaciones';
                         }
                     },
                     {
                         data: null,
+                        type: 'string', // Orden activo por estado
                         render: function (data) {
                             const estadoReal = data.status_tipo_materia || data.status_tipo_material;
                             return estadoReal === 'Activo'
@@ -164,7 +166,7 @@ document.addEventListener(
                     },
                     {
                         data: null,
-                        orderable: false,
+                        orderable: false, // Acciones sin ordenamiento
                         searchable: false,
                         className: 'text-center',
                         render: function (data) {
@@ -205,7 +207,8 @@ document.addEventListener(
                 responsive: true,
                 pageLength: 10,
                 language: lenguajeDataTableEs,
-                ordering: false
+                ordering: true, // Habilitar el ordenamiento interactivo y las flechitas
+                order: [[0, 'asc']] // Orden inicial por la primera columna (Nombre) de forma ascendente
             });
         }
 

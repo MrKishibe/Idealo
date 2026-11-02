@@ -3,13 +3,15 @@ import { soloNumerosTeclado, soloLetrasTeclado, validarCampoNombrePatron } from 
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
+// DEJEN DE TOCAR EL CODIGO AJENO POR FAVOR
+
 $(document).ready(function () {
     let verEliminados = false;
     let debeReiniciarModal = false;
 
     const urlControlador = 'index.php?url=cliente/listar';
 
-    // Inicialización del DataTable con la estructura basada en Ajax y Columnas
+    // Inicialización del DataTable con ordenamiento activo y flechitas
     let tablaClientesDataTable = $('#tablaClientes').DataTable({
         ajax: {
             url: `${urlControlador}&ajax=listar`,
@@ -34,11 +36,12 @@ $(document).ready(function () {
         },
         columns: [
             {
-                data: null,
+                data: 'numero_de_documento',
+                type: 'string', // Orden alfabético/numérico activo por documento
                 className: "px-4",
-                render: function (data) {
-                    let tipoDoc = data.tipo_de_documento || 'Natural';
-                    let numLimpio = data.numero_de_documento || '';
+                render: function (data, type, row) {
+                    let tipoDoc = row.tipo_de_documento || 'Natural';
+                    let numLimpio = data || '';
                     let documentoFormateado = '';
 
                     if (/^[VvEeJjGgCc]/.test(numLimpio)) {
@@ -51,27 +54,30 @@ $(document).ready(function () {
                 }
             },
             {
-                data: null,
+                data: 'nombre_razon_social',
+                type: 'string', // Orden alfabético activo por nombre o razón social
                 className: "px-4",
-                render: function (data) {
-                    return `<div class="fw-semibold text-secondary">${data.nombre_razon_social || ''} ${data.apellido || ''}</div>`;
+                render: function (data, type, row) {
+                    return `<div class="fw-semibold text-secondary">${data || ''} ${row.apellido || ''}</div>`;
                 }
             },
             {
-                data: null,
+                data: 'telefono',
+                type: 'string', // Orden alfabético por contacto
                 className: "px-4",
-                render: function (data) {
+                render: function (data, type, row) {
                     return `
-                        <div class="small text-dark"><i class="bi bi-telephone text-muted me-1"></i> ${data.telefono || 'N/A'}</div>
-                        <div class="small text-muted"><i class="bi bi-envelope text-muted me-1"></i> ${data.correo || 'N/A'}</div>
+                        <div class="small text-dark"><i class="bi bi-telephone text-muted me-1"></i> ${data || 'N/A'}</div>
+                        <div class="small text-muted"><i class="bi bi-envelope text-muted me-1"></i> ${row.correo || 'N/A'}</div>
                     `;
                 }
             },
             {
-                data: null,
+                data: 'status_cliente',
+                type: 'string', // Orden activo por estado
                 className: "px-4",
-                render: function (data) {
-                    let esActivo = data.status_cliente === 'activo' || parseInt(data.estado) === 1 || data.status_cliente === '1';
+                render: function (data, type, row) {
+                    let esActivo = data === 'activo' || parseInt(row.estado) === 1 || data === '1';
                     return esActivo
                         ? '<span class="badge bg-success-subtle text-success" style="padding: 6px 12px; border-radius: 6px;">Activo</span>'
                         : '<span class="badge bg-danger-subtle text-danger" style="padding: 6px 12px; border-radius: 6px;">Inactivo</span>';
@@ -80,7 +86,8 @@ $(document).ready(function () {
             {
                 data: null,
                 className: "px-4 text-center",
-                orderable: false,
+                orderable: false, // Acciones sin ordenamiento
+                searchable: false,
                 render: function (data) {
                     let esActivo = data.status_cliente === 'activo' || parseInt(data.estado) === 1 || data.status_cliente === '1';
                     let clienteJson = JSON.stringify(data).replace(/'/g, "&apos;");
@@ -97,7 +104,8 @@ $(document).ready(function () {
         language: lenguajeDataTableEs,
         pageLength: 10,
         responsive: true,
-        ordering: false,
+        ordering: true, 
+        order: [[0, 'asc']], 
         dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
 
@@ -115,7 +123,6 @@ $(document).ready(function () {
         }
     }
 
-    // Funciones API para guardar, duplicados e inhabilitar
     function apiGuardarCliente(datosFormulario) {
         return new Promise((resolve, reject) => {
             $.ajax({

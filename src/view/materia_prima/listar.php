@@ -20,6 +20,17 @@
                     <p>Administra los insumos y materiales de tu negocio de sublimación.</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
+                    <!-- Botón para abrir el Modal de Reportes Parametrizados PDF -->
+                    <button type="button"
+                            id="btnGenerarReporteMateria"
+                            class="btn btn-outline-danger px-3 py-2"
+                            style="border-radius: var(--radius-md); font-weight: 600;"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalReporteMateria">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i>
+                        Generar Reporte
+                    </button>
+
                     <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary" data-vista="activos">
                         <i class="bi bi-eye-slash-fill" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
@@ -36,8 +47,8 @@
                                 <th>Nombre</th>
                                 <th>Tipo</th>
                                 <th>Costo Unit.</th>
-                                <th>cantidad Actual</th>
-                                <th>cantidad Mínimo</th>
+                                <th>Cantidad Actual</th>
+                                <th>Cantidad Mínima</th>
                                 <th>Estado</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -225,7 +236,7 @@
         </div>
     </div>
 
-    <!-- Modal Editar Inactivo (Nombre + Todos los campos + Estado) -->
+    <!-- Modal Editar Inactivo -->
     <div class="modal fade modal-idealo" id="modalEditarInactivo" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -311,19 +322,108 @@
         </div>
     </div>
 
+    <!-- MODAL FILTROS DE REPORTE PDF DE MATERIA PRIMA PARAMETRIZADO -->
+    <div class="modal fade modal-idealo" id="modalReporteMateria" tabindex="-1" aria-labelledby="tituloModalReporteMateria" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloModalReporteMateria">
+                        <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i>
+                        Reporte Parametrizado de Materia Prima
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="formReporteMateria">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <!-- Filtro por Estado -->
+                            <div class="col-md-6">
+                                <label for="estadoReporteSelect" class="form-label fw-bold small">Estado</label>
+                                <select name="estado_reporte" id="estadoReporteSelect" class="form-select">
+                                    <option value="todos">Todos (Activos e Inactivos)</option>
+                                    <option value="Activo">Solo Activos</option>
+                                    <option value="Inactivo">Solo Inactivos</option>
+                                </select>
+                            </div>
+
+                            <!-- Filtro por Tipo de Materia Prima -->
+                            <div class="col-md-6">
+                                <label for="tipoReporteSelect" class="form-label fw-bold small">Tipo de Material</label>
+                                <select name="tipo_reporte" id="tipoReporteSelect" class="form-select">
+                                    <option value="todos">Todos los Tipos</option>
+                                </select>
+                            </div>
+
+                            <hr class="my-3 text-muted">
+
+                            <!-- Filtro por Costo Unitario -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Costo Unitario ($)</label>
+                                <div class="input-group">
+                                    <select name="operador_costo" class="form-select" style="max-width: 75px;">
+                                        <option value="">--</option>
+                                        <option value="mayor">></option>
+                                        <option value="igual">=</option>
+                                        <option value="menor"><</option>
+                                    </select>
+                                    <input type="number" step="0.01" min="0" name="valor_costo" id="valor_costo_reporte" class="form-control" placeholder="Monto">
+                                </div>
+                            </div>
+
+                            <!-- Filtro por Stock Actual -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Stock Actual</label>
+                                <div class="input-group">
+                                    <select name="operador_stock_actual" class="form-select" style="max-width: 75px;">
+                                        <option value="">--</option>
+                                        <option value="mayor">></option>
+                                        <option value="igual">=</option>
+                                        <option value="menor"><</option>
+                                    </select>
+                                    <input type="number" step="0.01" min="0" name="valor_stock_actual" id="valor_stock_actual_reporte" class="form-control" placeholder="Cant.">
+                                </div>
+                            </div>
+
+                            <!-- Filtro por Stock Mínimo -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Stock Mínimo</label>
+                                <div class="input-group">
+                                    <select name="operador_stock_minimo" class="form-select" style="max-width: 75px;">
+                                        <option value="">--</option>
+                                        <option value="mayor">></option>
+                                        <option value="igual">=</option>
+                                        <option value="menor"><</option>
+                                    </select>
+                                    <input type="number" step="0.01" min="0" name="valor_stock_minimo" id="valor_stock_minimo_reporte" class="form-control" placeholder="Cant.">
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="ids_filtrados" id="reporteMateriaIdsFiltrados" value="">
+                    </div>
+                    <div class="modal-footer border-0 pt-3 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger" id="btnConfirmarReporteMateria">
+                            <i class="bi bi-download me-1"></i> Descargar / Ver PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-     <script type="importmap">
+    <script type="importmap">
     {
         "imports": {
             "jquery": "./assets/js/helpers/jquery-bridge.js",
             "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
         }
     }
-</script>
+    </script>
     <script type="module" src="assets/js/materiaprima.js"></script>
 </body>
 </html>

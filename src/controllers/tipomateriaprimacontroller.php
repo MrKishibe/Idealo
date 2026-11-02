@@ -4,9 +4,6 @@ use Idealo\Models\TipoMateriaPrimaModel;
 
 $rutaVista = __DIR__ . '/../view/tipo_materia_prima/listar.php';
 
-// =========================================================================
-// CONTROL DE PETICIONES POST
-// =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
     // CASO A: Cambios desde Modales (Editar completo o Cambio de estado)
@@ -118,9 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     }
 }
 
-// =========================================================================
 // CONTROL DE PETICIONES GET (AJAX / CARGA ORDINARIA)
-// =========================================================================
 
 // CASO A: AJAX
 if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {

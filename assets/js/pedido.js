@@ -1,8 +1,9 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
-import { crearPestanaReporte, cargarReporteEnPestana } from './helpers/report-viewer.js';
+import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
+//SI TOCAS MI CODIGO VAS VER MARDITO
 document.addEventListener(
     'DOMContentLoaded',
     function () {
@@ -204,15 +205,19 @@ document.addEventListener(
             return [
                 {
                     data: 'id_pedido',
+                    orderable: false,
+                    searchable: false,
                     render: function (data) {
                         return `<strong>#${data}</strong>`;
                     }
                 },
                 {
-                    data: 'fecha_creacion'
+                    data: 'fecha_creacion',
+                    type: 'date'
                 },
                 {
                     data: null,
+                    type: 'string',
                     render: function (data) {
                         return escaparHtml(
                             `${data.nombre_razon_social || ''} ${data.apellido || ''}`
@@ -221,6 +226,7 @@ document.addEventListener(
                 },
                 {
                     data: null,
+                    type: 'string',
                     render: function (data) {
                         return `
                             <strong>
@@ -234,21 +240,25 @@ document.addEventListener(
                 },
                 {
                     data: 'nombre_servicio',
+                    type: 'string',
                     render: function (data) {
                         return escaparHtml(data || 'Sin servicio');
                     }
                 },
                 {
-                    data: 'cantidad'
+                    data: 'cantidad',
+                    type: 'num'
                 },
                 {
                     data: 'estado_pedido',
+                    type: 'string',
                     render: function (data) {
                         return badgeEstado(data);
                     }
                 },
                 {
                     data: 'monto_total',
+                    type: 'num',
                     render: function (data) {
                         return Number(data || 0).toFixed(2);
                     }
@@ -337,6 +347,7 @@ document.addEventListener(
                 processing: true,
                 responsive: true,
                 pageLength: 10,
+                order: [[1, 'desc']],
                 language: lenguajeDataTableEs,
                 columns: columnasDataTable()
             });
@@ -671,7 +682,7 @@ document.addEventListener(
         });
 
         // ==========================================
-        // 6. EVENTOS DE REPORTE CON MODAL Y AJAX BLOB
+        // 6. EVENTOS DE REPORTE CON URL (COMPATIBLE CON CONTROLADOR)
         // ==========================================
         if (btnGenerarReporte) {
             btnGenerarReporte.addEventListener('click', function (e) {
@@ -683,7 +694,6 @@ document.addEventListener(
             });
         }
 
-        // Lógica para bloquear/desbloquear campos si se marca "Todo" en reportes
         const chkTodo = document.getElementById('reporteTodo');
         if (chkTodo) {
             chkTodo.addEventListener('change', function () {
@@ -706,56 +716,47 @@ document.addEventListener(
                 e.preventDefault();
                 e.stopPropagation();
 
-                const formData = new FormData(formReportePedido);
-                formData.append('filtro', obtenerFiltro());
+                // Creamos los parámetros asegurándonos de incluir elementos aunque estén temporalmente desactivados por el checkbox "Todo"
+                const parametros = new URLSearchParams();
+                
+                const elementosForm = formReportePedido.elements;
+                for (let el of elementosForm) {
+                    if (el.name) {
+                        if (el.type === 'checkbox' || el.type === 'radio') {
+                            if (el.checked) {
+                                parametros.append(el.name, el.value);
+                            }
+                        } else if (el.tagName === 'SELECT' && el.multiple) {
+                            Array.from(el.selectedOptions).forEach(opt => {
+                                parametros.append(el.name, opt.value);
+                            });
+                        } else {
+                            // Añadimos el valor incluso si el campo fue deshabilitado por el switch "Todo"
+                            parametros.append(el.name, el.value);
+                        }
+                    }
+                }
 
-                // Capturar IDs visibles en el DataTable actual si se desea sincronizar
+                parametros.set('accion', 'generarreportepdf');
+                parametros.set('filtro', obtenerFiltro());
+
                 if (tablaPedidos) {
                     const datosFiltrados = tablaPedidos.rows({ search: 'applied' }).data().toArray();
                     const ids = datosFiltrados.map(pedido => pedido.id_pedido);
-                    formData.append('ids_filtrados', JSON.stringify(ids));
+                    parametros.set('ids_filtrados', JSON.stringify(ids));
                 }
 
-                const pestanaReporte = crearPestanaReporte();
+                const urlReporte = `${BASE_URL}&${parametros.toString()}`;
+                const pestanaReporte = abrirReporteEnPestana(urlReporte);
+
                 if (!pestanaReporte) {
                     errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
                     return;
                 }
 
-                $.ajax({
-                    url: `${BASE_URL}&accion=generarreportepdf`,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    success: function (blob) {
-                        if (modalReportePedido) {
-                            modalReportePedido.hide();
-                        }
-                        const urlReporte = window.URL.createObjectURL(blob);
-                        cargarReporteEnPestana(pestanaReporte, urlReporte);
-                    },
-                    error: async function (xhr) {
-                        pestanaReporte.ventana.close();
-                        try {
-                            const reader = new FileReader();
-                            reader.onload = async function() {
-                                try {
-                                    const errorRes = JSON.parse(reader.result);
-                                    await errorAlert('Error al generar reporte', errorRes.message || 'No se pudo procesar el PDF.');
-                                } catch (err) {
-                                    await errorAlert('Error', 'No se pudo generar el reporte PDF.');
-                                }
-                            };
-                            reader.readAsText(xhr.response);
-                        } catch (err) {
-                            await errorAlert('Error', 'No se pudo conectar con el servidor para generar el reporte.');
-                        }
-                    }
-                });
+                if (modalReportePedido) {
+                    modalReportePedido.hide();
+                }
             });
         }
 

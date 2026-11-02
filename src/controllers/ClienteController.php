@@ -3,9 +3,6 @@ use Idealo\Models\ClienteModel;
 
 $model = new ClienteModel();
 
-// ==========================================
-// 2. CONTROL DE PETICIONES POST
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
     // CASO A: Guardar nuevo cliente
@@ -81,10 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
     exit;
 }
-
-// ==========================================
-// 3. CONTROL DE PETICIONES GET
-// ==========================================
 
 // CASO A: Inhabilitar cliente
 if (isset($_GET["id"]) && isset($_GET["accion"]) && $_GET["accion"] === "eliminar") {

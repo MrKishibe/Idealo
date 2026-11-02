@@ -2,6 +2,7 @@ import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { soloLetrasTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
+import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
 $(document).ready(function () {
     let tablaDataTable = null;
@@ -51,7 +52,7 @@ $(document).ready(function () {
     }
 
     // ==========================================
-    // INICIALIZACIÓN DEL DATATABLE (Estructura de Cuaderno)
+    // INICIALIZACIÓN DEL DATATABLE CON ORDEN
     // ==========================================
     function inicializarDataTable() {
         if ($.fn.DataTable.isDataTable('#tablaMateriaPrima')) {
@@ -64,7 +65,8 @@ $(document).ready(function () {
             language: lenguajeDataTableEs,
             pageLength: 10,
             responsive: true,
-            ordering: false,
+            ordering: true,
+            order: [[0, 'asc']],
             ajax: {
                 url: `${urlModulo}&ajax=listar`,
                 method: 'GET',
@@ -74,46 +76,51 @@ $(document).ready(function () {
                     if (json && Array.isArray(json.materias_primas)) {
                         materiasPrimas = json.materias_primas;
                     }
-                    // Filtrar dinámicamente entre Activos e Inactivos según la vista seleccionada
                     return materiasPrimas.filter(mp => mp.status_materia_prima === estadoFiltro);
                 }
             },
             columns: [
                 {
-                    data: null,
+                    data: 'nombre_materia_prima',
+                    type: 'string',
                     className: 'fw-bold',
                     render: function (data) {
-                        return escaparHTML(data.nombre_materia_prima);
+                        return escaparHTML(data);
                     }
                 },
                 {
-                    data: null,
+                    data: 'nombre_de_material',
+                    type: 'string',
                     render: function (data) {
-                        return escaparHTML(data.nombre_de_material || 'Sin tipo');
+                        return escaparHTML(data || 'Sin tipo');
                     }
                 },
                 {
-                    data: null,
+                    data: 'costo_unitario',
+                    type: 'num',
                     render: function (data) {
-                        return data.costo_unitario;
+                        return Number(data || 0).toFixed(2);
                     }
                 },
                 {
-                    data: null,
-                    render: function (data) {
-                        return `${data.stock_actual} ${escaparHTML(data.unidad_de_medida)}`;
+                    data: 'stock_actual',
+                    type: 'num',
+                    render: function (data, type, row) {
+                        return `${data} ${escaparHTML(row.unidad_de_medida)}`;
                     }
                 },
                 {
-                    data: null,
-                    render: function (data) {
-                        return `${data.stock_minimo} ${escaparHTML(data.unidad_de_medida)}`;
+                    data: 'stock_minimo',
+                    type: 'num',
+                    render: function (data, type, row) {
+                        return `${data} ${escaparHTML(row.unidad_de_medida)}`;
                     }
                 },
                 {
-                    data: null,
+                    data: 'status_materia_prima',
+                    type: 'string',
                     render: function (data) {
-                        return data.status_materia_prima === 'Activo'
+                        return data === 'Activo'
                             ? '<span class="badge bg-success">Activo</span>'
                             : '<span class="badge bg-danger">Inactivo</span>';
                     }
@@ -121,6 +128,7 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
+                    searchable: false,
                     render: function (data) {
                         const id = data.id_materia_prima;
                         const nombre = escaparHTML(data.nombre_materia_prima);
@@ -173,7 +181,6 @@ $(document).ready(function () {
         });
     }
 
-    // Función auxiliar para recargar la tabla de forma limpia
     function recargarTabla() {
         if (tablaDataTable) {
             tablaDataTable.ajax.reload(null, false);
@@ -200,6 +207,23 @@ $(document).ready(function () {
 
     $('#modalRegistrarMateriaPrima').on('show.bs.modal', async function () {
         await llenarSelectTipos();
+    });
+
+    $('#modalReporteMateria').on('show.bs.modal', async function () {
+        try {
+            const respuesta = await cargarTiposActivos();
+            const select = $('#tipoReporteSelect');
+            select.find('option:not([value="todos"])').remove();
+
+            if (respuesta && Array.isArray(respuesta.tipos)) {
+                respuesta.tipos.forEach(function (tipo) {
+                    const opcion = `<option value="${tipo.id_tipo_materia_prima}">${escaparHTML(tipo.nombre_de_material)}</option>`;
+                    select.append(opcion);
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar tipos en reporte:', error);
+        }
     });
 
     $(document).on('keydown', '#nombre_materia_prima, #edit_activo_nombre, #edit_inactivo_nombre', soloLetrasTeclado);
@@ -381,7 +405,7 @@ $(document).ready(function () {
     });
 
     // ==========================================
-    // 4. AJAX PARA INHABILITAR / ELIMINAR (POST)
+    // 4. AJAX PARA INHABILITAR (POST)
     // ==========================================
     $('body').on('click', '.btnCambiarEstado', function () {
         const id = $(this).data('id');
@@ -409,6 +433,42 @@ $(document).ready(function () {
             }
         });
     });
+
+    const formReporteMateria = document.getElementById('formReporteMateria');
+    const modalReporteMateriaElement = document.getElementById('modalReporteMateria');
+    const modalReporteMateria = modalReporteMateriaElement ? bootstrap.Modal.getOrCreateInstance(modalReporteMateriaElement) : null;
+
+    if (formReporteMateria) {
+        formReporteMateria.addEventListener('submit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const parametros = new URLSearchParams(new FormData(formReporteMateria));
+            parametros.set('accion', 'generar_reporte');
+
+            const estadoReporteSelect = $('#estado_reporte').val();
+
+            // Si se seleccionan 'Activos' específicamente y la tabla está activa, filtramos por los IDs visibles de la tabla
+            if (tablaDataTable && estadoReporteSelect === 'Activo') {
+                const datosFiltrados = tablaDataTable.rows({ search: 'applied' }).data().toArray();
+                const ids = datosFiltrados.map(mp => mp.id_materia_prima);
+                parametros.set('ids_filtrados', JSON.stringify(ids));
+            } else {
+                // Si se piden 'Inactivo' o 'todos', enviamos un array vacío para que consulte la BD completa
+                parametros.set('ids_filtrados', JSON.stringify([]));
+            }
+
+            const pestanaReporte = abrirReporteEnPestana(`${urlModulo}&${parametros.toString()}`);
+            if (!pestanaReporte) {
+                errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
+                return;
+            }
+
+            if (modalReporteMateria) {
+                modalReporteMateria.hide();
+            }
+        });
+    }
 
     // Carga inicial
     inicializarDataTable();

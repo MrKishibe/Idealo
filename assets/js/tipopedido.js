@@ -9,9 +9,7 @@ $(document).ready(function () {
 
     const urlModulo = 'index.php?controller=tipoPedido&action=listar';
 
-    // ==========================================
-    // 1. INICIALIZACIÓN DEL DATATABLE NATIVO (AJAX)
-    // ==========================================
+
     function inicializarDataTable() {
         if ($.fn.DataTable.isDataTable('#tablaTipoPedido')) {
             tablaDataTable.destroy();
@@ -39,12 +37,14 @@ $(document).ready(function () {
             columns: [
                 {
                     data: 'nombre_tipo_pedido',
+                    type: 'string', // Orden alfabético activo por nombre
                     render: function (data) {
                         return `<span class="fw-bold">${escaparHTML(data)}</span>`;
                     }
                 },
                 {
                     data: 'status_tipo_servicio',
+                    type: 'string', // Orden activo por estado
                     render: function (data) {
                         return data === 'Activo'
                             ? '<span class="badge bg-success">Activo</span>'
@@ -53,7 +53,7 @@ $(document).ready(function () {
                 },
                 {
                     data: null,
-                    orderable: false,
+                    orderable: false, // Acciones sin ordenamiento
                     render: function (data) {
                         const id = escaparHTML(data.id_tipo_pedido);
                         const nombre = escaparHTML(data.nombre_tipo_pedido);
@@ -83,7 +83,8 @@ $(document).ready(function () {
             language: lenguajeDataTableEs,
             pageLength: 10,
             responsive: true,
-            ordering: false
+            ordering: true, // Habilitar ordenamiento
+            order: [[0, 'asc']] // Orden inicial por la primera columna 
         });
     }
 
@@ -96,9 +97,6 @@ $(document).ready(function () {
         }
     }
 
-    // ==========================================
-    // 2. AJAX PARA REGISTRAR O EDITAR (POST)
-    // ==========================================
     async function procesarGuardado({ datosBody, modalSelector, formSelector }) {
         try {
             const respuesta = await $.ajax({
@@ -186,9 +184,6 @@ $(document).ready(function () {
         });
     });
 
-    // ==========================================
-    // 3. AJAX PARA INHABILITAR / ELIMINAR (POST)
-    // ==========================================
     $(document).on('click', '.btnCambiarEstado', async function () {
         const id = $(this).data('id');
         const nuevoEstado = $(this).data('estado');

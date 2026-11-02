@@ -6,9 +6,7 @@ $model = new PedidoModel();
 $rutaVista = __DIR__ . '/../view/pedido/listarpedido.php';
 
 /*
-|--------------------------------------------------------------------------
-| Respuesta JSON
-|--------------------------------------------------------------------------
+| Respuesta JSON estándar
 */
 $responderJson = static function (
     array $respuesta,
@@ -27,9 +25,7 @@ $responderJson = static function (
 };
 
 /*
-|--------------------------------------------------------------------------
 | Respuesta de error JSON
-|--------------------------------------------------------------------------
 */
 $responderError = static function (
     Throwable $e,
@@ -87,9 +83,7 @@ $crearDatosPedido = static function () use (
 };
 
 /*
-|--------------------------------------------------------------------------
-| AJAX: características según producto
-|--------------------------------------------------------------------------
+| AJAX: Obtener características según el producto seleccionado
 */
 if (($_GET['accion'] ?? '') === 'caracteristicas_por_producto') {
     try {
@@ -103,9 +97,7 @@ if (($_GET['accion'] ?? '') === 'caracteristicas_por_producto') {
 }
 
 /*
-|--------------------------------------------------------------------------
-| AJAX: listar pedidos
-|--------------------------------------------------------------------------
+| AJAX: Listar pedidos (activos o inhabilitados)
 */
 if (($_GET['accion'] ?? '') === 'listar') {
     try {
@@ -121,9 +113,7 @@ if (($_GET['accion'] ?? '') === 'listar') {
 }
 
 /*
-|--------------------------------------------------------------------------
-| AJAX: obtener pedido por ID
-|--------------------------------------------------------------------------
+| AJAX: Obtener un pedido específico por ID
 */
 if (($_GET['accion'] ?? '') === 'obtener') {
     try {
@@ -138,91 +128,107 @@ if (($_GET['accion'] ?? '') === 'obtener') {
 }
 
 /*
-|--------------------------------------------------------------------------
 | AJAX: Generar Reporte PDF con TCPDF
-|--------------------------------------------------------------------------
 */
 if (($_GET['accion'] ?? '') === 'generarreportepdf') {
     try {
         $filtros = [
-            'reporte_todo'   => trim($_POST['reporte_todo'] ?? ''),
-            'fecha_inicio'   => trim($_POST['fecha_inicio'] ?? ''),
-            'fecha_fin'      => trim($_POST['fecha_fin'] ?? ''),
-            'id_tipo_pedido' => $_POST['id_tipo_pedido'] ?? [], // Recibido como array de checkboxes
-            'id_servicio'    => $_POST['id_servicio'] ?? [],    // Recibido como array de checkboxes
-            'estado'         => $_POST['estado'] ?? [],         // Recibido como array de checkboxes
-            'cantidad'       => trim($_POST['cantidad'] ?? ''),
-            'operador_monto' => trim($_POST['operador_monto'] ?? ''),
-            'monto'          => trim($_POST['monto'] ?? ''),
-            'ids_filtrados'  => json_decode($_POST['ids_filtrados'] ?? '[]', true)
+            'reporte_todo'   => trim($_GET['reporte_todo'] ?? ''),
+            'fecha_inicio'   => trim($_GET['fecha_inicio'] ?? ''),
+            'fecha_fin'      => trim($_GET['fecha_fin'] ?? ''),
+            'id_tipo_pedido' => $_GET['id_tipo_pedido'] ?? [], // Array de checkboxes o selects
+            'id_servicio'    => $_GET['id_servicio'] ?? [],    // Array de checkboxes o selects
+            'estado'         => $_GET['estado'] ?? [],         // Array de checkboxes o selects
+            'cantidad'       => trim($_GET['cantidad'] ?? ''),
+            'operador_monto' => trim($_GET['operador_monto'] ?? ''),
+            'monto'          => trim($_GET['monto'] ?? ''),
+            'ids_filtrados'  => json_decode($_GET['ids_filtrados'] ?? '[]', true),
+            'filtro'         => trim($_GET['filtro'] ?? 'activos')
         ];
 
         $pedidos = $model->listarPedidosParaReporte($filtros);
 
-        // Instanciar TCPDF cargado por Composer (Paisaje 'L', milímetros, A4)
+        // Instanciar TCPDF en formato Horizontal (Landscape 'L')
         $pdf = new \TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor('Idéalo');
-        $pdf->SetTitle('Reporte de Pedidos');
+        $pdf->SetTitle('reporte de pedidos');
 
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-        $pdf->SetMargins(10, 10, 10);
-        $pdf->SetAutoPageBreak(TRUE, 10);
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(TRUE, 15);
         $pdf->AddPage();
-        $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 10, 10, 20, 20);
-        $pdf->SetY(34);
 
-        // Título del reporte
-        $pdf->SetFont('helvetica', 'B', 16);
-        $pdf->Cell(0, 10, 'Idéalo - Reporte de Pedidos', 0, 1, 'C');
-        
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(0, 5, 'Generado el: ' . date('d/m/Y H:i:s'), 0, 1, 'C');
-        $pdf->Ln(5);
-
-        // Cabecera de la tabla
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetFillColor(241, 245, 249);
-        $pdf->SetTextColor(30, 41, 59);
-
-        $pdf->Cell(15, 8, 'ID', 1, 0, 'C', true);
-        $pdf->Cell(25, 8, 'Fecha', 1, 0, 'C', true);
-        $pdf->Cell(60, 8, 'Cliente', 1, 0, 'L', true);
-        $pdf->Cell(55, 8, 'Producto', 1, 0, 'L', true);
-        $pdf->Cell(20, 8, 'Cant.', 1, 0, 'C', true);
-        $pdf->Cell(35, 8, 'Estado', 1, 0, 'C', true);
-        $pdf->Cell(65, 8, 'Total ($)', 1, 1, 'R', true);
-
-        // Filas de datos
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->SetTextColor(51, 51, 51);
-
-        $totalGeneral = 0;
-        foreach ($pedidos as $p) {
-            $totalGeneral += (float)$p['monto_total'];
-            $cliente = trim(($p['nombre_razon_social'] ?? '') . ' ' . ($p['apellido'] ?? ''));
-
-            $pdf->Cell(15, 7, '#' . $p['id_pedido'], 1, 0, 'C');
-            $pdf->Cell(25, 7, $p['fecha_creacion'], 1, 0, 'C');
-            $pdf->Cell(60, 7, substr($cliente, 0, 35), 1, 0, 'L');
-            $pdf->Cell(55, 7, substr($p['nombre_producto'] ?? 'N/A', 0, 30), 1, 0, 'L');
-            $pdf->Cell(20, 7, $p['cantidad'], 1, 0, 'C');
-            $pdf->Cell(35, 7, ucfirst($p['estado_pedido']), 1, 0, 'C');
-            $pdf->Cell(65, 7, number_format($p['monto_total'], 2), 1, 1, 'R');
+        // ENCABEZADO: Logotipo pequeño junto al título principal
+        $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
+        if (file_exists($logoPath)) {
+            $pdf->ImageSVG($logoPath, 15, 12, 12, 12);
         }
 
-        // Fila de Total Acumulado
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(210, 8, 'Monto Total Acumulado:', 1, 0, 'R');
-        $pdf->Cell(65, 8, '$ ' . number_format($totalGeneral, 2), 1, 1, 'R');
+        // Título alineado al lado del logo
+        $pdf->SetXY(30, 13);
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->SetTextColor(30, 41, 59);
+        $pdf->Cell(0, 8, 'Idéalo - Reporte de Pedidos', 0, 1, 'L');
+        
+        // Subtítulo con fecha y hora de generación
+        $pdf->SetX(30);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetTextColor(100, 100, 100);
+        $pdf->Cell(0, 5, 'Generado el: ' . date('d/m/Y H:i:s'), 0, 1, 'L');
+        
+        $pdf->Ln(8);
+
+        
+        // CABECERA DE LA TABLA
+       
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->SetFillColor(100, 116, 139);
+        $pdf->SetTextColor(255, 255, 255);
+
+        $pdf->Cell(15, 9, 'ID', 1, 0, 'C', true);
+        $pdf->Cell(30, 9, 'Fecha', 1, 0, 'C', true);
+        $pdf->Cell(67, 9, 'Cliente', 1, 0, 'L', true);
+        $pdf->Cell(55, 9, 'Producto', 1, 0, 'L', true);
+        $pdf->Cell(20, 9, 'Cant.', 1, 0, 'C', true);
+        $pdf->Cell(33, 9, 'Estado', 1, 0, 'C', true);
+        $pdf->Cell(47, 9, 'Total ($)', 1, 1, 'R', true);
+
+        // FILAS DE DATOS
+        
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetTextColor(30, 30, 30);
+
+        $totalGeneral = 0;
+        if (empty($pedidos)) {
+            $pdf->Cell(267, 8, 'No se encontraron pedidos con los parámetros seleccionados.', 1, 1, 'C');
+        } else {
+            foreach ($pedidos as $p) {
+                $totalGeneral += (float)$p['monto_total'];
+                $cliente = trim(($p['nombre_razon_social'] ?? '') . ' ' . ($p['apellido'] ?? ''));
+
+                $pdf->Cell(15, 8, '#' . $p['id_pedido'], 1, 0, 'C');
+                $pdf->Cell(30, 8, $p['fecha_creacion'], 1, 0, 'C');
+                $pdf->Cell(67, 8, substr($cliente, 0, 32), 1, 0, 'L');
+                $pdf->Cell(55, 8, substr($p['nombre_producto'] ?? 'N/A', 0, 28), 1, 0, 'L');
+                $pdf->Cell(20, 8, $p['cantidad'], 1, 0, 'C');
+                $pdf->Cell(33, 8, ucfirst($p['estado_pedido']), 1, 0, 'C');
+                $pdf->Cell(47, 8, number_format($p['monto_total'], 2), 1, 1, 'R');
+            }
+
+            // Fila de Total Acumulado
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(220, 9, 'Monto Total Acumulado:', 1, 0, 'R');
+            $pdf->Cell(47, 9, '$ ' . number_format($totalGeneral, 2), 1, 1, 'R');
+        }
 
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
 
         header('Content-Type: application/pdf');
-        $pdf->Output('reporte_pedidos.pdf', 'I');
+        $pdf->Output('reporte de pedidos.pdf', 'I');
         exit;
 
     } catch (Throwable $e) {
@@ -231,9 +237,7 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
 }
 
 /*
-|--------------------------------------------------------------------------
-| POST: registrar, editar e inhabilitar
-|--------------------------------------------------------------------------
+Control de peticiones POST (Registrar, Editar, Inhabilitar)
 */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = trim((string) ($_POST['accion'] ?? ''));
@@ -263,11 +267,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Cargar la vista principal
-|--------------------------------------------------------------------------
-*/
 if (!file_exists($rutaVista)) {
     http_response_code(404);
     die('No existe la vista de gestión de pedidos.');

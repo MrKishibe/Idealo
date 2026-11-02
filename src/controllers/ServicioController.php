@@ -1,20 +1,12 @@
 <?php
 
-// Definición de rutas absolutas del ecosistema para validación estructural
-$rutaConfigDatabase = dirname(dirname(__DIR__)) . '/Config/Database.php';
-$rutaPropiaModelo  = __DIR__ . '/../Models/ServicioModel.php';
-$rutaVistaListar    = __DIR__ . '/../view/servicio/listar.php';
-
 use Idealo\Models\ServicioModel;
+
+$rutaVistaListar = __DIR__ . '/../view/servicio/listar.php';
 
 // Captura dinámica de acciones si se manejan mediante la URL clásica (?action=nombre)
 $action = $_GET['action'] ?? 'listar';
 
-// =========================================================================
-// 2. ENRUTADOR PROCEDIMENTAL DE ACCIONES
-// =========================================================================
-
-// ACCIÓN: Listar Vista Normal (Renderizado desde el servidor)
 if ($action === 'listar' && $_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['ajax'])) {
     if (!file_exists($rutaVistaListar)) {
         header("HTTP/1.1 404 Not Found");

@@ -16,106 +16,7 @@
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 
-    <style>
-        .pedido-seccion {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 20px 0 15px;
-            font-weight: 800;
-            color: #334155;
-        }
-
-        .pedido-seccion i {
-            color: #4567a9;
-        }
-
-        .pedido-seccion::after {
-            content: '';
-            height: 1px;
-            flex: 1;
-            background: #e8edf3;
-        }
-
-        .pedido-total {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 22px;
-            padding: 14px 16px;
-            border: 1px solid #bcd4ff;
-            border-radius: 10px;
-            background: #eff6ff;
-            color: #1e3a8a;
-        }
-
-        .pedido-total strong {
-            font-size: 1.2rem;
-        }
-
-        .detalle-bloque {
-            height: 100%;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            background: #fafcff;
-        }
-
-        .detalle-bloque h6 {
-            font-weight: 800;
-        }
-
-        .detalle-bloque p {
-            margin-bottom: 9px;
-        }
-
-        .detalle-bloque p:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Tabla más compacta */
-        #tablaPedidos {
-            font-size: 0.92rem;
-        }
-
-        #tablaPedidos thead th {
-            padding: 0.55rem 0.6rem;
-            white-space: nowrap;
-        }
-
-        #tablaPedidos tbody td {
-            padding: 0.45rem 0.6rem;
-            vertical-align: middle;
-        }
-
-        #tablaPedidos tbody td.text-center {
-            white-space: nowrap;
-        }
-
-        #tablaPedidos .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        #tablaPedidos .btnDetallePedido,
-        #tablaPedidos .btnEditarPedido,
-        #tablaPedidos .btnInhabilitarPedido {
-            margin: 0 3px;
-        }
-
-        /* Header: ajustar botones en móviles */
-        @media (max-width: 576px) {
-            .page-header .d-flex {
-                flex-wrap: wrap;
-                gap: 0.5rem !important;
-            }
-
-            .page-header .btn {
-                flex: 1 1 auto;
-                text-align: center;
-            }
-        }
-    </style>
+    
 </head>
 
 <body>
@@ -127,7 +28,7 @@
         <header class="page-header">
             <div>
                 <h1 id="tituloVista">Gestión de Pedidos</h1>
-                <p>Administra los pedidos registrados en el sistema[cite: 9].</p>
+                <p>Administra los pedidos registrados en el sistema.</p>
             </div>
             <div class="d-flex gap-2 align-items-center">
                 <!-- Botón Único para abrir el Modal de Reportes con Filtros Avanzados -->

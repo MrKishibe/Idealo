@@ -241,6 +241,25 @@ export function obtenerFechaLocalISO(diasDesdeHoy) {
     return anio + "-" + mes + "-" + dia;
 }
 
+export function formatearFechaLatinoamericana(valor) {
+    const fechaISO = String(valor ?? "").trim();
+    const coincidencia = /^(\d{4})-(\d{2})-(\d{2})(?:$|[ T])/.exec(fechaISO);
+
+    if (!coincidencia) {
+        return fechaISO;
+    }
+
+    const [, anio, mes, dia] = coincidencia;
+    const fechaUTC = new Date(Date.UTC(Number(anio), Number(mes) - 1, Number(dia)));
+    if (fechaUTC.getUTCFullYear() !== Number(anio)
+        || fechaUTC.getUTCMonth() !== Number(mes) - 1
+        || fechaUTC.getUTCDate() !== Number(dia)) {
+        return fechaISO;
+    }
+
+    return `${dia}/${mes}/${anio}`;
+}
+
 export function validarFecha(campo, obligatoria, diasMinimosDesdeHoy) {
     const $campo = $(campo);
     if ($campo.length === 0) {
@@ -308,5 +327,6 @@ export const expresionesRegulares = Object.freeze({
     validarFormulario,
     validarFecha,
     validarCoincidencia,
-    obtenerFechaLocalISO
+    obtenerFechaLocalISO,
+    formatearFechaLatinoamericana
 });

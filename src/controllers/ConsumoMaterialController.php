@@ -167,15 +167,11 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
                 || ($estadoNormalizado === 'activas' ? $estado !== 'inactiva' : $estado === $estadoNormalizado));
     }));
 
-    $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+
+    $pdf = new \Idealo\Helpers\ReportePdf(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Idealo 2024');
     $pdf->SetTitle('Reporte de Consumos de Material');
-    $pdf->SetMargins(12, 15, 12);
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    $pdf->AddPage();
-    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 12, 10, 20, 20);
-    $pdf->SetY(34);
 
     $etiquetaMateria = $idMateriaPrima === ''
         ? 'Todas'
@@ -187,41 +183,50 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
         $etiquetaEstado = 'Pendiente (En espera)';
     }
 
-    $html = '
-    <h2 style="text-align:center; color:#333; font-family:helvetica; font-size:16pt;">Reporte de Consumo de Materiales</h2>
-    <p style="font-family:helvetica; font-size:10pt;">Fecha de generación: ' . date('d/m/Y') . '<br>
-       Materia prima: ' . htmlspecialchars($etiquetaMateria, ENT_QUOTES, 'UTF-8') . '<br>
-       Estado de producción: ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
-    <table border="1" cellpadding="3" cellspacing="0" style="width:100%; font-family:helvetica; font-size:10pt;">
-        <thead>
-            <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                <th width="7%">ID</th>
-                <th width="21%">Materia Prima</th>
-                <th width="13%">Costo Unit.</th>
-                <th width="13%">Cantidad</th>
-                <th width="14%">Costo Total</th>
-                <th width="32%">Orden / Descripción</th>
-            </tr>
-        </thead>
-        <tbody>';
+    $pdf->setReportDetails(
+        'Reporte de Consumo de Materiales',
+        'Detalle de consumos | Materia prima: ' . $etiquetaMateria . ' | Estado de producción: ' . $etiquetaEstado
+    );
+    $pdf->AddPage();
+
+    $totalConsumido = 0;
+    foreach ($consumos as $consumo) {
+        $totalConsumido += (float) $consumo['costo_unitario'] * (float) $consumo['cantidad_usada'];
+    }
+    $pdf->addSummaryCards([
+        ['label' => 'Total de registros', 'value' => (string) count($consumos)],
+        ['label' => 'Materia prima', 'value' => $etiquetaMateria],
+        ['label' => 'Costo consumido', 'value' => '$ ' . number_format($totalConsumido, 2, '.', ',')]
+    ]);
+
+    $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="4" cellspacing="0" width="100%">
+        <thead><tr bgcolor="#174B55">
+            <th width="7%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+            <th width="21%" align="left"><font color="#FFFFFF"><b>Materia Prima</b></font></th>
+            <th width="13%" align="right"><font color="#FFFFFF"><b>Costo Unit.</b></font></th>
+            <th width="13%" align="right"><font color="#FFFFFF"><b>Cantidad</b></font></th>
+            <th width="14%" align="right"><font color="#FFFFFF"><b>Costo Total</b></font></th>
+            <th width="32%" align="left"><font color="#FFFFFF"><b>Orden / Descripción</b></font></th>
+        </tr></thead><tbody>';
 
     if (empty($consumos)) {
-        $html .= '<tr><td colspan="6" style="text-align:center;">No hay consumos que coincidan con los filtros seleccionados.</td></tr>';
+        $html .= '<tr bgcolor="#F3F7F8"><td colspan="6" align="center">No hay consumos que coincidan con los filtros seleccionados.</td></tr>';
     } else {
-        foreach ($consumos as $c) {
+        foreach (array_values($consumos) as $index => $c) {
             $costoTotal = (float) $c['costo_unitario'] * (float) $c['cantidad_usada'];
+            $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
 
             $ordenLabel = htmlspecialchars('OP-' . str_pad((string) $c['id_produccion'], 4, '0', STR_PAD_LEFT), ENT_QUOTES, 'UTF-8');
             if (!empty($c['descripcion_de_consumo'])) {
-                $ordenLabel .= '<br><span style="font-size:10pt; color:#555;">' . htmlspecialchars($c['descripcion_de_consumo'], ENT_QUOTES, 'UTF-8') . '</span>';
+                $ordenLabel .= '<br /><font color="#647780">' . htmlspecialchars($c['descripcion_de_consumo'], ENT_QUOTES, 'UTF-8') . '</font>';
             }
             
-            $html .= '<tr style="text-align:center;">
+            $html .= '<tr bgcolor="' . $fondoFila . '">
                         <td width="7%" align="center">' . htmlspecialchars((string) $c['id_consumo_material'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td width="21%"><strong>' . htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material', ENT_QUOTES, 'UTF-8') . '</strong></td>
-                        <td width="13%">$' . number_format((float) $c['costo_unitario'], 2, '.', ',') . '</td>
-                        <td width="13%">' . htmlspecialchars((string) $c['cantidad_usada'], ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>
-                        <td width="14%" style="color:green; font-weight:bold;">$' . number_format($costoTotal, 2, '.', ',') . '</td>
+                        <td width="21%">' . htmlspecialchars($c['nombre_materia_prima'] ?? 'Sin material', ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="13%" align="right">$ ' . number_format((float) $c['costo_unitario'], 2, '.', ',') . '</td>
+                        <td width="13%" align="right">' . htmlspecialchars((string) $c['cantidad_usada'], ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars($c['unidad_de_medida'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="14%" align="right"><font color="#267348"><b>$ ' . number_format($costoTotal, 2, '.', ',') . '</b></font></td>
                         <td width="32%">' . $ordenLabel . '</td>
                       </tr>';
         }
@@ -230,6 +235,8 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
     $html .= '</tbody></table>';
 
     $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Ln(2);
+    $pdf->addTotalBanner('Monto Total Acumulado', '$ ' . number_format($totalConsumido, 2, '.', ','));
     $pdf->Output('Reporte_Consumo_Material.pdf', 'I');
     exit;
 }

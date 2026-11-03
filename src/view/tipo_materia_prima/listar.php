@@ -24,9 +24,6 @@
                         <i class="bi bi-eye-slash-fill" id="iconoEstado"></i>
                         <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
-                    <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger">
-                        <i class="bi bi-file-earmark-pdf-fill"></i> Generar Reporte
-                    </button>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarMaterial">
                         <i class="bi bi-tags-fill"></i> Registrar Tipo
                     </button>

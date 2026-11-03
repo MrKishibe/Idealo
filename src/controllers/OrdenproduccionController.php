@@ -193,21 +193,12 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
             && ($fechaHasta === '' || $fechaInicio <= $fechaHasta);
     });
 
-    $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+
+    $pdf = new \Idealo\Helpers\ReportePdf(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('TCPDF');
     $pdf->SetAuthor('Sistema de Gestión');
     $pdf->SetTitle('Reporte de Producción');
-    $pdf->SetMargins(15, 15, 15);
-    $pdf->setPrintHeader(false); 
-    $pdf->setPrintFooter(false); 
-    $pdf->AddPage();
-    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 15, 10, 20, 20);
-    $pdf->SetY(34);
-
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Reporte de Órdenes de Producción', 0, 1, 'C');
-    $pdf->SetFont('helvetica', '', 10);
     $etiquetaEstados = count($estadosFiltrados) === count($estadosProduccion)
         ? 'Todos'
         : implode(', ', array_map(static function ($estado) use ($estadosProduccion) {
@@ -221,47 +212,53 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $rangoFechas = ($fechaDesde !== '' ? date('d/m/Y', strtotime($fechaDesde)) : 'Sin límite')
         . ' - '
         . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
-    $pdf->MultiCell(
-        0,
-        6,
-        'Fecha de generación: ' . date('d/m/Y')
-            . "\nEstados: " . $etiquetaEstados
-            . "\nFecha de inicio: " . $rangoFechas,
-        0,
-        'L'
+    $pdf->setReportDetails(
+        'Reporte de Órdenes de Producción',
+        'Detalle de producción | Estados: ' . $etiquetaEstados . ' | Inicio: ' . $rangoFechas
     );
-    $pdf->Ln(3);
+    $pdf->AddPage();
 
-    // Construimos la tabla
-    $html = '<table border="1" cellpadding="5">
-                <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                    <th width="10%">ID</th>
-                    <th width="20%">Inicio</th>
-                    <th width="20%">Fin</th>
-                    <th width="30%">Descripción del Pedido</th>
-                    <th width="20%">Estado</th>
-                </tr>';
+    $conteosEstado = [];
+    foreach ($ordenesFiltradas as $orden) {
+        $estado = strtolower(trim((string) ($orden['estado_de_produccion'] ?? '')));
+        $conteosEstado[$estado] = ($conteosEstado[$estado] ?? 0) + 1;
+    }
+    $pdf->addSummaryCards([
+        ['label' => 'Total de órdenes', 'value' => (string) count($ordenesFiltradas)],
+        ['label' => 'Planificadas', 'value' => (string) ($conteosEstado['planificado'] ?? 0)],
+        ['label' => 'En proceso', 'value' => (string) ($conteosEstado['en proceso'] ?? 0)],
+        ['label' => 'Finalizadas', 'value' => (string) ($conteosEstado['finalizado'] ?? 0)]
+    ]);
+
+    $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="5" cellspacing="0" width="100%">
+                <thead><tr bgcolor="#174B55">
+                    <th width="10%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+                    <th width="17%" align="center"><font color="#FFFFFF"><b>Inicio</b></font></th>
+                    <th width="17%" align="center"><font color="#FFFFFF"><b>Fin</b></font></th>
+                    <th width="36%" align="left"><font color="#FFFFFF"><b>Descripción del Pedido</b></font></th>
+                    <th width="20%" align="center"><font color="#FFFFFF"><b>Estado</b></font></th>
+                </tr></thead><tbody>';
 
     if (empty($ordenesFiltradas)) {
-        $html .= '<tr><td colspan="5" align="center">No hay órdenes para mostrar.</td></tr>';
+        $html .= '<tr bgcolor="#F3F7F8"><td colspan="5" align="center">No hay órdenes para mostrar.</td></tr>';
     } else {
-        foreach ($ordenesFiltradas as $orden) {
+        foreach (array_values($ordenesFiltradas) as $index => $orden) {
             $inicio = !empty($orden['fecha_de_inicio']) ? date('d/m/Y', strtotime($orden['fecha_de_inicio'])) : 'N/A';
             $fin = !empty($orden['fecha_terminado']) ? date('d/m/Y', strtotime($orden['fecha_terminado'])) : 'N/A';
-            $descripcion = htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin descripción');
-            $estado = htmlspecialchars($orden['estado_de_produccion'] ?? 'Sin estado');
+            $descripcion = htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin descripción', ENT_QUOTES, 'UTF-8');
+            $estado = htmlspecialchars($orden['estado_de_produccion'] ?? 'Sin estado', ENT_QUOTES, 'UTF-8');
+            $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
 
-            $html .= '<tr>
-                        <td align="center">#' . $orden['id_produccion'] . '</td>
-                        <td align="center">' . $inicio . '</td>
-                        <td align="center">' . $fin . '</td>
-                        <td>' . $descripcion . '</td>
-                        <td align="center">' . $estado . '</td>
+            $html .= '<tr bgcolor="' . $fondoFila . '">
+                        <td width="10%" align="center">#' . htmlspecialchars((string) ($orden['id_produccion'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="17%" align="center">' . $inicio . '</td>
+                        <td width="17%" align="center">' . $fin . '</td>
+                        <td width="36%">' . $descripcion . '</td>
+                        <td width="20%" align="center">' . $estado . '</td>
                     </tr>';
         }
     }
-    
-    $html .= '</table>';
+    $html .= '</tbody></table>';
 
     $pdf->SetFont('helvetica', '', 10);
     $pdf->writeHTML($html, true, false, true, false, '');

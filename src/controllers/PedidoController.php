@@ -148,80 +148,71 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
 
         $pedidos = $model->listarPedidosParaReporte($filtros);
 
+        require_once __DIR__ . '/../helpers/ReportePdf.php';
+
+        $periodo = ($filtros['fecha_inicio'] !== '' ? $filtros['fecha_inicio'] : 'Sin límite')
+            . ' - '
+            . ($filtros['fecha_fin'] !== '' ? $filtros['fecha_fin'] : 'Sin límite');
+        $estadosFiltro = $filtros['estado'];
+        $estadosEtiqueta = is_array($estadosFiltro)
+            ? implode(', ', array_map('strval', $estadosFiltro))
+            : (is_scalar($estadosFiltro) ? (string) $estadosFiltro : '');
+        $subtitulo = 'Detalle de pedidos | Período: ' . $periodo
+            . ' | Estado: ' . ($estadosEtiqueta !== '' ? $estadosEtiqueta : 'Todos')
+            . ' | Vista: ' . $filtros['filtro'];
+
         // Instanciar TCPDF en formato Horizontal (Landscape 'L')
-        $pdf = new \TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $pdf = new \Idealo\Helpers\ReportePdf('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor('Idéalo');
         $pdf->SetTitle('reporte de pedidos');
-
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(TRUE, 15);
+        $pdf->setReportDetails('Reporte de Pedidos', $subtitulo);
         $pdf->AddPage();
 
-        // ENCABEZADO: Logotipo pequeño junto al título principal
-        $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
-        if (file_exists($logoPath)) {
-            $pdf->ImageSVG($logoPath, 15, 12, 12, 12);
-        }
-
-        // Título alineado al lado del logo
-        $pdf->SetXY(30, 13);
-        $pdf->SetFont('helvetica', 'B', 16);
-        $pdf->SetTextColor(30, 41, 59);
-        $pdf->Cell(0, 8, 'Idéalo - Reporte de Pedidos', 0, 1, 'L');
-        
-        // Subtítulo con fecha y hora de generación
-        $pdf->SetX(30);
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->SetTextColor(100, 100, 100);
-        $pdf->Cell(0, 5, 'Generado el: ' . date('d/m/Y H:i:s'), 0, 1, 'L');
-        
-        $pdf->Ln(8);
-
-        
-        // CABECERA DE LA TABLA
-       
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->SetFillColor(100, 116, 139);
-        $pdf->SetTextColor(255, 255, 255);
-
-        $pdf->Cell(15, 9, 'ID', 1, 0, 'C', true);
-        $pdf->Cell(30, 9, 'Fecha', 1, 0, 'C', true);
-        $pdf->Cell(67, 9, 'Cliente', 1, 0, 'L', true);
-        $pdf->Cell(55, 9, 'Producto', 1, 0, 'L', true);
-        $pdf->Cell(20, 9, 'Cant.', 1, 0, 'C', true);
-        $pdf->Cell(33, 9, 'Estado', 1, 0, 'C', true);
-        $pdf->Cell(47, 9, 'Total ($)', 1, 1, 'R', true);
-
-        // FILAS DE DATOS
-        
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->SetTextColor(30, 30, 30);
-
         $totalGeneral = 0;
+        $conteosEstado = [];
+        foreach ($pedidos as $p) {
+            $estado = strtolower(trim((string) ($p['estado_pedido'] ?? '')));
+            $conteosEstado[$estado] = ($conteosEstado[$estado] ?? 0) + 1;
+        }
+        $pdf->addSummaryCards([
+            ['label' => 'Total de pedidos', 'value' => (string) count($pedidos)],
+            ['label' => 'Pendientes', 'value' => (string) ($conteosEstado['pendiente'] ?? 0)],
+            ['label' => 'Planificados', 'value' => (string) ($conteosEstado['planificado'] ?? 0)]
+        ]);
+
+        $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="4" cellspacing="0" width="100%">
+                    <thead><tr bgcolor="#174B55">
+                        <th width="6%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+                        <th width="11%" align="center"><font color="#FFFFFF"><b>Fecha</b></font></th>
+                        <th width="25%" align="left"><font color="#FFFFFF"><b>Cliente</b></font></th>
+                        <th width="20%" align="left"><font color="#FFFFFF"><b>Producto</b></font></th>
+                        <th width="7%" align="center"><font color="#FFFFFF"><b>Cant.</b></font></th>
+                        <th width="13%" align="center"><font color="#FFFFFF"><b>Estado</b></font></th>
+                        <th width="18%" align="right"><font color="#FFFFFF"><b>Total ($)</b></font></th>
+                    </tr></thead><tbody>';
         if (empty($pedidos)) {
-            $pdf->Cell(267, 8, 'No se encontraron pedidos con los parámetros seleccionados.', 1, 1, 'C');
+            $html .= '<tr bgcolor="#F6F9FA"><td colspan="7" align="center">No se encontraron pedidos con los parámetros seleccionados.</td></tr>';
         } else {
-            foreach ($pedidos as $p) {
+            foreach (array_values($pedidos) as $index => $p) {
                 $totalGeneral += (float)$p['monto_total'];
                 $cliente = trim(($p['nombre_razon_social'] ?? '') . ' ' . ($p['apellido'] ?? ''));
-
-                $pdf->Cell(15, 8, '#' . $p['id_pedido'], 1, 0, 'C');
-                $pdf->Cell(30, 8, $p['fecha_creacion'], 1, 0, 'C');
-                $pdf->Cell(67, 8, substr($cliente, 0, 32), 1, 0, 'L');
-                $pdf->Cell(55, 8, substr($p['nombre_producto'] ?? 'N/A', 0, 28), 1, 0, 'L');
-                $pdf->Cell(20, 8, $p['cantidad'], 1, 0, 'C');
-                $pdf->Cell(33, 8, ucfirst($p['estado_pedido']), 1, 0, 'C');
-                $pdf->Cell(47, 8, number_format($p['monto_total'], 2), 1, 1, 'R');
+                $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
+                $html .= '<tr bgcolor="' . $fondoFila . '">
+                    <td width="6%" align="center">#' . htmlspecialchars((string) ($p['id_pedido'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="11%" align="center">' . htmlspecialchars((string) ($p['fecha_creacion'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="25%">' . htmlspecialchars($cliente, ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="20%">' . htmlspecialchars((string) ($p['nombre_producto'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="7%" align="center">' . htmlspecialchars((string) ($p['cantidad'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="13%" align="center">' . htmlspecialchars(ucfirst((string) ($p['estado_pedido'] ?? '')), ENT_QUOTES, 'UTF-8') . '</td>
+                    <td width="18%" align="right">$ ' . number_format((float) ($p['monto_total'] ?? 0), 2) . '</td>
+                </tr>';
             }
-
-            // Fila de Total Acumulado
-            $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(220, 9, 'Monto Total Acumulado:', 1, 0, 'R');
-            $pdf->Cell(47, 9, '$ ' . number_format($totalGeneral, 2), 1, 1, 'R');
         }
+        $html .= '</tbody></table>';
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->Ln(2);
+        $pdf->addTotalBanner('Monto Total Acumulado', '$ ' . number_format($totalGeneral, 2));
 
         while (ob_get_level() > 0) {
             ob_end_clean();

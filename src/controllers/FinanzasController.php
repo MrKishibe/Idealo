@@ -148,20 +148,6 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $estadoFiltro = $_GET['estado'] ?? 'activos';
     $verInhabilitados = ($estadoFiltro === 'inhabilitados');
 
-    $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    
-    $pdf->SetCreator('TCPDF');
-    $pdf->SetAuthor('Sistema de Gestión - Idealo');
-    $pdf->SetTitle('Reporte Financiero');
-    $pdf->SetMargins(15, 15, 15);
-    $pdf->setPrintHeader(false); 
-    $pdf->setPrintFooter(false); 
-    $pdf->AddPage();
-    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 15, 10, 20, 20);
-    $pdf->SetY(34);
-
-    $pdf->SetFont('helvetica', 'B', 16);
-    
     if ($tipoReporte === 'cuentas') {
         $tituloReporte = $verInhabilitados ? 'Reporte de Cuentas Inhabilitadas' : 'Reporte de Cuentas Activas';
     } elseif ($tipoReporte === 'pagos') {
@@ -169,9 +155,14 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     } else {
         $tituloReporte = $verInhabilitados ? 'Reporte de Métodos Inhabilitados' : 'Reporte de Métodos Activos';
     }
-    
-    $pdf->Cell(0, 10, $tituloReporte, 0, 1, 'C');
-    $pdf->Ln(5); 
+
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+    $pdf = new \Idealo\Helpers\ReportePdf(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->SetCreator('TCPDF');
+    $pdf->SetAuthor('Sistema de Gestión - Idealo');
+    $pdf->SetTitle('Reporte Financiero');
+    $pdf->setReportDetails($tituloReporte, 'Detalle financiero | Estado: ' . ($verInhabilitados ? 'Inhabilitados' : 'Activos'));
+    $pdf->AddPage();
 
     if ($tipoReporte === 'cuentas') {
         $todasLasCuentas = $cuentasModel->listarCuentas();
@@ -180,27 +171,32 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
             return $verInhabilitados ? $esInhabilitado : !$esInhabilitado;
         });
 
-        $html = '<table border="1" cellpadding="5">
-                    <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                        <th width="15%">ID</th>
-                        <th width="35%">Titular</th>
-                        <th width="30%">Identificador</th>
-                        <th width="20%">Tipo</th>
-                    </tr>';
+        $pdf->addSummaryCards([
+            ['label' => 'Total de cuentas', 'value' => (string) count($cuentasFiltradas)],
+            ['label' => 'Estado aplicado', 'value' => $verInhabilitados ? 'Inhabilitadas' : 'Activas']
+        ]);
+        $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="5" cellspacing="0" width="100%">
+                    <thead><tr bgcolor="#174B55">
+                        <th width="15%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+                        <th width="35%" align="left"><font color="#FFFFFF"><b>Titular</b></font></th>
+                        <th width="30%" align="left"><font color="#FFFFFF"><b>Identificador</b></font></th>
+                        <th width="20%" align="left"><font color="#FFFFFF"><b>Tipo</b></font></th>
+                    </tr></thead><tbody>';
 
         if (empty($cuentasFiltradas)) {
-            $html .= '<tr><td colspan="4" align="center">No hay cuentas para mostrar.</td></tr>';
+            $html .= '<tr bgcolor="#F3F7F8"><td colspan="4" align="center">No hay cuentas para mostrar.</td></tr>';
         } else {
-            foreach ($cuentasFiltradas as $cuenta) {
-                $html .= '<tr>
-                            <td align="center">#' . ($cuenta['id_cuenta'] ?? '') . '</td>
-                            <td>' . htmlspecialchars($cuenta['titular'] ?? 'N/A') . '</td>
-                            <td><code>' . htmlspecialchars($cuenta['identificador'] ?? 'N/A') . '</code></td>
-                            <td>' . htmlspecialchars($cuenta['tipo_cuenta'] ?? 'N/A') . '</td>
+            foreach (array_values($cuentasFiltradas) as $index => $cuenta) {
+                $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
+                $html .= '<tr bgcolor="' . $fondoFila . '">
+                            <td width="15%" align="center">#' . htmlspecialchars((string) ($cuenta['id_cuenta'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="35%">' . htmlspecialchars($cuenta['titular'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="30%">' . htmlspecialchars($cuenta['identificador'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="20%">' . htmlspecialchars($cuenta['tipo_cuenta'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
                         </tr>';
             }
         }
-        $html .= '</table>';
+        $html .= '</tbody></table>';
     } elseif ($tipoReporte === 'pagos') {
         $todosLosPagos = $pagosModel->listarPagos();
         $pagosFiltrados = array_filter($todosLosPagos, function($pago) use ($verInhabilitados) {
@@ -208,32 +204,44 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
             return $verInhabilitados ? $esInhabilitado : !$esInhabilitado;
         });
 
-        $html = '<table border="1" cellpadding="5">
-                    <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                        <th width="10%">ID</th>
-                        <th width="20%">Referencia</th>
-                        <th width="15%">Pedido</th>
-                        <th width="20%">Monto Abonado</th>
-                        <th width="20%">Método</th>
-                        <th width="15%">Estado</th>
-                    </tr>';
+        $montoTotalPagos = array_sum(array_map(
+            static function ($pago) {
+                return (float) ($pago['monto_pago'] ?? 0);
+            },
+            $pagosFiltrados
+        ));
+        $pdf->addSummaryCards([
+            ['label' => 'Total de pagos', 'value' => (string) count($pagosFiltrados)],
+            ['label' => 'Estado aplicado', 'value' => $verInhabilitados ? 'Inhabilitados' : 'Activos'],
+            ['label' => 'Monto abonado', 'value' => '$ ' . number_format($montoTotalPagos, 2, '.', ',')]
+        ]);
+        $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="5" cellspacing="0" width="100%">
+                    <thead><tr bgcolor="#174B55">
+                        <th width="10%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+                        <th width="20%" align="center"><font color="#FFFFFF"><b>Referencia</b></font></th>
+                        <th width="15%" align="center"><font color="#FFFFFF"><b>Pedido</b></font></th>
+                        <th width="20%" align="right"><font color="#FFFFFF"><b>Monto Abonado</b></font></th>
+                        <th width="20%" align="left"><font color="#FFFFFF"><b>Método</b></font></th>
+                        <th width="15%" align="center"><font color="#FFFFFF"><b>Estado</b></font></th>
+                    </tr></thead><tbody>';
 
         if (empty($pagosFiltrados)) {
-            $html .= '<tr><td colspan="6" align="center">No hay pagos para mostrar.</td></tr>';
+            $html .= '<tr bgcolor="#F3F7F8"><td colspan="6" align="center">No hay pagos para mostrar.</td></tr>';
         } else {
-            foreach ($pagosFiltrados as $pago) {
+            foreach (array_values($pagosFiltrados) as $index => $pago) {
                 $estadoPago = ucfirst($pago['estado'] ?? 'procesado');
-                $html .= '<tr>
-                            <td align="center">#' . ($pago['id_pago'] ?? '') . '</td>
-                            <td align="center">' . htmlspecialchars($pago['referencia'] ?: 'N/A') . '</td>
-                            <td align="center">#' . ($pago['id_pedido'] ?? '') . '</td>
-                            <td align="right">$' . number_format($pago['monto_pago'] ?? 0, 2) . '</td>
-                            <td>' . htmlspecialchars($pago['nombre_metodo'] ?? 'N/A') . '</td>
-                            <td align="center">' . $estadoPago . '</td>
+                $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
+                $html .= '<tr bgcolor="' . $fondoFila . '">
+                            <td width="10%" align="center">#' . htmlspecialchars((string) ($pago['id_pago'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="20%" align="center">' . htmlspecialchars($pago['referencia'] ?: 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="15%" align="center">#' . htmlspecialchars((string) ($pago['id_pedido'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="20%" align="right">$ ' . number_format((float) ($pago['monto_pago'] ?? 0), 2) . '</td>
+                            <td width="20%">' . htmlspecialchars($pago['nombre_metodo'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="15%" align="center">' . htmlspecialchars($estadoPago, ENT_QUOTES, 'UTF-8') . '</td>
                         </tr>';
             }
         }
-        $html .= '</table>';
+        $html .= '</tbody></table>';
     } else {
         $todosLosMetodos = $metodosModel->listarMetodos();
         $metodosFiltrados = array_filter($todosLosMetodos, function($met) use ($verInhabilitados) {
@@ -241,30 +249,39 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
             return $verInhabilitados ? $esInhabilitado : !$esInhabilitado;
         });
 
-        $html = '<table border="1" cellpadding="5">
-                    <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                        <th width="20%">ID</th>
-                        <th width="60%">Nombre del Método</th>
-                        <th width="20%">Estado</th>
-                    </tr>';
+        $pdf->addSummaryCards([
+            ['label' => 'Total de métodos', 'value' => (string) count($metodosFiltrados)],
+            ['label' => 'Estado aplicado', 'value' => $verInhabilitados ? 'Inhabilitados' : 'Activos']
+        ]);
+        $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="5" cellspacing="0" width="100%">
+                    <thead><tr bgcolor="#174B55">
+                        <th width="20%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+                        <th width="60%" align="left"><font color="#FFFFFF"><b>Nombre del Método</b></font></th>
+                        <th width="20%" align="center"><font color="#FFFFFF"><b>Estado</b></font></th>
+                    </tr></thead><tbody>';
 
         if (empty($metodosFiltrados)) {
-            $html .= '<tr><td colspan="3" align="center">No hay métodos para mostrar.</td></tr>';
+            $html .= '<tr bgcolor="#F3F7F8"><td colspan="3" align="center">No hay métodos para mostrar.</td></tr>';
         } else {
-            foreach ($metodosFiltrados as $met) {
+            foreach (array_values($metodosFiltrados) as $index => $met) {
                 $estadoMet = ucfirst($met['status_metodo_de_pago'] ?? 'activo');
-                $html .= '<tr>
-                            <td align="center">#' . ($met['id_metodo_de_pago'] ?? '') . '</td>
-                            <td>' . htmlspecialchars($met['nombre_metodo_de_pago'] ?? 'N/A') . '</td>
-                            <td align="center">' . $estadoMet . '</td>
+                $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
+                $html .= '<tr bgcolor="' . $fondoFila . '">
+                            <td width="20%" align="center">#' . htmlspecialchars((string) ($met['id_metodo_de_pago'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="60%">' . htmlspecialchars($met['nombre_metodo_de_pago'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
+                            <td width="20%" align="center">' . htmlspecialchars($estadoMet, ENT_QUOTES, 'UTF-8') . '</td>
                         </tr>';
             }
         }
-        $html .= '</table>';
+        $html .= '</tbody></table>';
     }
 
     $pdf->SetFont('helvetica', '', 10);
     $pdf->writeHTML($html, true, false, true, false, '');
+    if ($tipoReporte === 'pagos') {
+        $pdf->Ln(2);
+        $pdf->addTotalBanner('Monto Total Acumulado', '$ ' . number_format($montoTotalPagos, 2, '.', ','));
+    }
 
     $pdf->Output('Reporte_Financiero.pdf', 'I'); 
     exit;

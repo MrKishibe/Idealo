@@ -143,15 +143,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
         }
     ));
 
-    $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+
+    $pdf = new \Idealo\Helpers\ReportePdf(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Idealo 2024');
     $pdf->SetTitle('Reporte de Pérdidas de Material');
-    $pdf->SetMargins(12, 15, 12);
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    $pdf->AddPage();
-    $pdf->ImageSVG(__DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg', 12, 10, 20, 20);
-    $pdf->SetY(34);
 
     $etiquetaEstado = $estadoNormalizado === ''
         ? 'Todos'
@@ -160,30 +156,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
         . ' - '
         . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
 
-    $html = '
-    <h2 style="text-align:center; color:#333; font-family:helvetica; font-size:16pt;">Reporte de Pérdidas de Material</h2>
-    <p style="font-family:helvetica; font-size:10pt;">Fecha de generación: ' . date('d/m/Y') . '<br>
-       Fecha de registro: ' . htmlspecialchars($rangoFechas, ENT_QUOTES, 'UTF-8') . '<br>
-       Estado de producción: ' . htmlspecialchars($etiquetaEstado, ENT_QUOTES, 'UTF-8') . '</p>
-    <table border="1" cellpadding="3" cellspacing="0" style="width:100%; font-family:helvetica; font-size:10pt;">
-        <thead>
-            <tr style="background-color:#343a40; color:#ffffff; font-weight:bold; text-align:center;">
-                <th width="7%">ID</th>
-                <th width="10%">Cant.</th>
-                <th width="14%">Costo total</th>
-                <th width="18%">Materia prima</th>
-                <th width="20%">Producción / Pedido</th>
-                <th width="19%">Motivo</th>
-                <th width="12%">Fecha</th>
-            </tr>
-        </thead>
-        <tbody>';
+    $pdf->setReportDetails(
+        'Reporte de Pérdidas de Material',
+        'Detalle de pérdidas | Registro: ' . $rangoFechas . ' | Estado de producción: ' . $etiquetaEstado
+    );
+    $pdf->AddPage();
+
+    $montoTotalPerdidas = array_sum(array_map(
+        static function ($perdida) {
+            return (float) ($perdida['costo_total_perdida'] ?? 0);
+        },
+        $perdidas
+    ));
+    $pdf->addSummaryCards([
+        ['label' => 'Total de registros', 'value' => (string) count($perdidas)],
+        ['label' => 'Estado aplicado', 'value' => $etiquetaEstado],
+        ['label' => 'Costo acumulado', 'value' => '$ ' . number_format($montoTotalPerdidas, 2, '.', ',')]
+    ]);
+
+    $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="4" cellspacing="0" width="100%">
+        <thead><tr bgcolor="#174B55">
+            <th width="7%" align="center"><font color="#FFFFFF"><b>ID</b></font></th>
+            <th width="10%" align="right"><font color="#FFFFFF"><b>Cant.</b></font></th>
+            <th width="14%" align="right"><font color="#FFFFFF"><b>Costo total</b></font></th>
+            <th width="18%" align="left"><font color="#FFFFFF"><b>Materia prima</b></font></th>
+            <th width="20%" align="left"><font color="#FFFFFF"><b>Producción / Pedido</b></font></th>
+            <th width="19%" align="left"><font color="#FFFFFF"><b>Motivo</b></font></th>
+            <th width="12%" align="center"><font color="#FFFFFF"><b>Fecha</b></font></th>
+        </tr></thead><tbody>';
 
     if (empty($perdidas)) {
-        $html .= '<tr><td colspan="7" style="text-align:center;">No hay pérdidas que coincidan con los filtros seleccionados.</td></tr>';
+        $html .= '<tr bgcolor="#F3F7F8"><td colspan="7" align="center">No hay pérdidas que coincidan con los filtros seleccionados.</td></tr>';
     } else {
-        foreach ($perdidas as $p) {
-            $produccionLabel = 'Orden #' . $p['id_produccion'];
+        foreach (array_values($perdidas) as $index => $p) {
+            $produccionLabel = 'Orden #' . ($p['id_produccion'] ?? '');
             if (!empty($p['descripcion_pedido'])) {
                 $produccionLabel .= ' - ' . $p['descripcion_pedido'];
             }
@@ -191,15 +197,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
             if (!empty($p['unidad_de_medida'])) {
                 $materiaPrimaLabel .= ' (' . $p['unidad_de_medida'] . ')';
             }
+            $fechaRegistro = !empty($p['fecha_de_registro'])
+                ? date('d/m/Y', strtotime($p['fecha_de_registro']))
+                : 'N/A';
+            $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
             
-            $html .= '<tr style="text-align:center;">
-                        <td width="7%" align="center">' . htmlspecialchars((string) $p['id_perdida_material'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td width="10%">' . htmlspecialchars((string) $p['cantidad_perdida'], ENT_QUOTES, 'UTF-8') . '</td>
-                        <td width="14%">$' . number_format((float) $p['costo_total_perdida'], 2, '.', ',') . '</td>
+            $html .= '<tr bgcolor="' . $fondoFila . '">
+                        <td width="7%" align="center">' . htmlspecialchars((string) ($p['id_perdida_material'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="10%" align="right">' . htmlspecialchars((string) ($p['cantidad_perdida'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="14%" align="right">$ ' . number_format((float) ($p['costo_total_perdida'] ?? 0), 2, '.', ',') . '</td>
                         <td width="18%">' . htmlspecialchars($materiaPrimaLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td width="20%">' . htmlspecialchars($produccionLabel, ENT_QUOTES, 'UTF-8') . '</td>
                         <td width="19%">' . htmlspecialchars($p['motivo'] ?? 'Sin motivo', ENT_QUOTES, 'UTF-8') . '</td>
-                        <td width="12%">' . htmlspecialchars((string) $p['fecha_de_registro'], ENT_QUOTES, 'UTF-8') . '</td>
+                        <td width="12%" align="center">' . htmlspecialchars($fechaRegistro, ENT_QUOTES, 'UTF-8') . '</td>
                       </tr>';
         }
     }
@@ -207,6 +217,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
     $html .= '</tbody></table>';
 
     $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Ln(2);
+    $pdf->addTotalBanner('Monto Total Acumulado', '$ ' . number_format($montoTotalPerdidas, 2, '.', ','));
     $pdf->Output('Reporte_Perdidas_Material.pdf', 'I');
     exit;
 }

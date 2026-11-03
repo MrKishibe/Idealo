@@ -5,7 +5,8 @@ import {
     validarCampo as validarCampoCompartido,
     patrones,
     obtenerPatron,
-    obtenerFechaLocalISO
+    obtenerFechaLocalISO,
+    formatearFechaLatinoamericana
 } from './helpers/expresiones.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
@@ -24,8 +25,21 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'id_produccion' },
-            { data: 'fecha_de_inicio' },
-            { data: 'fecha_terminado', defaultContent: 'No definida' },
+            {
+                data: 'fecha_de_inicio',
+                render: function (data, type) {
+                    if (type !== 'display' && type !== 'filter') return data;
+                    return data ? formatearFechaLatinoamericana(data) : 'N/A';
+                }
+            },
+            {
+                data: 'fecha_terminado',
+                defaultContent: 'No definida',
+                render: function (data, type) {
+                    if (type !== 'display' && type !== 'filter') return data;
+                    return data ? formatearFechaLatinoamericana(data) : 'No definida';
+                }
+            },
             { data: 'descripcion_pedido' },
             { data: 'estado_de_produccion' },
             {
@@ -48,8 +62,8 @@ $(document).ready(function () {
         language: lenguajeDataTableEs,
         pageLength: 10,
         responsive: true,
-        ordering: false,
-        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+        ordering: true,
+        dom: '<"row align-items-center mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
 
     function configurarBusquedaPedido(inputSelector, idSelector, opcionesSelector) {

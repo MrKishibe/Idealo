@@ -347,64 +347,69 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
         return true;
     });
 
-    $pdf = new \TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
 
+    $pdf = new \Idealo\Helpers\ReportePdf('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator(PDF_CREATOR);
     $pdf->SetAuthor('Idéalo');
     $pdf->SetTitle('Reporte de Materia Prima');
 
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    $pdf->SetMargins(15, 15, 15);
-    $pdf->SetAutoPageBreak(true, 15);
-    $pdf->AddPage();
-
-    // Encabezado corporativo
-    $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
-    if (file_exists($logoPath)) {
-        $pdf->ImageSVG($logoPath, 15, 12, 12, 12);
-    }
-
-    $pdf->SetXY(30, 13);
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->SetTextColor(30, 41, 59);
-    $pdf->Cell(0, 8, 'Idéalo - Reporte Parametrizado de Materia Prima', 0, 1, 'L');
-
-    $pdf->SetX(30);
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->SetTextColor(100, 100, 100);
-    $pdf->Cell(0, 5, 'Generado el: ' . date('d/m/Y H:i:s') . ' | Estado: ' . ucfirst($tipoFiltroEstado), 0, 1, 'L');
-
-    $pdf->Ln(8);
-
-    // Cabecera de la tabla PDF
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->SetFillColor(100, 116, 139);
-    $pdf->SetTextColor(255, 255, 255);
-
-    $pdf->Cell(65, 9, 'Nombre', 1, 0, 'L', true);
-    $pdf->Cell(45, 9, 'Tipo', 1, 0, 'L', true);
-    $pdf->Cell(35, 9, 'Costo Unit. ($)', 1, 0, 'R', true);
-    $pdf->Cell(40, 9, 'Stock Actual', 1, 0, 'C', true);
-    $pdf->Cell(40, 9, 'Stock Mínimo', 1, 0, 'C', true);
-    $pdf->Cell(42, 9, 'Estado', 1, 1, 'C', true);
-
-    // Filas de datos
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->SetTextColor(30, 30, 30);
-
-    if (empty($datosFiltrados)) {
-        $pdf->Cell(267, 8, 'No se encontraron materias primas con los parámetros seleccionados.', 1, 1, 'C');
-    } else {
-        foreach ($datosFiltrados as $mp) {
-            $pdf->Cell(65, 8, substr($mp['nombre_materia_prima'], 0, 35), 1, 0, 'L');
-            $pdf->Cell(45, 8, substr($mp['nombre_de_material'] ?? 'Sin tipo', 0, 25), 1, 0, 'L');
-            $pdf->Cell(35, 8, number_format((float)$mp['costo_unitario'], 2), 1, 0, 'R');
-            $pdf->Cell(40, 8, $mp['stock_actual'] . ' ' . $mp['unidad_de_medida'], 1, 0, 'C');
-            $pdf->Cell(40, 8, $mp['stock_minimo'] . ' ' . $mp['unidad_de_medida'], 1, 0, 'C');
-            $pdf->Cell(42, 8, ucfirst($mp['status_materia_prima']), 1, 1, 'C');
+    $etiquetaTipo = $tipoFiltroMaterial === 'todos' ? 'Todos' : (string) $tipoFiltroMaterial;
+    $detalleFiltros = 'Estado: ' . ucfirst((string) $tipoFiltroEstado) . ' | Tipo: ' . $etiquetaTipo;
+    foreach ([
+        ['Costo', $operadorCosto, $valorCosto],
+        ['Stock actual', $operadorStockActual, $valorStockActual],
+        ['Stock mínimo', $operadorStockMinimo, $valorStockMinimo]
+    ] as [$etiqueta, $operador, $valor]) {
+        if ($operador !== '' && $valor !== null) {
+            $detalleFiltros .= ' | ' . $etiqueta . ' ' . $operador . ' ' . $valor;
         }
     }
+
+    $pdf->setReportDetails('Reporte de Materia Prima', 'Inventario filtrado | ' . $detalleFiltros);
+    $pdf->AddPage();
+
+    $costoPromedio = count($datosFiltrados) > 0
+        ? array_sum(array_map(
+            static function ($materia) {
+                return (float) ($materia['costo_unitario'] ?? 0);
+            },
+            $datosFiltrados
+        )) / count($datosFiltrados)
+        : 0;
+    $pdf->addSummaryCards([
+        ['label' => 'Total de registros', 'value' => (string) count($datosFiltrados)],
+        ['label' => 'Estado aplicado', 'value' => ucfirst((string) $tipoFiltroEstado)],
+        ['label' => 'Costo unitario promedio', 'value' => '$ ' . number_format($costoPromedio, 2, '.', ',')]
+    ]);
+
+    $html = '<table border="1" bordercolor="#DCE5E8" cellpadding="5" cellspacing="0" width="100%">
+        <thead><tr bgcolor="#174B55">
+            <th width="24%" align="left"><font color="#FFFFFF"><b>Nombre</b></font></th>
+            <th width="17%" align="left"><font color="#FFFFFF"><b>Tipo</b></font></th>
+            <th width="13%" align="right"><font color="#FFFFFF"><b>Costo Unit. ($)</b></font></th>
+            <th width="15%" align="center"><font color="#FFFFFF"><b>Stock Actual</b></font></th>
+            <th width="15%" align="center"><font color="#FFFFFF"><b>Stock Mínimo</b></font></th>
+            <th width="16%" align="center"><font color="#FFFFFF"><b>Estado</b></font></th>
+        </tr></thead><tbody>';
+
+    if (empty($datosFiltrados)) {
+        $html .= '<tr bgcolor="#F3F7F8"><td colspan="6" align="center">No se encontraron materias primas con los parámetros seleccionados.</td></tr>';
+    } else {
+        foreach (array_values($datosFiltrados) as $index => $mp) {
+            $fondoFila = $index % 2 === 0 ? '#FFFFFF' : '#F3F7F8';
+            $html .= '<tr bgcolor="' . $fondoFila . '">
+                <td width="24%">' . htmlspecialchars((string) ($mp['nombre_materia_prima'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                <td width="17%">' . htmlspecialchars((string) ($mp['nombre_de_material'] ?? 'Sin tipo'), ENT_QUOTES, 'UTF-8') . '</td>
+                <td width="13%" align="right">$ ' . number_format((float) ($mp['costo_unitario'] ?? 0), 2) . '</td>
+                <td width="15%" align="center">' . htmlspecialchars((string) ($mp['stock_actual'] ?? ''), ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars((string) ($mp['unidad_de_medida'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                <td width="15%" align="center">' . htmlspecialchars((string) ($mp['stock_minimo'] ?? ''), ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars((string) ($mp['unidad_de_medida'] ?? ''), ENT_QUOTES, 'UTF-8') . '</td>
+                <td width="16%" align="center">' . htmlspecialchars(ucfirst((string) ($mp['status_materia_prima'] ?? '')), ENT_QUOTES, 'UTF-8') . '</td>
+            </tr>';
+        }
+    }
+    $html .= '</tbody></table>';
+    $pdf->writeHTML($html, true, false, true, false, '');
 
     while (ob_get_level() > 0) {
         ob_end_clean();

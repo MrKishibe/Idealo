@@ -5,7 +5,8 @@ import {
     validarCampo as validarCampoCompartido,
     marcarCampo,
     patrones,
-    obtenerFechaLocalISO
+    obtenerFechaLocalISO,
+    formatearFechaLatinoamericana
 } from './helpers/expresiones.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
@@ -58,7 +59,14 @@ $(document).ready(function () {
                 }
             },
             { data: 'cantidad_perdida', defaultContent: '0' },
-            { data: 'fecha_de_registro', defaultContent: 'N/A' },
+            {
+                data: 'fecha_de_registro',
+                defaultContent: 'N/A',
+                render: function (data, type) {
+                    if (type !== 'display' && type !== 'filter') return data;
+                    return data ? formatearFechaLatinoamericana(data) : 'N/A';
+                }
+            },
             {
                 data: 'motivo',
                 render: function (data, type) {
@@ -115,8 +123,8 @@ $(document).ready(function () {
         language: lenguajeDataTableEs,
         pageLength: 10,
         responsive: true,
-        ordering: false,
-        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+        ordering: true,
+        dom: '<"row align-items-center mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
 
     function validarCampo($campo) {

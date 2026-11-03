@@ -138,8 +138,8 @@ $(document).ready(function () {
         language: lenguajeDataTableEs,
         pageLength: 10,
         responsive: true,
-        ordering: false,
-        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+        ordering: true,
+        dom: '<"row align-items-center mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
 
     function marcarCampo($campo, esValido) {

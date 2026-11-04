@@ -8,8 +8,6 @@ use PDOException;
 use Exception;
 use Throwable;
 
-require_once __DIR__ . '/../../config/Database.php';
-
 class PedidoModel extends Database
 {
     private PDO $pdo;
@@ -95,12 +93,6 @@ class PedidoModel extends Database
         }
     }
 
-    /**
-     * Método para filtrar pedidos destinados al reporte PDF
-     * Procesa selecciones múltiples (arrays) para Servicio, Tipo de Pedido y Estado.
-     * Si un campo está vacío o no seleccionado, se ignora automáticamente.
-     * Si 'reporte_todo' está activado, se ignoran los filtros específicos.
-     */
     public function listarPedidosParaReporte(array $filtros): array {
         $sql = "
             SELECT 
@@ -125,7 +117,6 @@ class PedidoModel extends Database
 
         $parametros = [];
 
-        // 1. Filtrar por los IDs visibles/filtrados actualmente por la búsqueda del DataTable
         if (!empty($filtros['ids_filtrados']) && is_array($filtros['ids_filtrados'])) {
             $placeholders = [];
             foreach ($filtros['ids_filtrados'] as $index => $id) {
@@ -136,11 +127,9 @@ class PedidoModel extends Database
             $sql .= " AND p.id_pedido IN (" . implode(', ', $placeholders) . ")";
         }
 
-        // Evaluar si se marcó "Todo" para ignorar filtros individuales
         $esTodo = !empty($filtros['reporte_todo']) && $filtros['reporte_todo'] == '1';
 
         if (!$esTodo) {
-            // 2. Rango de fechas (se ignora si está vacío)
             if (!empty($filtros['fecha_inicio'])) {
                 $sql .= " AND p.fecha_creacion >= :fecha_inicio";
                 $parametros[':fecha_inicio'] = $filtros['fecha_inicio'];
@@ -150,7 +139,6 @@ class PedidoModel extends Database
                 $parametros[':fecha_fin'] = $filtros['fecha_fin'];
             }
 
-            // 3. Tipos de Pedido (Selección múltiple / array - se ignora si no hay selección)
             if (!empty($filtros['id_tipo_pedido']) && is_array($filtros['id_tipo_pedido'])) {
                 $placeholdersTp = [];
                 foreach ($filtros['id_tipo_pedido'] as $index => $tpId) {
@@ -165,7 +153,6 @@ class PedidoModel extends Database
                 }
             }
 
-            // 4. Servicios (Selección múltiple / array - se ignora si no hay selección)
             if (!empty($filtros['id_servicio']) && is_array($filtros['id_servicio'])) {
                 $placeholdersServ = [];
                 foreach ($filtros['id_servicio'] as $index => $servId) {
@@ -180,7 +167,6 @@ class PedidoModel extends Database
                 }
             }
 
-            // 5. Estados del Pedido (Selección múltiple / array - se ignora si no hay selección)
             if (!empty($filtros['estado']) && is_array($filtros['estado'])) {
                 $placeholdersEst = [];
                 foreach ($filtros['estado'] as $index => $estVal) {
@@ -195,13 +181,11 @@ class PedidoModel extends Database
                 }
             }
 
-            // 6. Cantidad exacta (se ignora si está vacía)
             if (isset($filtros['cantidad']) && $filtros['cantidad'] !== '') {
                 $sql .= " AND dp.cantidad = :cantidad";
                 $parametros[':cantidad'] = (int)$filtros['cantidad'];
             }
 
-            // 7. Monto (se ignora si el operador o el monto están vacíos)
             if (!empty($filtros['operador_monto']) && isset($filtros['monto']) && $filtros['monto'] !== '') {
                 $monto = (float)$filtros['monto'];
                 if ($filtros['operador_monto'] === 'mayor') {
@@ -268,80 +252,15 @@ class PedidoModel extends Database
         }
     }
 
+    /* ==========================================
+       MÉTODOS PÚBLICOS (Envoltorios)
+       ========================================== */
     public function guardarPedido(array $datos): int {
-        $this->asignarDatosPedido($datos);
-        $this->validarDatosPedido();
-
-        try {
-            $this->pdo->beginTransaction();
-            $this->montoTotal = $this->calcularMontoTotal();
-
-            $sqlPedido = "
-                INSERT INTO pedido (fecha_creacion, fecha_entrega, id_cliente, id_tipo_pedido, descripcion, descuento_divisa, estado_pedido, monto_total)
-                VALUES (:fecha_creacion, :fecha_entrega, :id_cliente, :id_tipo_pedido, :descripcion, :descuento_divisa, :estado_pedido, :monto_total)
-            ";
-            $stmtPedido = $this->pdo->prepare($sqlPedido);
-            $stmtPedido->execute([
-                ':fecha_creacion' => $this->fechaCreacion,
-                ':fecha_entrega' => $this->fechaEntrega,
-                ':id_cliente' => $this->idCliente,
-                ':id_tipo_pedido' => $this->idTipoPedido,
-                ':descripcion' => $this->descripcion,
-                ':descuento_divisa' => $this->descuentoDivisa,
-                ':estado_pedido' => $this->estadoPedido,
-                ':monto_total' => $this->montoTotal
-            ]);
-
-            $this->idPedido = (int) $this->pdo->lastInsertId();
-            if ($this->idPedido <= 0) throw new Exception('No se pudo obtener el identificador del pedido.');
-
-            $this->guardarDetallePedido();
-            $this->pdo->commit();
-            return $this->idPedido;
-        } catch (Throwable $e) {
-            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
-            throw $e;
-        }
+        return $this->ejecutarGuardadoPedido($datos);
     }
 
     public function editarPedido(array $datos): void {
-        $this->asignarDatosPedido($datos);
-        if ($this->idPedido <= 0) throw new Exception('El identificador del pedido no es válido.');
-        $this->validarDatosPedido();
-
-        try {
-            $this->pdo->beginTransaction();
-            $this->montoTotal = $this->calcularMontoTotal();
-
-            $sqlPedido = "
-                UPDATE pedido
-                SET fecha_creacion = :fecha_creacion, fecha_entrega = :fecha_entrega, id_cliente = :id_cliente,
-                    id_tipo_pedido = :id_tipo_pedido, descripcion = :descripcion, descuento_divisa = :descuento_divisa,
-                    estado_pedido = :estado_pedido, monto_total = :monto_total
-                WHERE id_pedido = :id_pedido
-            ";
-            $stmtPedido = $this->pdo->prepare($sqlPedido);
-            $stmtPedido->execute([
-                ':fecha_creacion' => $this->fechaCreacion,
-                ':fecha_entrega' => $this->fechaEntrega,
-                ':id_cliente' => $this->idCliente,
-                ':id_tipo_pedido' => $this->idTipoPedido,
-                ':descripcion' => $this->descripcion,
-                ':descuento_divisa' => $this->descuentoDivisa,
-                ':estado_pedido' => $this->estadoPedido,
-                ':monto_total' => $this->montoTotal,
-                ':id_pedido' => $this->idPedido
-            ]);
-
-            $stmtEliminarDetalle = $this->pdo->prepare("DELETE FROM detalle_pedido WHERE id_pedido = :id_pedido");
-            $stmtEliminarDetalle->execute([':id_pedido' => $this->idPedido]);
-
-            $this->guardarDetallePedido();
-            $this->pdo->commit();
-        } catch (Throwable $e) {
-            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
-            throw $e;
-        }
+        $this->ejecutarEdicionPedido($datos);
     }
 
     public function inhabilitarPedido(int $idPedido): void {
@@ -380,19 +299,117 @@ class PedidoModel extends Database
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function obtenerCaracteristicasPorProducto(int $idProducto): array {
+    public function obtenerColoresPorProducto(int $idProducto): array {
         if ($idProducto <= 0) return [];
         $sql = "
-            SELECT pc.id_producto_caracteristica, pc.id_producto, pc.id_caracteristica, pc.talla,
-                   ca.detalle_material, ca.color, ca.tipo_de_prenda
+            SELECT DISTINCT ca.color
             FROM producto_caracteristica pc
             INNER JOIN caracteristica ca ON ca.id_caracteristica = pc.id_caracteristica
-            WHERE pc.id_producto = :id_producto AND LOWER(pc.status_producto_caracteristica) = 'activo' AND LOWER(ca.status_caracteristica) = 'activo'
-            ORDER BY pc.id_producto_caracteristica DESC
+            WHERE pc.id_producto = :id_producto 
+              AND LOWER(pc.status_producto_caracteristica) = 'activo' 
+              AND LOWER(ca.status_caracteristica) = 'activo'
+              AND ca.color IS NOT NULL AND ca.color <> ''
+            ORDER BY ca.color ASC
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':id_producto' => $idProducto]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function obtenerTallasPorProductoYColor(int $idProducto, string $color): array {
+        if ($idProducto <= 0) return [];
+        $sql = "
+            SELECT pc.id_producto_caracteristica, pc.talla, ca.detalle_material, ca.tipo_de_prenda
+            FROM producto_caracteristica pc
+            INNER JOIN caracteristica ca ON ca.id_caracteristica = pc.id_caracteristica
+            WHERE pc.id_producto = :id_producto 
+              AND ca.color = :color
+              AND LOWER(pc.status_producto_caracteristica) = 'activo' 
+              AND LOWER(ca.status_caracteristica) = 'activo'
+            ORDER BY pc.talla ASC
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id_producto' => $idProducto, ':color' => $color]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /* ==========================================
+       MÉTODOS PRIVADOS (Lógica interna y de seguridad)
+       ========================================== */
+    private function ejecutarGuardadoPedido(array $datos): int {
+        $this->asignarDatosPedido($datos);
+        $this->validarDatosPedido();
+
+        try {
+            $this->pdo->beginTransaction();
+            $this->montoTotal = $this->calcularMontoTotal();
+
+            $sqlPedido = "
+                INSERT INTO pedido (fecha_creacion, fecha_entrega, id_cliente, id_tipo_pedido, descripcion, descuento_divisa, estado_pedido, monto_total)
+                VALUES (:fecha_creacion, :fecha_entrega, :id_cliente, :id_tipo_pedido, :descripcion, :descuento_divisa, :estado_pedido, :monto_total)
+            ";
+            $stmtPedido = $this->pdo->prepare($sqlPedido);
+            $stmtPedido->execute([
+                ':fecha_creacion' => $this->fechaCreacion,
+                ':fecha_entrega' => $this->fechaEntrega,
+                ':id_cliente' => $this->idCliente,
+                ':id_tipo_pedido' => $this->idTipoPedido,
+                ':descripcion' => $this->descripcion,
+                ':descuento_divisa' => $this->descuentoDivisa,
+                ':estado_pedido' => $this->estadoPedido,
+                ':monto_total' => $this->montoTotal
+            ]);
+
+            $this->idPedido = (int) $this->pdo->lastInsertId();
+            if ($this->idPedido <= 0) throw new Exception('No se pudo obtener el identificador del pedido.');
+
+            $this->guardarDetallePedido();
+            $this->pdo->commit();
+            return $this->idPedido;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    private function ejecutarEdicionPedido(array $datos): void {
+        $this->asignarDatosPedido($datos);
+        if ($this->idPedido <= 0) throw new Exception('El identificador del pedido no es válido.');
+        $this->validarDatosPedido();
+
+        try {
+            $this->pdo->beginTransaction();
+            $this->montoTotal = $this->calcularMontoTotal();
+
+            $sqlPedido = "
+                UPDATE pedido
+                SET fecha_creacion = :fecha_creacion, fecha_entrega = :fecha_entrega, id_cliente = :id_cliente,
+                    id_tipo_pedido = :id_tipo_pedido, descripcion = :descripcion, descuento_divisa = :descuento_divisa,
+                    estado_pedido = :estado_pedido, monto_total = :monto_total
+                WHERE id_pedido = :id_pedido
+            ";
+            $stmtPedido = $this->pdo->prepare($sqlPedido);
+            $stmtPedido->execute([
+                ':fecha_creacion' => $this->fechaCreacion,
+                ':fecha_entrega' => $this->fechaEntrega,
+                ':id_cliente' => $this->idCliente,
+                ':id_tipo_pedido' => $this->idTipoPedido,
+                ':descripcion' => $this->descripcion,
+                ':descuento_divisa' => $this->descuentoDivisa,
+                ':estado_pedido' => $this->estadoPedido,
+                ':monto_total' => $this->montoTotal,
+                ':id_pedido' => $this->idPedido
+            ]);
+
+            $stmtEliminarDetalle = $this->pdo->prepare("DELETE FROM detalle_pedido WHERE id_pedido = :id_pedido");
+            $stmtEliminarDetalle->execute([':id_pedido' => $this->idPedido]);
+
+            $this->guardarDetallePedido();
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
     private function asignarDatosPedido(array $datos): void {
@@ -451,6 +468,19 @@ class PedidoModel extends Database
         if ($this->idCliente <= 0) throw new Exception('Debe seleccionar un cliente válido.');
         if ($this->idTipoPedido <= 0) throw new Exception('Debe seleccionar un tipo de pedido válido.');
         if ($this->idProductoCaracteristica <= 0) throw new Exception('Debe seleccionar una característica del producto.');
+        
+        $stmtCheck = $this->pdo->prepare("
+            SELECT COUNT(*) FROM producto_caracteristica pc
+            INNER JOIN caracteristica ca ON ca.id_caracteristica = pc.id_caracteristica
+            WHERE pc.id_producto_caracteristica = :id_pc
+            AND LOWER(pc.status_producto_caracteristica) = 'activo' 
+            AND LOWER(ca.status_caracteristica) = 'activo'
+        ");
+        $stmtCheck->execute([':id_pc' => $this->idProductoCaracteristica]);
+        if ((int)$stmtCheck->fetchColumn() === 0) {
+            throw new Exception('La característica o talla seleccionada no es válida, está inactiva o fue alterada.');
+        }
+
         if ($this->idServicio <= 0) throw new Exception('Debe seleccionar un servicio válido.');
         if ($this->cantidad <= 0) throw new Exception('La cantidad debe ser mayor que cero.');
         if ($this->descuentoDivisa < 0) throw new Exception('El descuento general no puede ser negativo.');

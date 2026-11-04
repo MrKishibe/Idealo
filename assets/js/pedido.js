@@ -2,19 +2,25 @@ import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
+import { soloNumerosTeclado } from './helpers/validaciones.js';
 
-//SI TOCAS MI CODIGO VAS VER MARDITO
 document.addEventListener(
     'DOMContentLoaded',
     function () {
         const BASE_URL = 'index.php?controller=pedido';
 
+        // true  -> el cliente se busca en el servidor (requiere accion=buscar_clientes)
+        // false -> el cliente se filtra sobre las opciones ya renderizadas por PHP
+        const CLIENTES_REMOTO = false;
+
         const form = document.getElementById('formPedido');
         const modalPedidoElement = document.getElementById('modalPedido');
         const modalDetalleElement = document.getElementById('modalDetallePedido');
         const modalReportePedidoElement = document.getElementById('modalReportePedido');
-        
+
         const idProducto = document.getElementById('idProducto');
+        const idCliente = document.getElementById('idCliente');
+        const filtroColor = document.getElementById('filtroColor');
         const idProductoCaracteristica = document.getElementById('idProductoCaracteristica');
         const estadoPedido = document.getElementById('estadoPedido');
         const btnNuevoPedido = document.getElementById('btnNuevoPedido');
@@ -27,6 +33,7 @@ document.addEventListener(
             !modalPedidoElement ||
             !modalDetalleElement ||
             !idProducto ||
+            !filtroColor ||
             !idProductoCaracteristica ||
             !estadoPedido
         ) {
@@ -36,10 +43,18 @@ document.addEventListener(
 
         const modalPedido = bootstrap.Modal.getOrCreateInstance(modalPedidoElement);
         const modalDetalle = bootstrap.Modal.getOrCreateInstance(modalDetalleElement);
-        const modalReportePedido = modalReportePedidoElement ? bootstrap.Modal.getOrCreateInstance(modalReportePedidoElement) : null;
+        const modalReportePedido = modalReportePedidoElement
+            ? bootstrap.Modal.getOrCreateInstance(modalReportePedidoElement)
+            : null;
+
+        // jQuery donde vive Select2 (el global). Evita el problema de instancias duplicadas.
+        const $s = window.jQuery || $;
 
         let tablaPedidos = null;
         let verInhabilitados = false;
+
+        // Evita que cargar un producto por código dispare cargarColores() dos veces
+        let silenciarCambioProducto = false;
 
         function elemento(id) {
             return document.getElementById(id);
@@ -53,6 +68,149 @@ document.addEventListener(
 
         function obtenerFiltro() {
             return verInhabilitados ? 'inhabilitados' : 'activos';
+        }
+
+        // ==========================================
+        // SELECTS CON BÚSQUEDA (SELECT2)
+        // ==========================================
+        function normalizarTexto(texto) {
+            return (texto || '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function avisarSelect2Ausente() {
+            console.error(
+                'Select2 no está disponible. Verifica que select2.min.js se cargue después de jQuery y antes de este módulo.'
+            );
+        }
+
+        function initSelectBusqueda(campo, opciones = {}) {
+            const $campo = $s(campo);
+
+            if (!$campo.length) {
+                return $campo;
+            }
+
+            if (!$s.fn.select2) {
+                avisarSelect2Ausente();
+                return $campo;
+            }
+
+            if ($campo.hasClass('select2-hidden-accessible')) {
+                $campo.select2('destroy');
+            }
+
+            $campo.select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                allowClear: true,
+                language: 'es',
+                placeholder: opciones.placeholder || 'Escriba para buscar...',
+                dropdownParent: $s(opciones.dropdownParent || '#modalPedido'),
+                matcher: function (params, data) {
+                    const termino = normalizarTexto(params.term);
+
+                    if (!termino) {
+                        return data;
+                    }
+
+                    if (normalizarTexto(data.text).indexOf(termino) > -1) {
+                        return data;
+                    }
+
+                    if (data.children) {
+                        const hijos = data.children.filter(function (hijo) {
+                            return normalizarTexto(hijo.text).indexOf(termino) > -1;
+                        });
+
+                        if (hijos.length) {
+                            return $s.extend({}, data, { children: hijos });
+                        }
+                    }
+
+                    return null;
+                },
+                ...(opciones.config || {})
+            });
+
+            return $campo;
+        }
+
+        function refrescarSelectBusqueda(campo, opciones = {}) {
+            return initSelectBusqueda(campo, opciones);
+        }
+
+        function initSelectBusquedaRemota(campo, opciones = {}) {
+            const $campo = $s(campo);
+
+            if (!$campo.length) {
+                return $campo;
+            }
+
+            if (!$s.fn.select2) {
+                avisarSelect2Ausente();
+                return $campo;
+            }
+
+            if ($campo.hasClass('select2-hidden-accessible')) {
+                $campo.select2('destroy');
+            }
+
+            $campo.select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 2,
+                language: 'es',
+                placeholder: 'Nombre, apellido o documento del cliente',
+                dropdownParent: $s(opciones.dropdownParent || '#modalPedido'),
+                ajax: {
+                    url: `${BASE_URL}&accion=buscar_clientes`,
+                    dataType: 'json',
+                    delay: 300,
+                    cache: true,
+                    data: function (params) {
+                        return {
+                            q: params.term || '',
+                            page: params.page || 1
+                        };
+                    },
+                    processResults: function (respuesta, params) {
+                        const datos = (respuesta && respuesta.data) || [];
+
+                        return {
+                            results: datos.map(function (cliente) {
+                                return {
+                                    id: cliente.id_cliente,
+                                    text: `${cliente.nombre_razon_social || ''} ${cliente.apellido || ''} — ${cliente.numero_de_documento || 's/d'}`
+                                };
+                            }),
+                            pagination: {
+                                more: Boolean(respuesta && respuesta.more)
+                            }
+                        };
+                    }
+                }
+            });
+
+            return $campo;
+        }
+
+        function initSelectCliente() {
+            if (!idCliente) {
+                return $s([]);
+            }
+
+            if (CLIENTES_REMOTO) {
+                return initSelectBusquedaRemota(idCliente);
+            }
+
+            return initSelectBusqueda(idCliente, {
+                placeholder: 'Buscar cliente por nombre o documento...'
+            });
         }
 
         function actualizarTotal() {
@@ -77,81 +235,202 @@ document.addEventListener(
             }
         }
 
-        function resetCaracteristicas() {
-            idProductoCaracteristica.innerHTML = `
+        function resetColores() {
+            filtroColor.innerHTML = `
                 <option value="">
                     Seleccione primero un producto
                 </option>
             `;
+            filtroColor.disabled = true;
+
+            refrescarSelectBusqueda(filtroColor, {
+                placeholder: 'Seleccione primero un producto'
+            });
+        }
+
+        function resetTallas() {
+            idProductoCaracteristica.innerHTML = `
+                <option value="">
+                    Seleccione primero un color
+                </option>
+            `;
             idProductoCaracteristica.disabled = true;
+
+            refrescarSelectBusqueda(idProductoCaracteristica, {
+                placeholder: 'Seleccione primero un color'
+            });
         }
 
         // ==========================================
-        // 1. AJAX PARA CARGAR CARACTERÍSTICAS (GET)
+        // RESTRICCIÓN DE SOLO NÚMEROS
         // ==========================================
-        async function cargarCaracteristicas(
-            productoId,
-            caracteristicaSeleccionada = ''
-        ) {
-            resetCaracteristicas();
+        const idsNumericos = [
+            'cantidad',
+            'costoManoObra',
+            'costoMateriales',
+            'descuentoProducto',
+            'descuentoDivisa'
+        ];
+
+        idsNumericos.forEach(function (id) {
+            const campo = elemento(id);
+            if (campo) {
+                $s(campo).on('keydown', soloNumerosTeclado);
+                campo.addEventListener('input', actualizarTotal);
+            }
+        });
+
+        // ==========================================
+        // AJAX: CARGAR COLORES POR PRODUCTO
+        // ==========================================
+        async function cargarColores(productoId, colorSeleccionado = '', tallaSeleccionada = '') {
+            resetColores();
+            resetTallas();
 
             if (!productoId) {
                 return;
             }
 
-            idProductoCaracteristica.innerHTML = `
+            filtroColor.innerHTML = `
                 <option value="">
-                    Cargando características...
+                    Cargando colores...
                 </option>
             `;
 
+            refrescarSelectBusqueda(filtroColor, {
+                placeholder: 'Cargando colores...'
+            });
+
             try {
-                const respuesta = await $.ajax({
-                    url: `${BASE_URL}&accion=caracteristicas_por_producto`,
+                const respuesta = await $s.ajax({
+                    url: `${BASE_URL}&accion=colores_por_producto`,
                     type: 'GET',
                     data: { id_producto: productoId },
                     dataType: 'json'
                 });
 
                 if (!respuesta.success) {
-                    throw new Error(
-                        respuesta.message ||
-                        'No se pudieron cargar las características.'
-                    );
+                    throw new Error(respuesta.message || 'No se pudieron cargar los colores.');
+                }
+
+                filtroColor.innerHTML = `
+                    <option value="">
+                        Seleccione un color
+                    </option>
+                `;
+
+                if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
+                    filtroColor.innerHTML = `
+                        <option value="">
+                            No hay colores activos
+                        </option>
+                    `;
+                    filtroColor.disabled = true;
+
+                    refrescarSelectBusqueda(filtroColor, {
+                        placeholder: 'No hay colores activos'
+                    });
+                    return;
+                }
+
+                respuesta.data.forEach(function (item) {
+                    const option = document.createElement('option');
+                    option.value = item.color;
+                    option.textContent = item.color;
+
+                    if (String(option.value) === String(colorSeleccionado)) {
+                        option.selected = true;
+                    }
+
+                    filtroColor.appendChild(option);
+                });
+
+                filtroColor.disabled = false;
+
+                // Select2 toma el option.selected marcado arriba, no hace falta trigger
+                refrescarSelectBusqueda(filtroColor, {
+                    placeholder: 'Buscar color...'
+                });
+
+                if (colorSeleccionado) {
+                    await cargarTallas(productoId, colorSeleccionado, tallaSeleccionada);
+                }
+
+            } catch (error) {
+                console.error(error);
+                filtroColor.innerHTML = `
+                    <option value="">
+                        Error al cargar colores
+                    </option>
+                `;
+                filtroColor.disabled = true;
+
+                refrescarSelectBusqueda(filtroColor, {
+                    placeholder: 'Error al cargar colores'
+                });
+
+                await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
+            }
+        }
+
+        // ==========================================
+        // AJAX: CARGAR TALLAS POR PRODUCTO Y COLOR
+        // ==========================================
+        async function cargarTallas(productoId, color, tallaSeleccionada = '') {
+            resetTallas();
+
+            if (!productoId || !color) {
+                return;
+            }
+
+            idProductoCaracteristica.innerHTML = `
+                <option value="">
+                    Cargando tallas...
+                </option>
+            `;
+
+            refrescarSelectBusqueda(idProductoCaracteristica, {
+                placeholder: 'Cargando tallas...'
+            });
+
+            try {
+                const respuesta = await $s.ajax({
+                    url: `${BASE_URL}&accion=tallas_por_producto_y_color`,
+                    type: 'GET',
+                    data: { id_producto: productoId, color: color },
+                    dataType: 'json'
+                });
+
+                if (!respuesta.success) {
+                    throw new Error(respuesta.message || 'No se pudieron cargar las tallas.');
                 }
 
                 idProductoCaracteristica.innerHTML = `
                     <option value="">
-                        Seleccione una característica
+                        Seleccione una talla
                     </option>
                 `;
 
-                if (
-                    !Array.isArray(respuesta.data) ||
-                    respuesta.data.length === 0
-                ) {
+                if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
                     idProductoCaracteristica.innerHTML = `
                         <option value="">
-                            No hay características activas
+                            No hay tallas activas para este color
                         </option>
                     `;
                     idProductoCaracteristica.disabled = true;
+
+                    refrescarSelectBusqueda(idProductoCaracteristica, {
+                        placeholder: 'No hay tallas activas para este color'
+                    });
                     return;
                 }
 
                 respuesta.data.forEach(function (item) {
                     const option = document.createElement('option');
                     option.value = item.id_producto_caracteristica;
-                    option.textContent =
-                        `Material: ${item.detalle_material || 'N/A'} | ` +
-                        `Color: ${item.color || 'N/A'} | ` +
-                        `Prenda: ${item.tipo_de_prenda || 'N/A'} | ` +
-                        `Talla: ${item.talla || 'N/A'}`;
+                    option.textContent = `Talla: ${item.talla || 'N/A'} | Material: ${item.detalle_material || 'N/A'} | Prenda: ${item.tipo_de_prenda || 'N/A'}`;
 
-                    if (
-                        String(option.value) ===
-                        String(caracteristicaSeleccionada)
-                    ) {
+                    if (String(option.value) === String(tallaSeleccionada)) {
                         option.selected = true;
                     }
 
@@ -160,15 +439,22 @@ document.addEventListener(
 
                 idProductoCaracteristica.disabled = false;
 
+                refrescarSelectBusqueda(idProductoCaracteristica, {
+                    placeholder: 'Buscar talla, material o prenda...'
+                });
+
             } catch (error) {
                 console.error(error);
-
                 idProductoCaracteristica.innerHTML = `
                     <option value="">
-                        Error al cargar características
+                        Error al cargar tallas
                     </option>
                 `;
                 idProductoCaracteristica.disabled = true;
+
+                refrescarSelectBusqueda(idProductoCaracteristica, {
+                    placeholder: 'Error al cargar tallas'
+                });
 
                 await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
             }
@@ -213,7 +499,22 @@ document.addEventListener(
                 },
                 {
                     data: 'fecha_creacion',
-                    type: 'date'
+                    type: 'string',
+                    render: function (data, type) {
+                        if (!data) return '-';
+
+                        if (type === 'sort' || type === 'type') {
+                            return data;
+                        }
+
+                        const partes = data.split(' ')[0].split('-');
+
+                        if (partes.length === 3) {
+                            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+                        }
+
+                        return data;
+                    }
                 },
                 {
                     data: null,
@@ -317,11 +618,12 @@ document.addEventListener(
         }
 
         function crearDataTable() {
-            if ($.fn.DataTable.isDataTable('#tablaPedidos')) {
-                $('#tablaPedidos').DataTable().destroy();
+            if ($s.fn.DataTable.isDataTable('#tablaPedidos')) {
+                $s('#tablaPedidos').DataTable().destroy();
             }
 
-            tablaPedidos = $('#tablaPedidos').DataTable({
+            tablaPedidos = $s('#tablaPedidos').DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                 ajax: {
                     url: `${BASE_URL}&accion=listar&filtro=${obtenerFiltro()}`,
                     type: 'GET',
@@ -334,6 +636,7 @@ document.addEventListener(
                             );
                             return [];
                         }
+
                         return json.data || [];
                     },
                     error: function (xhr) {
@@ -361,6 +664,7 @@ document.addEventListener(
             if (verInhabilitados) {
                 if (titulo) titulo.textContent = 'Pedidos Inhabilitados';
                 if (texto) texto.textContent = 'Ver activos';
+
                 if (icono) {
                     icono.classList.remove('bi-eye-slash-fill');
                     icono.classList.add('bi-eye-fill');
@@ -368,6 +672,7 @@ document.addEventListener(
             } else {
                 if (titulo) titulo.textContent = 'Gestión de Pedidos';
                 if (texto) texto.textContent = 'Ver inhabilitados';
+
                 if (icono) {
                     icono.classList.remove('bi-eye-fill');
                     icono.classList.add('bi-eye-slash-fill');
@@ -376,6 +681,8 @@ document.addEventListener(
         }
 
         function limpiarFormulario() {
+            silenciarCambioProducto = true;
+
             form.reset();
             form.classList.remove('was-validated');
 
@@ -385,7 +692,22 @@ document.addEventListener(
             elemento('fechaCreacion').value =
                 new Date().toISOString().split('T')[0];
 
-            resetCaracteristicas();
+            if (idCliente) {
+                if ($s.fn.select2) {
+                    $s(idCliente).val(null).trigger('change');
+                } else {
+                    idCliente.value = '';
+                }
+            }
+
+            if ($s.fn.select2) {
+                $s(idProducto).val(null).trigger('change');
+            } else {
+                idProducto.value = '';
+            }
+
+            resetColores();
+            resetTallas();
 
             estadoPedido.innerHTML = `
                 <option value="pendiente">Pendiente</option>
@@ -403,6 +725,8 @@ document.addEventListener(
                 '<i class="bi bi-check-circle-fill"></i> Guardar pedido';
 
             actualizarTotal();
+
+            silenciarCambioProducto = false;
         }
 
         async function validarFormulario() {
@@ -410,6 +734,16 @@ document.addEventListener(
 
             if (!form.checkValidity()) {
                 await errorAlert('Formulario incompleto', 'Complete los campos obligatorios.');
+                return false;
+            }
+
+            if (idCliente && !idCliente.value) {
+                await errorAlert('Cliente requerido', 'Seleccione un cliente.');
+                return false;
+            }
+
+            if (!idProducto.value) {
+                await errorAlert('Producto requerido', 'Seleccione un producto.');
                 return false;
             }
 
@@ -424,10 +758,15 @@ document.addEventListener(
                 return false;
             }
 
+            if (!filtroColor.value) {
+                await errorAlert('Color requerido', 'Seleccione un color.');
+                return false;
+            }
+
             if (!idProductoCaracteristica.value) {
                 await errorAlert(
-                    'Característica requerida',
-                    'Seleccione una característica y talla.'
+                    'Talla requerida',
+                    'Seleccione una talla válida.'
                 );
                 return false;
             }
@@ -436,7 +775,7 @@ document.addEventListener(
         }
 
         // ==========================================
-        // 2. AJAX PARA GUARDAR / EDITAR (POST)
+        // AJAX: GUARDAR / EDITAR
         // ==========================================
         async function enviarFormulario() {
             if (!(await validarFormulario())) {
@@ -457,7 +796,7 @@ document.addEventListener(
             }
 
             try {
-                const resultado = await $.ajax({
+                const resultado = await $s.ajax({
                     url: `${BASE_URL}&accion=${accion}`,
                     type: 'POST',
                     data: new FormData(form),
@@ -473,7 +812,10 @@ document.addEventListener(
                 await successAlert('Operación exitosa', resultado.message);
 
                 modalPedido.hide();
+
+                // Se limpia únicamente después de guardar correctamente
                 limpiarFormulario();
+
                 tablaPedidos.ajax.reload(null, false);
 
             } catch (error) {
@@ -490,11 +832,11 @@ document.addEventListener(
         }
 
         // ==========================================
-        // 3. AJAX PARA OBTENER DATOS DE EDICIÓN (GET)
+        // AJAX: OBTENER DATOS DE EDICIÓN
         // ==========================================
         async function editarPedido(idPedido) {
             try {
-                const resultado = await $.ajax({
+                const resultado = await $s.ajax({
                     url: `${BASE_URL}&accion=obtener`,
                     type: 'GET',
                     data: { id: idPedido },
@@ -510,16 +852,59 @@ document.addEventListener(
 
                 elemento('accionPedido').value = 'editar';
                 elemento('idPedido').value = pedido.id_pedido;
-                elemento('idCliente').value = pedido.id_cliente;
                 elemento('idTipoPedido').value = pedido.id_tipo_pedido;
                 elemento('fechaCreacion').value = pedido.fecha_creacion;
                 elemento('fechaEntrega').value = pedido.fecha_entrega || '';
                 elemento('descripcion').value = pedido.descripcion || '';
                 elemento('descuentoDivisa').value = pedido.descuento_divisa || 0;
 
-                idProducto.value = detalle.id_producto || '';
-                await cargarCaracteristicas(
+                // ----- CLIENTE -----
+                if (idCliente) {
+                    if ($s.fn.select2) {
+                        const $cliente = $s(idCliente);
+                        const textoCliente =
+                            `${pedido.nombre_razon_social || ''} ${pedido.apellido || ''}`.trim();
+
+                        if (
+                            pedido.id_cliente &&
+                            !$cliente.find(`option[value="${pedido.id_cliente}"]`).length
+                        ) {
+                            $cliente.append(
+                                new Option(textoCliente || 'Cliente', pedido.id_cliente, true, true)
+                            );
+                        }
+
+                        $cliente.val(pedido.id_cliente || null).trigger('change');
+                    } else {
+                        idCliente.value = pedido.id_cliente || '';
+                    }
+                }
+
+                // ----- PRODUCTO -----
+                silenciarCambioProducto = true;
+
+                if ($s.fn.select2) {
+                    const $producto = $s(idProducto);
+
+                    if (
+                        detalle.id_producto &&
+                        !$producto.find(`option[value="${detalle.id_producto}"]`).length
+                    ) {
+                        $producto.append(
+                            new Option(detalle.nombre_producto || 'Producto', detalle.id_producto, true, true)
+                        );
+                    }
+
+                    $producto.val(detalle.id_producto || null).trigger('change');
+                } else {
+                    idProducto.value = detalle.id_producto || '';
+                }
+
+                silenciarCambioProducto = false;
+
+                await cargarColores(
                     detalle.id_producto || '',
+                    detalle.color || '',
                     detalle.id_producto_caracteristica || ''
                 );
 
@@ -555,11 +940,11 @@ document.addEventListener(
         }
 
         // ==========================================
-        // 4. AJAX PARA OBTENER DETALLE (GET)
+        // AJAX: OBTENER DETALLE
         // ==========================================
         async function detallePedido(idPedido) {
             try {
-                const resultado = await $.ajax({
+                const resultado = await $s.ajax({
                     url: `${BASE_URL}&accion=obtener`,
                     type: 'GET',
                     data: { id: idPedido },
@@ -615,7 +1000,7 @@ document.addEventListener(
         }
 
         // ==========================================
-        // 5. AJAX PARA INHABILITAR (POST)
+        // AJAX: INHABILITAR
         // ==========================================
         async function inhabilitarPedido(idPedido) {
             confirmDeleteAlert(async () => {
@@ -624,7 +1009,7 @@ document.addEventListener(
                     formData.append('accion', 'inhabilitar');
                     formData.append('id_pedido', idPedido);
 
-                    const resultado = await $.ajax({
+                    const resultado = await $s.ajax({
                         url: `${BASE_URL}&accion=inhabilitar`,
                         type: 'POST',
                         data: formData,
@@ -648,22 +1033,19 @@ document.addEventListener(
             });
         }
 
-        // ===== EVENTOS =====
-        idProducto.addEventListener('change', function () {
-            cargarCaracteristicas(idProducto.value);
+        // ==========================================
+        // EVENTOS DE SELECTS
+        // ==========================================
+        $s(idProducto).on('change', function () {
+            if (silenciarCambioProducto) {
+                return;
+            }
+
+            cargarColores(this.value);
         });
 
-        [
-            'cantidad',
-            'costoManoObra',
-            'costoMateriales',
-            'descuentoProducto',
-            'descuentoDivisa'
-        ].forEach(function (id) {
-            const campo = elemento(id);
-            if (campo) {
-                campo.addEventListener('input', actualizarTotal);
-            }
+        $s(filtroColor).on('change', function () {
+            cargarTallas(idProducto.value, this.value);
         });
 
         form.addEventListener('submit', function (event) {
@@ -671,8 +1053,12 @@ document.addEventListener(
             enviarFormulario();
         });
 
+        // ==========================================
+        // BOTÓN REGISTRAR PEDIDO:
+        // SOLO ABRE EL MODAL, NO LIMPIA LOS DATOS
+        // ==========================================
         btnNuevoPedido.addEventListener('click', function () {
-            limpiarFormulario();
+            modalPedido.show();
         });
 
         btnAlternarEstado.addEventListener('click', function () {
@@ -682,12 +1068,13 @@ document.addEventListener(
         });
 
         // ==========================================
-        // 6. EVENTOS DE REPORTE CON URL (COMPATIBLE CON CONTROLADOR)
+        // EVENTOS DE REPORTE
         // ==========================================
         if (btnGenerarReporte) {
             btnGenerarReporte.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
+
                 if (modalReportePedido) {
                     modalReportePedido.show();
                 }
@@ -695,11 +1082,14 @@ document.addEventListener(
         }
 
         const chkTodo = document.getElementById('reporteTodo');
+
         if (chkTodo) {
             chkTodo.addEventListener('change', function () {
                 const camposFiltro = document.querySelectorAll('.campo-filtro');
+
                 camposFiltro.forEach(campo => {
                     campo.disabled = this.checked;
+
                     if (this.checked) {
                         if (campo.tagName === 'SELECT') {
                             Array.from(campo.options).forEach(opt => opt.selected = false);
@@ -716,10 +1106,9 @@ document.addEventListener(
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Creamos los parámetros asegurándonos de incluir elementos aunque estén temporalmente desactivados por el checkbox "Todo"
                 const parametros = new URLSearchParams();
-                
                 const elementosForm = formReportePedido.elements;
+
                 for (let el of elementosForm) {
                     if (el.name) {
                         if (el.type === 'checkbox' || el.type === 'radio') {
@@ -731,7 +1120,6 @@ document.addEventListener(
                                 parametros.append(el.name, opt.value);
                             });
                         } else {
-                            // Añadimos el valor incluso si el campo fue deshabilitado por el switch "Todo"
                             parametros.append(el.name, el.value);
                         }
                     }
@@ -760,9 +1148,10 @@ document.addEventListener(
             });
         }
 
-        const btnCancelarPedido = modalPedidoElement.querySelector(
-            '.btn-light[data-bs-dismiss="modal"]'
-        );
+        // ==========================================
+        // BOTÓN CANCELAR: ÚNICO BOTÓN QUE LIMPIA
+        // ==========================================
+        const btnCancelarPedido = modalPedidoElement.querySelector('.btnCancelarPedido');
 
         if (btnCancelarPedido) {
             btnCancelarPedido.addEventListener('click', function () {
@@ -770,26 +1159,50 @@ document.addEventListener(
             });
         }
 
+        // ==========================================
+        // IMPORTANTE:
+        // La "X" y el clic fuera del modal NO limpian el formulario.
+        // No debe existir ningún evento hidden.bs.modal que llame a limpiarFormulario().
+        // ==========================================
+
+        // ==========================================
+        // EVENTOS DE CLIC EN BOTONES DE LA TABLA
+        // ==========================================
         document.addEventListener('click', function (event) {
             const botonDetalle = event.target.closest('.btnDetallePedido');
+
             if (botonDetalle) {
                 detallePedido(botonDetalle.dataset.id);
                 return;
             }
 
             const botonEditar = event.target.closest('.btnEditarPedido');
+
             if (botonEditar) {
                 editarPedido(botonEditar.dataset.id);
                 return;
             }
 
             const botonInhabilitar = event.target.closest('.btnInhabilitarPedido');
+
             if (botonInhabilitar) {
                 inhabilitarPedido(botonInhabilitar.dataset.id);
             }
         });
 
-        // Inicialización
+        // ==========================================
+        // INICIALIZACIÓN DE SELECTS CON BÚSQUEDA
+        // ==========================================
+        initSelectCliente();
+
+        initSelectBusqueda(idProducto, {
+            placeholder: 'Buscar producto por nombre...'
+        });
+
+        resetColores();
+        resetTallas();
+
+        // Inicialización: limpia una sola vez al cargar la página
         limpiarFormulario();
         actualizarVista();
         crearDataTable();

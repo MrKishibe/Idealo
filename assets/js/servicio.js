@@ -172,7 +172,6 @@ $(document).ready(function () {
     let verEliminados = false;
     const urlModulo = 'index.php?controller=servicio';
 
-    
     function inicializarDataTableServicios() {
         if ($.fn.DataTable.isDataTable('#tablaServicios')) {
             datatableInstancia.destroy();
@@ -234,7 +233,8 @@ $(document).ready(function () {
             responsive: true,
             ordering: true,
             order: [[0, 'asc']],
-            dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+            // Barra de búsqueda alineada a la DERECHA
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
         });
     }
 
@@ -262,7 +262,6 @@ $(document).ready(function () {
         const data = $(this).data('servicio');
         if (data) window.abrirModalEditarServicio(data);
     });
-
 
     $(document).on('click', '.btn-eliminar', function () {
         const id = $(this).data('id');

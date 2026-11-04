@@ -141,7 +141,7 @@ document.addEventListener(
                 columns: [
                     {
                         data: 'nombre_de_material',
-                        type: 'string', // Orden alfabético activo por nombre
+                        type: 'string',
                         render: function (data, type, row) {
                             const nombre = data || row.nombre || '';
                             return `<span class="fw-bold">${nombre}</span>`;
@@ -149,14 +149,14 @@ document.addEventListener(
                     },
                     {
                         data: 'descripcion',
-                        type: 'string', // Orden alfabético activo por descripción
+                        type: 'string',
                         render: function (data) {
                             return data && data.trim() !== '' ? data : 'Sin especificaciones';
                         }
                     },
                     {
                         data: null,
-                        type: 'string', // Orden activo por estado
+                        type: 'string',
                         render: function (data) {
                             const estadoReal = data.status_tipo_materia || data.status_tipo_material;
                             return estadoReal === 'Activo'
@@ -166,7 +166,7 @@ document.addEventListener(
                     },
                     {
                         data: null,
-                        orderable: false, // Acciones sin ordenamiento
+                        orderable: false,
                         searchable: false,
                         className: 'text-center',
                         render: function (data) {
@@ -207,8 +207,10 @@ document.addEventListener(
                 responsive: true,
                 pageLength: 10,
                 language: lenguajeDataTableEs,
-                ordering: true, // Habilitar el ordenamiento interactivo y las flechitas
-                order: [[0, 'asc']] // Orden inicial por la primera columna (Nombre) de forma ascendente
+                ordering: true,
+                order: [[0, 'asc']],
+                // Barra de búsqueda y selector de longitud perfectamente distribuidos (Buscador a la DERECHA)
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
             });
         }
 

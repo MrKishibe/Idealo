@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
-import { soloLetrasTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
+import { soloLetrasTeclado, soloNumerosTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 
@@ -18,9 +18,10 @@ $(document).ready(function () {
 
     function limpiarFormularioModal(formSelector) {
         if (!formSelector || !$(formSelector).length) return;
-        $(formSelector)[0].reset();
-        $(formSelector).find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-        $(formSelector).find('.feedback-validacion').remove();
+        const $form = $(formSelector);
+        $form[0].reset();
+        $form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+        $form.find('.invalid-feedback, .valid-feedback, .feedback-validación').remove();
     }
 
     // ==========================================
@@ -67,6 +68,7 @@ $(document).ready(function () {
             responsive: true,
             ordering: true,
             order: [[0, 'asc']],
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             ajax: {
                 url: `${urlModulo}&ajax=listar`,
                 method: 'GET',
@@ -206,7 +208,9 @@ $(document).ready(function () {
     });
 
     $('#modalRegistrarMateriaPrima').on('show.bs.modal', async function () {
-        await llenarSelectTipos();
+        if ($('#id_tipo_materia_prima option').length <= 1) {
+            await llenarSelectTipos();
+        }
     });
 
     $('#modalReporteMateria').on('show.bs.modal', async function () {
@@ -226,12 +230,16 @@ $(document).ready(function () {
         }
     });
 
+    // Restricciones de teclado modulares
     $(document).on('keydown', '#nombre_materia_prima, #edit_activo_nombre, #edit_inactivo_nombre', soloLetrasTeclado);
+    $(document).on('keydown', '#costo_unitario, #stock_actual, #stock_minimo, #edit_activo_costo, #edit_activo_stock_actual, #edit_activo_stock_minimo, #edit_inactivo_costo, #edit_inactivo_stock_actual, #edit_inactivo_stock_minimo', soloNumerosTeclado);
 
-    $('#modalRegistrarMateriaPrima, #modalEditarActivo, #modalEditarInactivo').on('click', '[data-bs-dismiss="modal"]', function () {
-        if ($(this).text().trim().toLowerCase() === 'cancelar') {
-            const formId = $(this).closest('.modal').find('form').attr('id');
-            if (formId) limpiarFormularioModal('#' + formId);
+    // Limpieza explícita al hacer clic específicamente en los botones con la clase o texto de cancelar
+    $(document).on('click', '.btn-cancelar-modal, button:contains("Cancelar")', function (e) {
+        const $modal = $(this).closest('.modal');
+        const formId = $modal.find('form').attr('id');
+        if (formId) {
+            limpiarFormularioModal('#' + formId);
         }
     });
 
@@ -247,22 +255,30 @@ $(document).ready(function () {
         const inputStockMinimo = $('#stock_minimo');
         const selectUnidad = $('#unidad_de_medida');
 
-        if (!validarCampoNombrePatron(inputNombre, 'nombre', 'El nombre debe tener entre 2 y 100 caracteres válidos.')) return;
+        let vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'El nombre debe tener entre 3 y 100 caracteres.');
 
         if (selectTipo.val() === '') {
             selectTipo.addClass('is-invalid');
             await errorAlert('Error', 'Seleccione un tipo de materia prima.');
             return;
+        } else {
+            selectTipo.removeClass('is-invalid').addClass('is-valid');
         }
 
-        if (!validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'El costo debe ser un valor no negativo.')) return;
-        if (!validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'El stock actual debe ser un valor no negativo.')) return;
-        if (!validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'El stock mínimo debe ser un valor no negativo.')) return;
+        let vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'El costo debe ser un valor numérico válido.');
+        let vStockAct = validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'El stock actual debe ser un valor numérico válido.');
+        let vStockMin = validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'El stock mínimo debe ser un valor numérico válido.');
+
+        if (!vNom || !vCosto || !vStockAct || !vStockMin) {
+            return;
+        }
 
         if (selectUnidad.val() === '') {
             selectUnidad.addClass('is-invalid');
             await errorAlert('Error', 'Seleccione una unidad de medida.');
             return;
+        } else {
+            selectUnidad.removeClass('is-invalid').addClass('is-valid');
         }
 
         try {
@@ -324,22 +340,30 @@ $(document).ready(function () {
     // 3. AJAX PARA EDITAR (POST)
     // ==========================================
     async function enviarEdicion(id, inputNombre, selectTipo, inputCosto, inputStockActual, inputStockMinimo, selectUnidad, estadoModal, selectorModalForm, selectorModalId) {
-        if (!validarCampoNombrePatron(inputNombre, 'nombre', 'Nombre inválido.')) return;
+        let vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'Nombre inválido.');
 
         if (selectTipo.val() === '') {
             selectTipo.addClass('is-invalid');
             await errorAlert('Error', 'Seleccione un tipo.');
             return;
+        } else {
+            selectTipo.removeClass('is-invalid').addClass('is-valid');
         }
 
-        if (!validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'Costo inválido.')) return;
-        if (!validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'Stock actual inválido.')) return;
-        if (!validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'Stock mínimo inválido.')) return;
+        let vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'Costo inválido.');
+        let vStockAct = validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'Stock actual inválido.');
+        let vStockMin = validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'Stock mínimo inválido.');
+
+        if (!vNom || !vCosto || !vStockAct || !vStockMin) {
+            return;
+        }
 
         if (selectUnidad.val() === '') {
             selectUnidad.addClass('is-invalid');
             await errorAlert('Error', 'Seleccione una unidad.');
             return;
+        } else {
+            selectUnidad.removeClass('is-invalid').addClass('is-valid');
         }
 
         try {
@@ -448,13 +472,11 @@ $(document).ready(function () {
 
             const estadoReporteSelect = $('#estado_reporte').val();
 
-            // Si se seleccionan 'Activos' específicamente y la tabla está activa, filtramos por los IDs visibles de la tabla
             if (tablaDataTable && estadoReporteSelect === 'Activo') {
                 const datosFiltrados = tablaDataTable.rows({ search: 'applied' }).data().toArray();
                 const ids = datosFiltrados.map(mp => mp.id_materia_prima);
                 parametros.set('ids_filtrados', JSON.stringify(ids));
             } else {
-                // Si se piden 'Inactivo' o 'todos', enviamos un array vacío para que consulte la BD completa
                 parametros.set('ids_filtrados', JSON.stringify([]));
             }
 

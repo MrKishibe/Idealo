@@ -1,8 +1,10 @@
 <?php
+
 use Idealo\Models\ClienteModel;
 
 $model = new ClienteModel();
 
+// Manejo de peticiones POST (Guardar, Editar, Verificar Duplicado)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     
     // CASO A: Guardar nuevo cliente
@@ -79,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     exit;
 }
 
-// CASO A: Inhabilitar cliente
+// CASO D: Inhabilitar cliente (GET)
 if (isset($_GET["id"]) && isset($_GET["accion"]) && $_GET["accion"] === "eliminar") {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -103,7 +105,7 @@ if (isset($_GET["id"]) && isset($_GET["accion"]) && $_GET["accion"] === "elimina
     exit;
 }
 
-// CASO B: AJAX - Listar clientes y estructurar objeto de métricas
+// CASO E: AJAX - Listar clientes activos e inactivos
 if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -124,7 +126,9 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-$rutaVista  = __DIR__ . '/../view/cliente/listar.php';
+
+// Carga de la vista principal si no es una llamada asíncrona
+$rutaVista = __DIR__ . '/../view/cliente/listar.php';
 
 if (!file_exists($rutaVista)) {
     header("HTTP/1.1 404 Not Found");

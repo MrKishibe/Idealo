@@ -3,20 +3,26 @@ import { soloNumerosTeclado, soloLetrasTeclado, validarCampoNombrePatron } from 
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
-// DEJEN DE TOCAR EL CODIGO AJENO POR FAVOR
+// Filtro para silenciar advertencias de source maps externos en la consola
+if (typeof console !== 'undefined') {
+    const originalError = console.error;
+    console.error = function (...args) {
+        if (typeof args[0] === 'string' && args[0].includes('source map')) {
+            return;
+        }
+        originalError.apply(console, args);
+    };
+}
 
 $(document).ready(function () {
     let verEliminados = false;
     let debeReiniciarModal = false;
 
-    const urlControlador = 'index.php?url=cliente/listar';
-
-    // Inicialización del DataTable con ordenamiento activo y flechitas
+    // Inicialización del DataTable con la barra de búsqueda a la DERECHA
     let tablaClientesDataTable = $('#tablaClientes').DataTable({
         ajax: {
-            url: `${urlControlador}&ajax=listar`,
+            url: 'index.php?url=cliente/listar&ajax=listar',
             method: 'GET',
-            data: { 'Consultar': 'yes' },
             dataSrc: function (json) {
                 let clientes = [];
                 if (json && json.success === false) {
@@ -27,7 +33,6 @@ $(document).ready(function () {
                     clientes = json;
                 }
 
-                // Filtrar dinámicamente entre activos e inhabilitados según la vista seleccionada
                 return clientes.filter(cliente => {
                     let esActivo = cliente.status_cliente === 'activo' || parseInt(cliente.estado) === 1 || cliente.status_cliente === '1';
                     return verEliminados ? !esActivo : esActivo;
@@ -37,7 +42,7 @@ $(document).ready(function () {
         columns: [
             {
                 data: 'numero_de_documento',
-                type: 'string', // Orden alfabético/numérico activo por documento
+                type: 'string',
                 className: "px-4",
                 render: function (data, type, row) {
                     let tipoDoc = row.tipo_de_documento || 'Natural';
@@ -55,7 +60,7 @@ $(document).ready(function () {
             },
             {
                 data: 'nombre_razon_social',
-                type: 'string', // Orden alfabético activo por nombre o razón social
+                type: 'string',
                 className: "px-4",
                 render: function (data, type, row) {
                     return `<div class="fw-semibold text-secondary">${data || ''} ${row.apellido || ''}</div>`;
@@ -63,7 +68,7 @@ $(document).ready(function () {
             },
             {
                 data: 'telefono',
-                type: 'string', // Orden alfabético por contacto
+                type: 'string',
                 className: "px-4",
                 render: function (data, type, row) {
                     return `
@@ -74,7 +79,7 @@ $(document).ready(function () {
             },
             {
                 data: 'status_cliente',
-                type: 'string', // Orden activo por estado
+                type: 'string',
                 className: "px-4",
                 render: function (data, type, row) {
                     let esActivo = data === 'activo' || parseInt(row.estado) === 1 || data === '1';
@@ -86,7 +91,7 @@ $(document).ready(function () {
             {
                 data: null,
                 className: "px-4 text-center",
-                orderable: false, // Acciones sin ordenamiento
+                orderable: false,
                 searchable: false,
                 render: function (data) {
                     let esActivo = data.status_cliente === 'activo' || parseInt(data.estado) === 1 || data.status_cliente === '1';
@@ -106,10 +111,9 @@ $(document).ready(function () {
         responsive: true,
         ordering: true, 
         order: [[0, 'asc']], 
-        dom: '<"row"<"col-md-6"l><"col-md-6"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
+        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
     });
 
-    // Función global para recargar la tabla mediante Ajax de DataTables
     window.recargarTablaClientes = function () {
         tablaClientesDataTable.ajax.reload(null, false);
     };
@@ -126,9 +130,9 @@ $(document).ready(function () {
     function apiGuardarCliente(datosFormulario) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: urlControlador,
+                url: 'index.php?url=cliente/listar',
                 type: 'POST',
-                data: $.param(datosFormulario),
+                data: datosFormulario,
                 dataType: 'json',
                 success: (data) => resolve(data),
                 error: (err) => reject(err)
@@ -139,7 +143,7 @@ $(document).ready(function () {
     function apiVerificarDuplicado(numDoc) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: urlControlador,
+                url: 'index.php?url=cliente/listar',
                 type: 'POST',
                 data: { numero_de_documento: numDoc },
                 dataType: 'json',
@@ -152,7 +156,7 @@ $(document).ready(function () {
     function apiInhabilitarCliente(id) {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: `${urlControlador}&accion=eliminar&id=${id}`,
+                url: `index.php?url=cliente/listar&accion=eliminar&id=${id}`,
                 type: 'GET',
                 dataType: 'json',
                 success: (data) => resolve(data),
@@ -163,6 +167,20 @@ $(document).ready(function () {
 
     $("#nombre_razon_social, #apellido, #edit_nombre_razon_social, #edit_apellido").on("keydown", soloLetrasTeclado);
     $("#numero_de_documento, #telefono, #edit_numero_de_documento, #edit_telefono").on("keydown", soloNumerosTeclado);
+
+    $('#tipo_de_documento, #edit_tipo_de_documento').on('change', function() {
+        const permitidos = ['natural', 'extranjero', 'juridico', 'jurídico'];
+        if (!permitidos.includes($(this).val().toLowerCase())) {
+            $(this).val('natural');
+        }
+    });
+
+    $('#status_cliente, #edit_status_cliente').on('change', function() {
+        const permitidos = ['activo', 'inactivo'];
+        if (!permitidos.includes($(this).val().toLowerCase())) {
+            $(this).val('activo');
+        }
+    });
 
     const setupAccesibilidadModal = (idModal, idInputFoco) => {
         const modalEl = document.getElementById(idModal);
@@ -224,12 +242,12 @@ $(document).ready(function () {
         let vCor = validarCampoNombrePatron($("#correo"), "correo", "Revise este campo.");
         let vTel = validarCampoNombrePatron($("#telefono"), "telefonoVenezuela", "Revise este campo.");
 
-        if (!vDoc || !vNom || !vApe || !vCor || !vTel || $("#numero_de_documento").hasClass("is-invalid")) {
+        if (!vDoc || !vNom || !vApe || !vCor || !vTel || $("#numero_de_documento").hasClass("is-invalid") || $("#numero_de_documento").val().trim() === "") {
             await errorAlert('Campos Inválidos', 'Por favor complete correctamente las casillas resaltadas.');
             return;
         }
 
-        const datosEnviados = $(this).serializeArray();
+        const datosEnviados = $(this).serialize();
 
         try {
             const data = await apiGuardarCliente(datosEnviados);
@@ -274,20 +292,25 @@ $(document).ready(function () {
         let inputDoc = $("#edit_numero_de_documento");
         let idCliente = $('#edit_id_cliente').val();
 
+        if (!idCliente || parseInt(idCliente) <= 0) {
+            await errorAlert('Seguridad', 'Identificador de cliente inválido.');
+            return;
+        }
+
         let vDoc = validarCampoNombrePatron(inputDoc, "documentoVenezolano", "Documento inválido.");
         let vNom = validarCampoNombrePatron($("#edit_nombre_razon_social"), "razonSocial", "Revise este campo.");
         let vApe = $("#edit_apellido").val().trim() === "" ? true : validarCampoNombrePatron($("#edit_apellido"), "apellido", "Revise este campo.");
         let vCor = validarCampoNombrePatron($("#edit_correo"), "correo", "Revise este campo.");
         let vTel = validarCampoNombrePatron($("#edit_telefono"), "telefonoVenezuela", "Revise este campo.");
 
-        if (!vDoc || !vNom || !vApe || !vCor || !vTel) {
-            await errorAlert('Error', 'Campos inválidos en el formulario de edición.');
+        if (!vDoc || !vNom || !vApe || !vCor || !vTel || inputDoc.val().trim() === "") {
+            await errorAlert('Error', 'Campos inválidos en el formulario.');
             return;
         }
 
         let numDoc = inputDoc.val().trim();
         let feedback = inputDoc[0].nextElementSibling;
-        const datosModificados = $(this).serializeArray();
+        const datosModificados = $(this).serialize();
 
         try {
             const dataDup = await apiVerificarDuplicado(numDoc);

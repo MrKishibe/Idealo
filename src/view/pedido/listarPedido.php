@@ -1,6 +1,3 @@
-<?php
-// Vista de Gestión de Pedidos - Sistema IDEALO[cite: 12]
-?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -16,7 +13,38 @@
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 
-    
+    <!-- Select2 + tema Bootstrap 5 (buscador en los selects) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
+    <!-- Ajustes finos para que Select2 herede el look de IDEALO -->
+    <style>
+        .select2-container--bootstrap-5 .select2-selection {
+            border-radius: var(--radius-md);
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single {
+            min-height: calc(1.5em + 0.75rem + 2px);
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 1.5;
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-dropdown {
+            z-index: 1060;
+        }
+
+        .select2-search--dropdown .select2-search__field {
+            border-radius: var(--radius-md);
+        }
+    </style>
 </head>
 
 <body>
@@ -107,7 +135,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="idCliente" class="form-label">Cliente</label>
-                            <select name="id_cliente" id="idCliente" class="form-select" required>
+                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
+                            <select name="id_cliente" id="idCliente" class="form-select">
                                 <option value="">Seleccione un cliente</option>
                                 <?php if (!empty($clientes)): ?>
                                     <?php foreach ($clientes as $cliente): ?>
@@ -117,7 +146,7 @@
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
-                            <div class="invalid-feedback">Seleccione un cliente.</div>
+                            <div class="invalid-feedback d-block text-danger small" id="errorCliente" style="display:none !important;"></div>
                         </div>
 
                         <div class="col-md-6">
@@ -162,7 +191,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="idProducto" class="form-label">Producto</label>
-                            <select name="id_producto" id="idProducto" class="form-select" required>
+                            <!-- Sin required: se valida por JS -->
+                            <select name="id_producto" id="idProducto" class="form-select">
                                 <option value="">Seleccione un producto</option>
                                 <?php if (!empty($productos)): ?>
                                     <?php foreach ($productos as $producto): ?>
@@ -172,16 +202,25 @@
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
-                            <div class="invalid-feedback">Seleccione un producto.</div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label for="idProductoCaracteristica" class="form-label">Característica y talla</label>
-                            <select name="id_producto_caracteristica" id="idProductoCaracteristica" class="form-select" disabled required>
+                        <!-- Selector independiente para Color -->
+                        <div class="col-md-3">
+                            <label for="filtroColor" class="form-label">Color</label>
+                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
+                            <select id="filtroColor" class="form-select" disabled>
                                 <option value="">Seleccione primero un producto</option>
                             </select>
-                            <div class="invalid-feedback">Seleccione una característica.</div>
-                            <small class="text-muted">Solo se cargan características activas del producto seleccionado.</small>
+                        </div>
+
+                        <!-- Selector independiente para Talla (Característica) -->
+                        <div class="col-md-3">
+                            <label for="idProductoCaracteristica" class="form-label">Talla</label>
+                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
+                            <select name="id_producto_caracteristica" id="idProductoCaracteristica" class="form-select" disabled>
+                                <option value="">Seleccione primero un color</option>
+                            </select>
+                            <small class="text-muted">Características activas.</small>
                         </div>
 
                         <div class="col-md-6">
@@ -243,8 +282,18 @@
                 </div>
 
                 <div class="modal-footer border-0 pt-0 px-4 pb-4">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn-idealo-success" id="btnGuardarPedido">
+                    <!-- Este botón es el único que debe limpiar el formulario -->
+                    <button
+                        type="button"
+                        class="btn btn-light btnCancelarPedido"
+                        data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn-idealo-success"
+                        id="btnGuardarPedido">
                         <i class="bi bi-check-circle-fill"></i> Guardar pedido
                     </button>
                 </div>
@@ -327,7 +376,7 @@
     </div>
 </div>
 
-<!-- MODAL FILTROS DE REPORTE PDF (Con Checkboxes individuales y opción "Todo") -->
+<!-- MODAL FILTROS DE REPORTE PDF -->
 <div class="modal fade modal-idealo" id="modalReportePedido" tabindex="-1" aria-labelledby="tituloModalReporte" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -340,7 +389,6 @@
             </div>
             <form id="formReportePedido">
                 <div class="modal-body">
-                    <!-- Opción Global: Todo -->
                     <div class="form-check mb-3 p-2 bg-light rounded border">
                         <input class="form-check-input" type="checkbox" name="reporte_todo" id="reporteTodo" value="1">
                         <label class="form-check-label fw-bold text-dark" for="reporteTodo">
@@ -352,7 +400,6 @@
                     <p class="text-muted small mb-3">Marque las opciones que desea filtrar. Los campos sin marcar se ignorarán automáticamente.</p>
 
                     <div class="row g-3">
-                        <!-- Rango de Fechas -->
                         <div class="col-md-6">
                             <label for="reporteFechaInicio" class="form-label small fw-bold">Fecha Inicio</label>
                             <input type="date" name="fecha_inicio" id="reporteFechaInicio" class="form-control form-control-sm campo-filtro">
@@ -362,7 +409,6 @@
                             <input type="date" name="fecha_fin" id="reporteFechaFin" class="form-control form-control-sm campo-filtro">
                         </div>
 
-                        <!-- Filtro por Tipo de Pedido (Checkboxes) -->
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Tipos de Pedido</label>
                             <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
@@ -379,7 +425,6 @@
                             </div>
                         </div>
 
-                        <!-- Filtro por Servicio (Checkboxes) -->
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Servicios</label>
                             <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
@@ -396,7 +441,6 @@
                             </div>
                         </div>
 
-                        <!-- Estado del Pedido (Checkboxes) -->
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Estados del Pedido</label>
                             <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
@@ -412,13 +456,11 @@
                             </div>
                         </div>
 
-                        <!-- Cantidad exacta -->
                         <div class="col-md-6">
                             <label for="reporteCantidad" class="form-label small fw-bold">Cantidad exacta</label>
                             <input type="number" name="cantidad" id="reporteCantidad" class="form-control form-control-sm campo-filtro" min="1" placeholder="Ej. 2">
                         </div>
 
-                        <!-- Criterio de Monto Total -->
                         <div class="col-md-6">
                             <label for="reporteOperadorMonto" class="form-label small fw-bold">Criterio de Monto Total</label>
                             <select name="operador_monto" id="reporteOperadorMonto" class="form-select form-select-sm campo-filtro">
@@ -429,13 +471,11 @@
                             </select>
                         </div>
 
-                        <!-- Valor del Monto -->
                         <div class="col-md-6">
                             <label for="reporteMonto" class="form-label small fw-bold">Valor del Monto ($)</label>
                             <input type="number" name="monto" id="reporteMonto" class="form-control form-control-sm campo-filtro" step="0.01" min="0" placeholder="0.00">
                         </div>
 
-                        <!-- Campo oculto para pasar los IDs filtrados por el buscador -->
                         <input type="hidden" name="ids_filtrados" id="reporteIdsFiltrados" value="">
                     </div>
                 </div>
@@ -456,6 +496,11 @@
 <script src="assets/libs/jquery.dataTables.min.js"></script>
 <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 <script src="assets/libs/sweetalert2.all.min.js"></script>
+
+<!-- Select2 (4.1.0 o superior: es la línea compatible con jQuery 4) -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/i18n/es.js"></script>
+
 <script type="importmap">
     {
         "imports": {

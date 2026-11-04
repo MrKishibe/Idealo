@@ -84,7 +84,9 @@ $(document).ready(function () {
             pageLength: 10,
             responsive: true,
             ordering: true, // Habilitar ordenamiento
-            order: [[0, 'asc']] // Orden inicial por la primera columna 
+            order: [[0, 'asc']], // Orden inicial por la primera columna 
+            // Barra de búsqueda alineada a la DERECHA
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
         });
     }
 

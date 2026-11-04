@@ -71,7 +71,7 @@ document.addEventListener(
         }
 
         // ==========================================
-        // SELECTS CON BÚSQUEDA (SELECT2)
+        // SELECTS CON BÚSQUEDA (SELECT2) Y RESTRICCIÓN
         // ==========================================
         function normalizarTexto(texto) {
             return (texto || '')
@@ -136,6 +136,38 @@ document.addEventListener(
                 ...(opciones.config || {})
             });
 
+            // Restricción estricta para la barra de búsqueda de Select2:
+            // SOLO PERMITE LETRAS, NÚMEROS, % y /
+            setTimeout(() => {
+                const $searchField = $campo.data('select2')?.$dropdown?.find('.select2-search__field') || 
+                                     $s(opciones.dropdownParent || '#modalPedido').find('.select2-search__field');
+                
+                if ($searchField.length) {
+                    $searchField.off('keypress.validarBusqueda').on('keypress.validarBusqueda', function (e) {
+                        const charCode = e.which ? e.which : e.keyCode;
+                        const charStr = String.fromCharCode(charCode);
+                        // Acepta letras, números, %, /, espacios y teclas de control
+                        const regex = /^[a-zA-Z0-9%/\s\b]*$/;
+                        
+                        if (charCode === 0 || charCode === 8 || charCode === 13) {
+                            return true;
+                        }
+
+                        if (!regex.test(charStr)) {
+                            e.preventDefault();
+                        }
+                    });
+
+                    $searchField.off('paste.validarBusqueda').on('paste.validarBusqueda', function (e) {
+                        const pastedData = (e.originalEvent || e).clipboardData.getData('text');
+                        const regex = /^[a-zA-Z0-9%/\s]*$/;
+                        if (!regex.test(pastedData)) {
+                            e.preventDefault();
+                        }
+                    });
+                }
+            }, 100);
+
             return $campo;
         }
 
@@ -195,6 +227,20 @@ document.addEventListener(
                     }
                 }
             });
+
+            setTimeout(() => {
+                const $searchField = $campo.data('select2')?.$dropdown?.find('.select2-search__field') || 
+                                     $s(opciones.dropdownParent || '#modalPedido').find('.select2-search__field');
+                if ($searchField.length) {
+                    $searchField.off('keypress.validarBusquedaRemota').on('keypress.validarBusquedaRemota', function (e) {
+                        const charCode = e.which ? e.which : e.keyCode;
+                        const charStr = String.fromCharCode(charCode);
+                        const regex = /^[a-zA-Z0-9%/\s\b]*$/;
+                        if (charCode === 0 || charCode === 8 || charCode === 13) return true;
+                        if (!regex.test(charStr)) e.preventDefault();
+                    });
+                }
+            }, 100);
 
             return $campo;
         }
@@ -262,7 +308,7 @@ document.addEventListener(
         }
 
         // ==========================================
-        // RESTRICCIÓN DE SOLO NÚMEROS
+        // RESTRICCIÓN DE SOLO NÚMEROS (INPUTS PEDIDO)
         // ==========================================
         const idsNumericos = [
             'cantidad',
@@ -279,6 +325,19 @@ document.addEventListener(
                 campo.addEventListener('input', actualizarTotal);
             }
         });
+
+        // ==========================================
+        // RESTRICCIÓN DE SOLO NÚMEROS (MODAL REPORTE)
+        // ==========================================
+        const reporteCantidad = elemento('reporteCantidad');
+        const reporteMonto = elemento('reporteMonto');
+
+        if (reporteCantidad) {
+            $s(reporteCantidad).on('keydown', soloNumerosTeclado);
+        }
+        if (reporteMonto) {
+            $s(reporteMonto).on('keydown', soloNumerosTeclado);
+        }
 
         // ==========================================
         // AJAX: CARGAR COLORES POR PRODUCTO
@@ -347,7 +406,6 @@ document.addEventListener(
 
                 filtroColor.disabled = false;
 
-                // Select2 toma el option.selected marcado arriba, no hace falta trigger
                 refrescarSelectBusqueda(filtroColor, {
                     placeholder: 'Buscar color...'
                 });
@@ -1158,12 +1216,6 @@ document.addEventListener(
                 limpiarFormulario();
             });
         }
-
-        // ==========================================
-        // IMPORTANTE:
-        // La "X" y el clic fuera del modal NO limpian el formulario.
-        // No debe existir ningún evento hidden.bs.modal que llame a limpiarFormulario().
-        // ==========================================
 
         // ==========================================
         // EVENTOS DE CLIC EN BOTONES DE LA TABLA

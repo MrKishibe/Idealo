@@ -387,7 +387,7 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
         $pdf->SetXY(52, $yCard + 3);
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetTextColor(180, 83, 9);
-        $pdf->Cell(18, 5, 'Pend:', 0, 0, 'L');
+        $pdf->Cell(18, 5, 'Pendientes:', 0, 0, 'L');
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->SetTextColor(146, 64, 14);
         $pdf->Cell(14, 5, $totalPendientes, 0, 1, 'R');
@@ -399,7 +399,7 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
         $pdf->SetXY(88, $yCard + 3);
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetTextColor(3, 105, 161);
-        $pdf->Cell(18, 5, 'Proc:', 0, 0, 'L');
+        $pdf->Cell(18, 5, 'Procesados:', 0, 0, 'L');
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->SetTextColor(12, 74, 110);
         $pdf->Cell(14, 5, $totalEnProceso, 0, 1, 'R');
@@ -411,7 +411,7 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
         $pdf->SetXY(124, $yCard + 3);
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetTextColor(71, 85, 105);
-        $pdf->Cell(18, 5, 'Plan:', 0, 0, 'L');
+        $pdf->Cell(18, 5, 'Planificados:', 0, 0, 'L');
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->SetTextColor(51, 65, 85);
         $pdf->Cell(14, 5, $totalPlanificados, 0, 1, 'R');
@@ -423,7 +423,7 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
         $pdf->SetXY(160, $yCard + 3);
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetTextColor(22, 101, 52);
-        $pdf->Cell(19, 5, 'Comp:', 0, 0, 'L');
+        $pdf->Cell(19, 5, 'Completados:', 0, 0, 'L');
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->SetTextColor(20, 83, 45);
         $pdf->Cell(15, 5, $totalEntregadosRealizados, 0, 1, 'R');

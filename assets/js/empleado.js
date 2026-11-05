@@ -3,13 +3,17 @@ import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo, validarLongitud } from './helpers/expresiones.js';
 import { limpiarValidaciones, soloNumerosTeclado, soloLetrasTeclado } from './helpers/validaciones.js';
+import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
 
 $(function () {
     const URL_MODULO = 'index.php?controller=empleado';
     const CAMPOS = ['cedula', 'nombres', 'apellidos', 'telefono', 'direccion', 'cargo', 'salario'];
+    const FOTO_POR_DEFECTO = 'assets/Img/Iconos/person-fill.svg';
 
     let tabla = null;
     let verInactivos = false;
+    const fotosPendientes = { reg: null, edit_activo: null };
+    const urlsFoto = { reg: null, edit_activo: null };
 
     // Reglas de validación por sufijo del id (reg_cedula, edit_activo_cedula, ...)
     const REGLAS = {
@@ -52,6 +56,7 @@ $(function () {
         registro: {
             form: '#formEmpleado',
             prefijo: 'reg_',
+            claveFoto: 'reg',
             incluirCedula: true,
             modal: 'modalRegistrarEmpleado',
             mensaje: '¡Registrado!',
@@ -60,6 +65,7 @@ $(function () {
         edicion: {
             form: '#formEditarActivo',
             prefijo: 'edit_activo_',
+            claveFoto: 'edit_activo',
             incluirCedula: false,
             modal: 'modalEditarActivo',
             mensaje: '¡Actualizado!',
@@ -111,15 +117,113 @@ $(function () {
             '<img src="assets/Img/Iconos/' + icono + '" class="icono-svg ' + color + '" alt="' + alt + '"></button>';
     }
 
+    // Foto del empleado
+    function pintarPreviewFoto(clave, ruta) {
+        const $imagen = $('#' + clave + '_foto_preview');
+        if (!$imagen.length) return;
+
+        const src = ruta
+            ? (String(ruta).indexOf('blob:') === 0 || String(ruta).indexOf('data:') === 0 ? ruta : ruta + '?v=' + Date.now())
+            : FOTO_POR_DEFECTO;
+
+        $imagen
+            .attr('src', src)
+            .toggleClass('es-icono', !ruta);
+
+        $('#' + clave + '_foto_ver')
+            .prop('disabled', !ruta)
+            .attr('title', ruta ? 'Ver foto del empleado' : 'Sin foto');
+    }
+
+    function guardarFotoPendiente(clave, archivo) {
+        if (urlsFoto[clave]) URL.revokeObjectURL(urlsFoto[clave]);
+
+        fotosPendientes[clave] = archivo || null;
+        urlsFoto[clave] = archivo ? URL.createObjectURL(archivo) : null;
+        pintarPreviewFoto(clave, urlsFoto[clave]);
+    }
+
+    function limpiarFoto(clave) {
+        if (urlsFoto[clave]) URL.revokeObjectURL(urlsFoto[clave]);
+
+        urlsFoto[clave] = null;
+        fotosPendientes[clave] = null;
+        pintarPreviewFoto(clave, '');
+    }
+
+    // Visor de foto ampliada
+    function abrirVisorFoto(ruta, nombre) {
+        const $imagen = $('#verFotoEmpleadoImagen');
+        if (!$imagen.length) return;
+
+        if (!ruta) return;
+
+        $('#verFotoEmpleadoTitulo').text(nombre ? 'Foto de ' + nombre : 'Foto del Empleado');
+
+        $imagen
+            .attr('src', ruta)
+            .attr('alt', nombre ? 'Foto de ' + nombre : 'Foto del empleado');
+
+        $('#modalVerFotoEmpleado').modal('show');
+    }
+
+    function iniciarFotosEmpleado() {
+        let claveActiva = 'reg';
+
+        const recortador = crearRecortadorFoto({
+            modal: '#modalRecortarFotoEmpleado',
+            viewport: '#recorteEmpleadoViewport',
+            imagen: '#recorteEmpleadoImagen',
+            preview: '#recorteEmpleadoPreview',
+            zoom: '#recorteEmpleadoZoom',
+            input: '#reg_foto, #edit_activo_foto',
+            confirmar: '#btnConfirmarRecorteEmpleado',
+            textoConfirmar: 'Usar Foto',
+            alConfirmar: function (archivo) {
+                guardarFotoPendiente(claveActiva, archivo);
+                return true;
+            }
+        });
+
+        if (!recortador) return;
+
+        $('.btn-subir-foto-empleado').on('click', function () {
+            claveActiva = $(this).data('prefijo');
+            $('#' + claveActiva + '_foto').trigger('click');
+        });
+
+        $('#reg_foto, #edit_activo_foto').on('change', function () {
+            claveActiva = this.id === 'reg_foto' ? 'reg' : 'edit_activo';
+
+            const archivo = this.files && this.files[0];
+            if (archivo) recortador.abrir(archivo);
+        });
+
+        $('#reg_foto_preview').on('error', function () {
+            pintarPreviewFoto('reg', '');
+        });
+
+        $('#edit_activo_foto_preview').on('error', function () {
+            pintarPreviewFoto('edit_activo', '');
+        });
+    }
+
     // Petición POST con alertas
     async function peticion(datos, titulo) {
         try {
-            const respuesta = await $.ajax({
+            const opciones = {
                 url: URL_MODULO,
                 type: 'POST',
                 dataType: 'json',
                 data: datos
-            });
+            };
+
+            if (datos instanceof FormData) {
+                opciones.processData = false;
+                opciones.contentType = false;
+            }
+
+            const respuesta = await $.ajax(opciones);
 
             if (!respuesta.success) {
                 await errorAlert('Error', respuesta.message);
@@ -193,22 +297,29 @@ $(function () {
             return errorAlert('Usuario requerido', 'Seleccione el usuario asociado al empleado.');
         }
 
-        const datos = { es_usuario: usaUsuario ? 1 : '', id_usuario: usaUsuario ? $usuario.val() : '' };
+        const datos = new FormData();
+        datos.append('es_usuario', usaUsuario ? 1 : '');
+        datos.append('id_usuario', usaUsuario ? $usuario.val() : '');
 
         $.each(CAMPOS, function (_, campo) {
-            datos[campo] = $('#' + config.prefijo + campo).val().trim();
+            datos.append(campo, String($('#' + config.prefijo + campo).val() || '').trim());
         });
 
         const idEmpleado = $('#' + config.prefijo + 'id_empleado').val();
 
         if (idEmpleado) {
-            datos.id_accion = idEmpleado;
-            datos.nuevo_estado = 'Activo';
+            datos.append('id_accion', idEmpleado);
+            datos.append('nuevo_estado', 'Activo');
+        }
+
+        if (fotosPendientes[config.claveFoto]) {
+            datos.append('foto', fotosPendientes[config.claveFoto]);
         }
 
         const respuesta = await peticion(datos, config.mensaje);
         if (!respuesta) return;
 
+        limpiarFoto(config.claveFoto);
         $('#' + config.modal).modal('hide');
         recargar(config.reiniciar);
     }
@@ -283,6 +394,7 @@ $(function () {
     // Registrar
     $('#modalRegistrarEmpleado').on('show.bs.modal', function () {
         $('#reg_es_usuario').prop('checked', false).trigger('change');
+        limpiarFoto('reg');
         limpiarValidaciones('#formEmpleado');
         cargarUsuarios($('#reg_id_usuario'), null, false, null);
     });
@@ -308,6 +420,12 @@ $(function () {
         const usuarioVinculado = empleado.id_usuario_vinculado ? String(empleado.id_usuario_vinculado) : null;
 
         $('#edit_es_usuario').prop('checked', Boolean(usuarioVinculado)).trigger('change');
+        limpiarFoto('edit_activo');
+
+        if (empleado.foto) {
+            pintarPreviewFoto('edit_activo', empleado.foto);
+        }
+
         limpiarValidaciones('#formEditarActivo');
         cargarUsuarios($('#edit_id_usuario'), empleado.id_empleado, true, usuarioVinculado);
         $('#modalEditarActivo').modal('show');
@@ -366,6 +484,7 @@ $(function () {
     // Limpieza de modales
     $('#modalRegistrarEmpleado').on('hidden.bs.modal', function () {
         $('#formEmpleado')[0].reset();
+        limpiarFoto('reg');
         limpiarValidaciones('#formEmpleado');
         $('#reg_es_usuario').prop('checked', false);
         $('#reg_usuario_wrap').addClass('d-none');
@@ -373,7 +492,26 @@ $(function () {
     });
 
     $('#modalEditarActivo, #modalEditarInactivo').on('hidden.bs.modal', function () {
+        if (this.id === 'modalEditarActivo') limpiarFoto('edit_activo');
         limpiarValidaciones($(this).find('form'));
+    });
+
+    iniciarFotosEmpleado();
+
+    // Ver foto ampliada: avatar de la tabla y miniaturas de los formularios
+    $('#tablaEmpleados tbody').on('click', '.empleado-avatar-ver', function () {
+        abrirVisorFoto($(this).data('foto'), $(this).data('nombre'));
+    });
+
+    $('#reg_foto_ver, #edit_activo_foto_ver').on('click', function () {
+        if ($(this).prop('disabled')) return;
+
+        const $preview = $('#' + $(this).data('preview'));
+        if ($preview.length) abrirVisorFoto($preview.attr('src'), '');
+    });
+
+    $('#modalVerFotoEmpleado').on('hidden.bs.modal', function () {
+        $('#verFotoEmpleadoImagen').removeAttr('src');
     });
 
     // Tabla
@@ -392,11 +530,24 @@ $(function () {
             {
                 data: null,
                 render: function (empleado) {
-                    return '<div class="fw-bold text-dark">' + escaparHTML(nombreCompleto(empleado)) + '</div>' +
+                    const nombre = nombreCompleto(empleado);
+                    const foto = empleado.foto ? escaparHTML(empleado.foto) : FOTO_POR_DEFECTO;
+                    const avatar = empleado.foto
+                        ? '<button type="button" class="empleado-avatar empleado-avatar-ver" title="Ver foto de ' + escaparHTML(nombre) + '" aria-label="Ver foto de ' + escaparHTML(nombre) + '"' +
+                          ' data-foto="' + foto + '" data-nombre="' + escaparHTML(nombre) + '">' +
+                          '<img src="' + foto + '" alt="Foto de ' + escaparHTML(nombre) + '"></button>'
+                        : '<span class="empleado-avatar">' +
+                          '<img src="' + foto + '" class="es-icono" alt="Foto de ' + escaparHTML(nombre) + '"></span>';
+
+                    return '<div class="d-flex align-items-center gap-2">' +
+                        avatar +
+                        '<div>' +
+                        '<div class="fw-bold text-dark">' + escaparHTML(nombre) + '</div>' +
                         '<small class="text-muted">' +
                         '<img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección">' +
                         escaparHTML(empleado.direccion || 'Sin dirección') +
-                        '</small>';
+                        '</small>' +
+                        '</div></div>';
                 }
             },
             {

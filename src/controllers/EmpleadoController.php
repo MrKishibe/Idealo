@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/ImagenEmpleadoHelper.php';
+
+use Idealo\Helpers\ImagenEmpleadoHelper;
 use Idealo\Models\EmpleadoModel;
 
 $rutaVista = __DIR__ . '/../view/empleado/listar.php';
@@ -40,10 +43,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     exit;
                 }
 
+                $fotoNueva = null;
+                $fotoAnterior = EmpleadoModel::obtenerFoto($id);
+
+                try {
+                    $fotoNueva = ImagenEmpleadoHelper::guardar($_FILES['foto'] ?? null);
+                    if ($fotoNueva) {
+                        EmpleadoModel::setFoto($fotoNueva);
+                    }
+                } catch (Throwable $e) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => $e->getMessage(),
+                        'evento'  => 'editar',
+                        'estado'  => 'error_validacion'
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
                 $resultado = EmpleadoModel::getActualizarDatos($id);
 
                 if (isset($resultado['existoso'])) {
                     $mensaje = $resultado['existoso'];
+
+                    if ($fotoNueva) {
+                        ImagenEmpleadoHelper::eliminar($fotoAnterior);
+                    }
 
                     if ($esUsuario) {
                         $vinculo = EmpleadoModel::vincularUsuario($id, $idUsuario);
@@ -62,10 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     echo json_encode([
                         'success' => true,
                         'message' => $mensaje,
+                        'foto'    => $fotoNueva ?: $fotoAnterior,
                         'evento'  => 'editar',
                         'estado'  => 'completado'
                     ], JSON_UNESCAPED_UNICODE);
                 } else {
+                    if ($fotoNueva) {
+                        ImagenEmpleadoHelper::eliminar($fotoNueva);
+                    }
+
                     echo json_encode([
                         'success' => false,
                         'message' => ($resultado['error'] ?? "Error interno al guardar los cambios."),
@@ -134,6 +164,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 exit;
             }
 
+            $fotoNueva = null;
+
+            try {
+                $fotoNueva = ImagenEmpleadoHelper::guardar($_FILES['foto'] ?? null);
+                if ($fotoNueva) {
+                    EmpleadoModel::setFoto($fotoNueva);
+                }
+            } catch (Throwable $e) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'evento'  => 'guardar',
+                    'estado'  => 'error_validacion'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             $resultado = EmpleadoModel::getRegistrarDatos();
 
             if (isset($resultado['existoso'])) {
@@ -156,10 +203,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     'apellidos' => $apellidos,
                     'cedula'    => $cedula,
                     'cargo'     => $cargo,
+                    'foto'      => $fotoNueva,
                     'evento'    => 'guardar',
                     'estado'    => 'completado'
                 ], JSON_UNESCAPED_UNICODE);
             } else {
+                if ($fotoNueva) {
+                    ImagenEmpleadoHelper::eliminar($fotoNueva);
+                }
+
                 echo json_encode([
                     'success' => false,
                     'message' => ($resultado['error'] ?? "Error interno al guardar en el sistema."),

@@ -83,6 +83,7 @@ CREATE TABLE empleado (
     direccion TEXT,
     cargo VARCHAR(100),
     salario DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    foto varchar(255),
     status_empleado VARCHAR(20) NOT NULL DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish2_ci;
 
@@ -120,6 +121,7 @@ CREATE TABLE pago (
     referencia VARCHAR(100),
     fecha_pago DATE NOT NULL,
     status_pago VARCHAR(20) NOT NULL DEFAULT 'procesado',
+    comprobante_de_pago VARCHAR(255),
     id_pedido INT NOT NULL,
     id_metodo_de_pago INT NOT NULL,
     FOREIGN KEY (id_pedido) REFERENCES pedido(id_pedido) ON DELETE CASCADE,
@@ -153,7 +155,7 @@ CREATE TABLE usuario (
     nombre_usuario VARCHAR(20) NOT NULL UNIQUE,
     contrasena VARCHAR(255) NOT NULL,
     correo VARCHAR(100) UNIQUE,
-    imagen VARCHAR(255),
+    imagen VARCHAR(255), 
     status_usuario VARCHAR(20) NOT NULL DEFAULT 'activo',
     id_rol INT NOT NULL,
     FOREIGN KEY (id_rol) REFERENCES roles(id_rol) ON DELETE CASCADE

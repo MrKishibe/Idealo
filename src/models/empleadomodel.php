@@ -18,6 +18,7 @@ class EmpleadoModel extends Database
     private static $cargo;
     private static $salario;
     private static $status_empleado;
+    private static $foto;
 
 
     public static $expNombres   = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,100}$/';
@@ -120,6 +121,30 @@ class EmpleadoModel extends Database
     }
 
 
+    /**
+     * Define la foto que se guardará en el siguiente registro o edición.
+     * Se usa null para conservar la foto actual en las ediciones.
+     */
+    public static function setFoto(?string $foto)
+    {
+        self::$foto = $foto;
+    }
+
+
+    public static function obtenerFoto($id)
+    {
+        try {
+            $db = self::connect();
+            $consulta = $db->prepare("SELECT foto FROM empleado WHERE id_empleado = ?");
+            $consulta->execute([intval($id)]);
+            $foto = $consulta->fetchColumn();
+            return $foto ?: null;
+        } catch (PDOException $error) {
+            return null;
+        }
+    }
+
+
     public static function getRegistrarDatos()
     {
         return self::registrarDatos();
@@ -150,7 +175,7 @@ class EmpleadoModel extends Database
         try {
             $db = self::connect();
             $consulta = $db->prepare(
-                "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.telefono, e.direccion, e.cargo, e.salario, e.status_empleado,
+                "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.telefono, e.direccion, e.cargo, e.salario, e.status_empleado, e.foto,
                         ae.id_usuario AS id_usuario_vinculado
                  FROM empleado e
                  LEFT JOIN acceso_empleado ae ON ae.id_empleado = e.id_empleado
@@ -180,7 +205,7 @@ class EmpleadoModel extends Database
     {
         try {
             $db = self::connect();
-            $registrar = $db->prepare("INSERT INTO `empleado`(`nombres`, `apellidos`, `cedula`, `telefono`, `direccion`, `cargo`, `salario`, `status_empleado`) VALUES (:nombres, :apellidos, :cedula, :telefono, :direccion, :cargo, :salario, :status)");
+            $registrar = $db->prepare("INSERT INTO `empleado`(`nombres`, `apellidos`, `cedula`, `telefono`, `direccion`, `cargo`, `salario`, `status_empleado`, `foto`) VALUES (:nombres, :apellidos, :cedula, :telefono, :direccion, :cargo, :salario, :status, :foto)");
             $registrar->bindParam(":nombres", self::$nombres);
             $registrar->bindParam(":apellidos", self::$apellidos);
             $registrar->bindParam(":cedula", self::$cedula);
@@ -189,6 +214,7 @@ class EmpleadoModel extends Database
             $registrar->bindParam(":cargo", self::$cargo);
             $registrar->bindParam(":salario", self::$salario);
             $registrar->bindParam(":status", self::$status_empleado);
+            $registrar->bindParam(":foto", self::$foto);
             $registrar->execute();
 
             return array(
@@ -204,16 +230,18 @@ class EmpleadoModel extends Database
     {
         try {
             $db = self::connect();
-            $actualizar = $db->prepare("UPDATE `empleado` SET `nombres` = ?, `apellidos` = ?, `telefono` = ?, `direccion` = ?, `cargo` = ?, `salario` = ?, `status_empleado` = ? WHERE `id_empleado` = ?");
-            $actualizar->bindValue(1, self::$nombres);
-            $actualizar->bindValue(2, self::$apellidos);
-            $actualizar->bindValue(3, self::$telefono);
-            $actualizar->bindValue(4, self::$direccion);
-            $actualizar->bindValue(5, self::$cargo);
-            $actualizar->bindValue(6, self::$salario);
-            $actualizar->bindValue(7, self::$status_empleado);
-            $actualizar->bindValue(8, self::$id_empleado);
-            $actualizar->execute();
+            $campos = "`nombres` = ?, `apellidos` = ?, `telefono` = ?, `direccion` = ?, `cargo` = ?, `salario` = ?, `status_empleado` = ?";
+            $valores = [self::$nombres, self::$apellidos, self::$telefono, self::$direccion, self::$cargo, self::$salario, self::$status_empleado];
+
+            if (self::$foto !== null) {
+                $campos .= ", `foto` = ?";
+                $valores[] = self::$foto;
+            }
+
+            $valores[] = self::$id_empleado;
+
+            $actualizar = $db->prepare("UPDATE `empleado` SET {$campos} WHERE `id_empleado` = ?");
+            $actualizar->execute($valores);
 
             return array("existoso" => "Registro actualizado.");
         } catch (PDOException $error) {

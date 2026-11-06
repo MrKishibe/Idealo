@@ -26,6 +26,7 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/perfil.css">
+    <link rel="stylesheet" href="assets/libs/css/recorte-foto.css">
 </head>
 
 <body>
@@ -276,7 +277,10 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-    <script src="assets/js/perfil.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/perfil.js') ?>"></script>
+    <script type="importmap">
+        {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
+    </script>
+    <script type="module" src="assets/js/perfil.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/perfil.js') ?>"></script>
 
 </body>
 

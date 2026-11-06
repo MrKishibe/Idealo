@@ -14,8 +14,9 @@ if (!isset($empleados)) {
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="assets/libs/css/estilo.css">
+    <link rel="stylesheet" href="assets/libs/css/estilo.css?v=<?= filemtime(__DIR__ . '/../../../assets/libs/css/estilo.css') ?>">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
+    <link rel="stylesheet" href="assets/libs/css/recorte-foto.css?v=<?= filemtime(__DIR__ . '/../../../assets/libs/css/recorte-foto.css') ?>">
 </head>
 
 <body>
@@ -57,12 +58,30 @@ if (!isset($empleados)) {
                                 <?php foreach ($empleados as $emp):
                                     $nombreCompleto = $emp['nombres'] . ' ' . $emp['apellidos'];
                                     $estadoReal = strtolower($emp['status_empleado'] ?? 'activo');
+                                    $fotoEmpleado = trim($emp['foto'] ?? '');
                                 ?>
                                     <tr id="fila-<?php echo $emp['id_empleado']; ?>" data-estado="<?php echo $estadoReal; ?>">
                                         <td class="fw-bold"><?php echo htmlspecialchars($emp['cedula']); ?></td>
                                         <td>
-                                            <div class="fw-bold text-dark"><?php echo htmlspecialchars($nombreCompleto); ?></div>
-                                            <small class="text-muted"><img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección"> <?php echo htmlspecialchars($emp['direccion'] ?: 'Sin dirección'); ?></small>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php if ($fotoEmpleado): ?>
+                                                    <button type="button" class="empleado-avatar empleado-avatar-ver"
+                                                        data-foto="<?php echo htmlspecialchars($fotoEmpleado); ?>"
+                                                        data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>"
+                                                        title="Ver foto de <?php echo htmlspecialchars($nombreCompleto); ?>"
+                                                        aria-label="Ver foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
+                                                        <img src="<?php echo htmlspecialchars($fotoEmpleado); ?>" alt="Foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="empleado-avatar">
+                                                        <img src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
+                                                    </span>
+                                                <?php endif; ?>
+                                                <div>
+                                                    <div class="fw-bold text-dark"><?php echo htmlspecialchars($nombreCompleto); ?></div>
+                                                    <small class="text-muted"><img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección"> <?php echo htmlspecialchars($emp['direccion'] ?: 'Sin dirección'); ?></small>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td><?php echo htmlspecialchars($emp['telefono'] ?: 'N/A'); ?></td>
                                         <td><?php echo htmlspecialchars($emp['cargo']); ?></td>
@@ -152,6 +171,25 @@ if (!isset($empleados)) {
                                 <input type="number" step="0.01" class="form-control" id="reg_salario" name="salario" required>
                             </div>
                             <div class="col-12">
+                                <div class="foto-empleado-bloque">
+                                    <button type="button" class="foto-empleado-preview foto-empleado-preview-lg" id="reg_foto_ver"
+                                        data-preview="reg_foto_preview" title="Ver foto del empleado"
+                                        aria-label="Ver foto del empleado" disabled>
+                                        <img id="reg_foto_preview" src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Vista previa de la foto">
+                                    </button>
+                                    <div class="flex-grow-1">
+                                        <div class="form-label fw-semibold mb-1">Foto de perfil <span class="text-muted fw-normal">(opcional)</span></div>
+                                        <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-empleado" data-prefijo="reg">
+                                                <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris me-1" alt="Subir foto"> Subir foto
+                                            </button>
+                                            <input type="file" id="reg_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label">Dirección</label>
                                 <textarea class="form-control" id="reg_direccion" name="direccion" rows="2"></textarea>
                             </div>
@@ -228,6 +266,25 @@ if (!isset($empleados)) {
                                 <input type="number" step="0.01" class="form-control" id="edit_activo_salario" required>
                             </div>
                             <div class="col-12">
+                                <div class="foto-empleado-bloque">
+                                    <button type="button" class="foto-empleado-preview foto-empleado-preview-lg" id="edit_activo_foto_ver"
+                                        data-preview="edit_activo_foto_preview" title="Ver foto del empleado"
+                                        aria-label="Ver foto del empleado" disabled>
+                                        <img id="edit_activo_foto_preview" src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Vista previa de la foto">
+                                    </button>
+                                    <div class="flex-grow-1">
+                                        <div class="form-label fw-semibold mb-1">Foto de perfil <span class="text-muted fw-normal">(opcional)</span></div>
+                                        <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-empleado" data-prefijo="edit_activo">
+                                                <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris me-1" alt="Subir foto"> Subir foto
+                                            </button>
+                                            <input type="file" id="edit_activo_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label">Dirección</label>
                                 <textarea class="form-control" id="edit_activo_direccion" rows="2"></textarea>
                             </div>
@@ -294,6 +351,59 @@ if (!isset($empleados)) {
         </div>
     </div>
 
+    <div class="modal fade modal-idealo" id="modalVerFotoEmpleado" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-sm icono-gris" alt="">
+                        <span id="verFotoEmpleadoTitulo">Foto del Empleado</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center ver-foto-empleado-cuerpo">
+                    <img id="verFotoEmpleadoImagen" src="" class="ver-foto-empleado" alt="Foto del empleado">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade modal-idealo" id="modalRecortarFotoEmpleado" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-sm icono-gris" alt="">
+                        <span>Ajustar Foto del Empleado</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="recorte-layout">
+                        <div class="recorte-viewport" id="recorteEmpleadoViewport" tabindex="0"
+                            role="application" aria-label="Área de recorte. Arrastra o usa las flechas para centrar la imagen.">
+                            <img id="recorteEmpleadoImagen" alt="Vista de recorte" draggable="false">
+                        </div>
+                        <div class="recorte-preview-wrap">
+                            <span>Vista previa</span>
+                            <canvas id="recorteEmpleadoPreview" width="128" height="128"
+                                role="img" aria-label="Vista previa de la foto recortada"></canvas>
+                        </div>
+                    </div>
+                    <div class="recorte-controles">
+                        <label for="recorteEmpleadoZoom" class="form-label">Zoom</label>
+                        <input type="range" class="form-range" id="recorteEmpleadoZoom" min="1" max="3" step="0.01" value="1" disabled>
+                        <div class="form-text">Arrastra la imagen para centrarla y ajusta el zoom a tu gusto.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnConfirmarRecorteEmpleado" disabled>Usar Foto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
@@ -302,7 +412,7 @@ if (!isset($empleados)) {
     <script type="importmap">
         {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
     </script>
-    <script type="module" src="assets/js/empleado.js"></script>
+    <script type="module" src="assets/js/empleado.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/empleado.js') ?>"></script>
 
 </body>
 

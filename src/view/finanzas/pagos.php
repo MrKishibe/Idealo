@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -22,7 +23,7 @@
                 <p>Administra los flujos de caja, abonos de pedidos y transacciones.</p>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" data-vista="activos" onclick="alternarVistaInhabilitados('tablaPagos')">
+                <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" data-vista="activos">
                     <i class="bi bi-eye-slash-fill me-1" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                 </button>
                 
@@ -30,7 +31,7 @@
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                 </button>
                 
-                <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">
+                <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" onclick="establecerFechaActualRegistro()">
                     <i class="bi bi-cash-stack"></i> Registrar Pago
                 </button>
             </div>
@@ -50,38 +51,7 @@
                             <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($pagos as $pago): ?>
-                        <tr class="fila-pago" data-estado="<?= htmlspecialchars($pago['estado']) ?>">
-                            <td><strong><?= htmlspecialchars($pago['referencia']) ?></strong></td>
-                            <td>
-                                Pedido #<?= $pago['id_pedido'] ?>
-                                <br>
-                                <small class="text-muted"><?= htmlspecialchars($pago['nombre_razon_social'] . ' ' . $pago['apellido']) ?></small>
-                            </td>
-                            <td class="text-success" style="font-weight: 600;">$<?= number_format($pago['monto_pago'], 2) ?></td>
-                            <td><?= htmlspecialchars($pago['nombre_metodo']) ?></td>
-                            <td><?= date('d/m/Y h:i A', strtotime($pago['fecha_pago'])) ?></td>
-                            <td>
-                                <span class="badge bg-<?= $pago['estado'] === 'procesado' ? 'success' : 'danger' ?>">
-                                    <?= ucfirst($pago['estado']) ?>
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex gap-2 justify-content-center">
-                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarPago" 
-                                        onclick="cargarDatosEdicionPago('<?= $pago['id_pago'] ?>', '<?= $pago['id_pedido'] ?>', '<?= $pago['monto_pago'] ?>', '<?= $pago['id_metodo_de_pago'] ?>', '<?= htmlspecialchars($pago['referencia']) ?>', '<?= date('Y-m-d\TH:i', strtotime($pago['fecha_pago'])) ?>')">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
-                                    
-                                    <button class="btn btn-sm <?= $pago['estado'] === 'inhabilitado' ? 'btn-outline-success' : 'btn-outline-danger' ?>" 
-                                        onclick="cambiarEstado(<?= $pago['id_pago'] ?>, 'pago', '<?= $pago['estado'] === 'inhabilitado' ? 'procesado' : 'inhabilitado' ?>')">
-                                        <i class="bi <?= $pago['estado'] === 'inhabilitado' ? 'bi-check-circle-fill' : 'bi-trash-fill' ?>"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                    <tbody id="tbodyPagos">
                     </tbody>
                 </table>
             </div>
@@ -89,10 +59,9 @@
     </div>
 </main>
 
-<!-- modal pa registrar pagos -->
 <div class="modal fade modal-idealo" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formRegistrarPago">
+        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formRegistrarPago" enctype="multipart/form-data">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>Registrar Nuevo Pago</h5>
@@ -104,7 +73,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Número de Pedido</label>
-                        <select class="form-select" name="id_pedido" required>
+                        <select class="form-select w-100" name="id_pedido" id="select_registrar_pedido" required>
                             <option value="">Seleccione un pedido...</option>
                             <?php foreach($pedidos as $ped): ?>
                                 <option value="<?= $ped['id_pedido'] ?>">
@@ -128,18 +97,25 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Referencia (6 Dígitos)</label>
-                        <input type="text" class="form-control" name="referencia" maxlength="6" required placeholder="Ej: 123456">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Referencia (6 Dígitos)</label>
+                            <input type="text" class="form-control" name="referencia" maxlength="6" required placeholder="Ej: 123456">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha del Pago</label>
+                            <input type="datetime-local" class="form-control" name="fecha_pago" id="input_fecha_pago" required>
+                        </div>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Fecha del Pago</label>
-                        <input type="datetime-local" class="form-control" name="fecha_pago" required>
+                        <label for="comprobante_pago" class="form-label">Comprobante de Pago</label>
+                        <input type="file" class="form-control" id="comprobante_pago" name="comprobante_pago" accept="image/jpeg,image/png,image/webp,application/pdf">
+                        <div class="form-text">Formatos permitidos: JPG, PNG, WEBP, PDF. Máximo: 2MB.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
+                    <button type="button" class="btn btn-secondary btn-cancelar-modal" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar Pago</button>
                 </div>
             </div>
@@ -147,10 +123,9 @@
     </div>
 </div>
 
-<!-- modal de editar pagos  -->
 <div class="modal fade modal-idealo" id="modalEditarPago" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form">
+        <form action="index.php?controller=finanzas&action=pagos" method="POST" class="finanzas-form" id="formEditarPago" enctype="multipart/form-data">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Pago</h5>
@@ -163,7 +138,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Número de Pedido</label>
-                        <select class="form-select" name="id_pedido" id="edit_id_pedido" required>
+                        <select class="form-select w-100" name="id_pedido" id="edit_id_pedido" required>
                             <?php foreach($pedidos as $ped): ?>
                                 <option value="<?= $ped['id_pedido'] ?>">
                                     Pedido #<?= $ped['id_pedido'] ?> - <?= htmlspecialchars($ped['nombre_razon_social'] . ' ' . $ped['apellido']) ?> (Total: $<?= number_format($ped['monto_total'], 2) ?>)
@@ -185,18 +160,33 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Referencia (6 Dígitos)</label>
-                        <input type="text" class="form-control" name="referencia" id="edit_referencia" maxlength="6" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Referencia (6 Dígitos)</label>
+                            <input type="text" class="form-control" name="referencia" id="edit_referencia" maxlength="6" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha del Pago</label>
+                            <input type="datetime-local" class="form-control" name="fecha_pago" id="edit_fecha" required>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Fecha del Pago</label>
-                        <input type="datetime-local" class="form-control" name="fecha_pago" id="edit_fecha" required>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_comprobante_pago" class="form-label">Actualizar Comprobante (Opcional)</label>
+                            <input type="file" class="form-control" id="edit_comprobante_pago" name="comprobante_pago" accept="image/jpeg,image/png,image/webp,application/pdf">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="edit_status_pago">Estatus del Pago</label>
+                            <select class="form-select" name="status_pago" id="edit_status_pago" required>
+                                <option value="procesado">Procesado</option>
+                                <option value="inhabilitado">Inhabilitado</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarFormulario(this)">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </div>
@@ -209,21 +199,27 @@
 <script src="assets/libs/jquery.dataTables.min.js"></script>
 <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 <script src="assets/libs/sweetalert2.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+function obtenerFechaHoraLocal() {
+    const ahora = new Date();
+    ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+    return ahora.toISOString().slice(0, 16);
+}
+
+function establecerFechaActualRegistro() {
+    const inputFecha = document.getElementById('input_fecha_pago');
+    if (inputFecha && !inputFecha.value) {
+        inputFecha.value = obtenerFechaHoraLocal();
+    }
+}
+</script>
+
 <script type="importmap">
     {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
 </script>
 <script type="module" src="assets/js/finanzas.js"></script>
-<script>
-function cargarDatosEdicionPago(id, pedido, monto, metodo, ref, fecha) {
-    document.getElementById('edit_id_pago').value = id;
-    document.getElementById('edit_id_pedido').value = pedido;
-    document.getElementById('edit_monto_pago').value = monto;
-    document.getElementById('edit_id_metodo').value = metodo;
-    document.getElementById('edit_referencia').value = ref;
-    document.getElementById('edit_fecha').value = fecha;
-}
-
-</script>
 <script type="module">
 import { abrirReporteEnPestana } from './assets/js/helpers/report-viewer.js';
 

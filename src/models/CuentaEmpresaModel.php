@@ -7,9 +7,7 @@ use Exception;
 
 class CuentaEmpresaModel extends Database {
     
-    
     private const REGEX_TITULAR = '/^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/';
-
     private const REGEX_IDENTIFICADOR = '/^[0-9]{20}$/';
 
     private $tipo_cuenta;
@@ -17,14 +15,12 @@ class CuentaEmpresaModel extends Database {
     private $titular;
 
     public function __construct() { 
-        
     }
 
     protected function getDb(): PDO {
         return self::connect();
     }
 
-    //  Validación de Doble Existencia
     public function existeCuenta($identificador, $id_excluir = null) {
         $sql = "SELECT id_cuenta FROM cuenta_empresa WHERE identificador = :identificador";
         $params = [':identificador' => $identificador];
@@ -52,7 +48,6 @@ class CuentaEmpresaModel extends Database {
             throw new Exception("El número de cuenta debe tener exactamente 20 dígitos numéricos.");
         }
 
-        // Bloqueo por doble existencia en DB
         $id_excluir = $esEdicion ? $datos['id_cuenta'] : null;
         if ($this->existeCuenta($datos['identificador'], $id_excluir)) {
             throw new Exception("Ya existe una cuenta registrada con este número.");
@@ -60,7 +55,7 @@ class CuentaEmpresaModel extends Database {
     }
 
     public function listarCuentas() {
-        $sql = "SELECT c.id_cuenta, c.tipo_cuenta, c.titular, c.identificador, c.status_cuenta_empresa AS estado_cuenta, mp.nombre_metodo_de_pago AS nombre_metodo 
+        $sql = "SELECT c.id_cuenta, c.id_metodo_de_pago, c.tipo_cuenta, c.titular, c.identificador, c.status_cuenta_empresa AS estado, mp.nombre_metodo_de_pago AS nombre_metodo 
                 FROM cuenta_empresa c 
                 LEFT JOIN metodo_de_pago mp ON c.id_metodo_de_pago = mp.id_metodo_de_pago 
                 ORDER BY c.id_cuenta DESC";
@@ -91,14 +86,16 @@ class CuentaEmpresaModel extends Database {
     
     public function editarCuenta($datos) {
         $this->validar($datos, true);
+        $status = $datos['status_cuenta_empresa'] ?? 'activo';
         $sql = "UPDATE cuenta_empresa 
-                SET id_metodo_de_pago = :metodo, tipo_cuenta = :tipo, titular = :titular, identificador = :identificador 
+                SET id_metodo_de_pago = :metodo, tipo_cuenta = :tipo, titular = :titular, identificador = :identificador, status_cuenta_empresa = :status 
                 WHERE id_cuenta = :id";
         return $this->getDb()->prepare($sql)->execute([
             ':metodo' => $datos['id_metodo_de_pago'], 
             ':tipo' => $datos['tipo_cuenta'], 
             ':titular' => $datos['titular'], 
-            ':identificador' => $datos['identificador'], 
+            ':identificador' => $datos['identificador'],
+            ':status' => $status,
             ':id' => $datos['id_cuenta']
         ]);
     }

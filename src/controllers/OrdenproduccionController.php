@@ -205,166 +205,59 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
     $totalEnProceso = $conteosEstado['en proceso'] ?? 0;
     $totalFinalizadas = $conteosEstado['finalizado'] ?? 0;
 
-    $usuarioActual = $_SESSION['nombre_usuario'] ?? $_SESSION['user'] ?? $_SESSION['nombre'] ?? 'Administrador';
-
-    // Clase extendida para el pie de página automático con numeración en vertical (ancho útil 180 mm)
-    class MYPDF extends \TCPDF {
-        public function Footer() {
-            $this->SetY(-12);
-            $this->SetFont('helvetica', 'I', 8.5);
-            $this->SetTextColor(100, 116, 139);
-            
-            $this->SetDrawColor(203, 213, 225);
-            $this->SetLineWidth(0.2);
-            $this->Line(15, $this->GetY(), 195, $this->GetY());
-
-            $this->Ln(2);
-            $this->Cell(95, 5, 'Idéalo - Sistema de Gestión | Impreso el ' . date('d/m/Y H:i'), 0, 0, 'L');
-            $this->Cell(85, 5, 'Página ' . $this->getAliasNumPage() . ' de ' . $this->getAliasNbPages(), 0, 0, 'R');
-        }
-    }
-
-    // Orientación VERTICAL ('P')
-    $pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    $pdf->SetCreator('Idéalo');
-    $pdf->SetAuthor('Idéalo');
-    $pdf->SetTitle('Reporte de Producción');
-
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(true);
-    $pdf->SetMargins(15, 12, 15);
-    $pdf->SetAutoPageBreak(true, 18);
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+    $pdf = new \Idealo\Helpers\ReportePdf('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->setCompactReportDetails(
+        'Reporte de Producción',
+        'Periodo: ' . ($fechaDesde !== '' ? date('d/m/Y', strtotime($fechaDesde)) : 'Sin límite')
+            . ' al '
+            . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite')
+    );
     $pdf->AddPage();
-
-    // Encabezado corporativo y Logo
-    $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
-    if (file_exists($logoPath)) {
-        $pdf->ImageSVG($logoPath, 15, 10, 14, 14);
-    }
-
-    $pdf->SetXY(32, 10);
-    $pdf->SetFont('helvetica', 'B', 15);
-    $pdf->SetTextColor(15, 23, 42);
-    $pdf->Cell(100, 7, 'Idéalo  -  Reporte de Producción', 0, 0, 'L');
-    
-    // Usuario posicionado hacia adentro
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->SetTextColor(100, 116, 139);
-    $pdf->SetXY(135, 11);
-    $pdf->Cell(60, 7, 'Usuario: ' . $usuarioActual, 0, 1, 'R');
-    
-    $rangoFechas = ($fechaDesde !== '' ? date('d/m/Y', strtotime($fechaDesde)) : 'Sin límite')
-        . ' al '
-        . ($fechaHasta !== '' ? date('d/m/Y', strtotime($fechaHasta)) : 'Sin límite');
-
-    $pdf->SetXY(32, 17);
-    $pdf->SetFont('helvetica', '', 9.5);
-    $pdf->SetTextColor(71, 85, 105);
-    $pdf->Cell(0, 5, 'Periodo: ' . $rangoFechas, 0, 1, 'L');
-
-    $pdf->Ln(4);
-
-    // Tarjetas de métricas superiores (KPIs) distribuidas en formato vertical (ancho total ~180 mm)
-    $yCard = $pdf->GetY();
-    $pdf->SetLineWidth(0.3);
-
-    // Tarjeta 1: Total (42 mm)
-    $pdf->SetFillColor(248, 250, 252);
-    $pdf->SetDrawColor(226, 232, 240);
-    $pdf->Rect(15, $yCard, 42, 14, 'DF');
-    $pdf->SetXY(16, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 8);
-    $pdf->SetTextColor(71, 85, 105);
-    $pdf->Cell(22, 5, 'Total:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetTextColor(15, 23, 42);
-    $pdf->Cell(18, 5, $totalOrdenes, 0, 1, 'R');
-
-    // Tarjeta 2: Planificadas (42 mm)
-    $pdf->SetFillColor(241, 245, 249);
-    $pdf->SetDrawColor(203, 213, 225);
-    $pdf->Rect(59, $yCard, 42, 14, 'DF');
-    $pdf->SetXY(60, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 8);
-    $pdf->SetTextColor(71, 85, 105);
-    $pdf->Cell(22, 5, 'Planif:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetTextColor(51, 65, 85);
-    $pdf->Cell(18, 5, $totalPlanificadas, 0, 1, 'R');
-
-    // Tarjeta 3: En Proceso (42 mm)
-    $pdf->SetFillColor(224, 242, 254);
-    $pdf->SetDrawColor(186, 230, 253);
-    $pdf->Rect(103, $yCard, 42, 14, 'DF');
-    $pdf->SetXY(104, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 8);
-    $pdf->SetTextColor(3, 105, 161);
-    $pdf->Cell(22, 5, 'Proceso:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetTextColor(12, 74, 110);
-    $pdf->Cell(18, 5, $totalEnProceso, 0, 1, 'R');
-
-    // Tarjeta 4: Finalizadas (48 mm)
-    $pdf->SetFillColor(240, 253, 244);
-    $pdf->SetDrawColor(187, 247, 208);
-    $pdf->Rect(147, $yCard, 48, 14, 'DF');
-    $pdf->SetXY(148, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 8);
-    $pdf->SetTextColor(22, 101, 52);
-    $pdf->Cell(24, 5, 'Finalizadas:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetTextColor(20, 83, 45);
-    $pdf->Cell(21, 5, $totalFinalizadas, 0, 1, 'R');
-
-    $pdf->Ln(18);
-
-    // Cabecera de la tabla PDF (Suma exacta = 180 mm)
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetFillColor(30, 41, 59);
-    $pdf->SetTextColor(255, 255, 255);
-
-    $pdf->Cell(12, 8.5, 'ID', 1, 0, 'C', true);
-    $pdf->Cell(25, 8.5, 'Inicio', 1, 0, 'C', true);
-    $pdf->Cell(25, 8.5, 'Fin', 1, 0, 'C', true);
-    $pdf->Cell(85, 8.5, 'Descripción del Pedido', 1, 0, 'L', true);
-    $pdf->Cell(33, 8.5, 'Estado', 1, 1, 'C', true);
-
-    // Filas de datos con efecto Cebra
-    $pdf->SetFont('helvetica', '', 9);
-    $fill = false;
+    $pdf->addCompactReportHeader();
+    $pdf->addMetricCards([
+        ['label' => 'Total:', 'value' => (string) $totalOrdenes, 'width' => 42],
+        ['label' => 'Planificadas:', 'value' => (string) $totalPlanificadas, 'width' => 42],
+        ['label' => 'En Proceso:', 'value' => (string) $totalEnProceso, 'width' => 42],
+        ['label' => 'Finalizadas:', 'value' => (string) $totalFinalizadas, 'width' => 48],
+    ]);
+    $pdf->addTableHeader([
+        ['width' => 25, 'label' => 'Inicio', 'align' => 'C'],
+        ['width' => 25, 'label' => 'Fin', 'align' => 'C'],
+        ['width' => 97, 'label' => 'Descripción del Pedido', 'align' => 'L'],
+        ['width' => 33, 'label' => 'Estado', 'align' => 'C'],
+    ]);
 
     if (empty($ordenesFiltradas)) {
         $pdf->SetTextColor(100, 116, 139);
         $pdf->Cell(180, 10, 'No hay órdenes para mostrar.', 1, 1, 'C');
     } else {
-        foreach (array_values($ordenesFiltradas) as $orden) {
-            $pdf->SetFillColor($fill ? 248 : 255, $fill ? 250 : 255, $fill ? 252 : 255);
-            $pdf->SetTextColor(30, 41, 59);
-
+        foreach (array_values($ordenesFiltradas) as $index => $orden) {
             $inicio = !empty($orden['fecha_de_inicio']) ? date('d/m/Y', strtotime($orden['fecha_de_inicio'])) : 'N/A';
             $fin = !empty($orden['fecha_terminado']) ? date('d/m/Y', strtotime($orden['fecha_terminado'])) : 'N/A';
             $descripcion = htmlspecialchars($orden['descripcion_pedido'] ?? 'Sin descripción', ENT_QUOTES, 'UTF-8');
             $estado = ucfirst(strtolower($orden['estado_de_produccion'] ?? 'Sin estado'));
-
-            $pdf->Cell(12, 8, '#' . htmlspecialchars((string) ($orden['id_produccion'] ?? ''), ENT_QUOTES, 'UTF-8'), 'B', 0, 'C', true);
-            $pdf->Cell(25, 8, $inicio, 'B', 0, 'C', true);
-            $pdf->Cell(25, 8, $fin, 'B', 0, 'C', true);
-            $pdf->Cell(85, 8, substr($descripcion, 0, 45), 'B', 0, 'L', true);
-            
-            $estadoLower = strtolower($orden['estado_de_produccion'] ?? '');
-            $pdf->SetFont('helvetica', 'B', 8.5);
+            $estadoLower = strtolower((string) ($orden['estado_de_produccion'] ?? ''));
             if ($estadoLower === 'finalizado') {
-                $pdf->SetTextColor(16, 185, 129);
+                $colorEstado = [16, 185, 129];
             } elseif ($estadoLower === 'en proceso') {
-                $pdf->SetTextColor(14, 165, 233);
+                $colorEstado = [14, 165, 233];
             } else {
-                $pdf->SetTextColor(180, 83, 9);
+                $colorEstado = [180, 83, 9];
             }
-
-            $pdf->Cell(33, 8, $estado, 'B', 1, 'C', true);
-            $pdf->SetFont('helvetica', '', 9);
-
-            $fill = !$fill;
+            $pdf->addTableRow([
+                ['width' => 25, 'text' => $inicio, 'align' => 'C'],
+                ['width' => 25, 'text' => $fin, 'align' => 'C'],
+                ['width' => 97, 'text' => substr($descripcion, 0, 55), 'align' => 'L'],
+                [
+                    'width' => 33,
+                    'text' => $estado,
+                    'align' => 'C',
+                    'fontStyle' => 'B',
+                    'fontSize' => 8.5,
+                    'textColor' => $colorEstado,
+                ],
+            ], $index % 2 !== 0);
         }
     }
 

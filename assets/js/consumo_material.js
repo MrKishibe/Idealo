@@ -4,14 +4,20 @@ import {
     successAlert,
     errorAlert,
     editAlert,
-    confirmActionAlert
+    confirmActionAlert,
+    statusAlert
 } from './helpers/alerts.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
-import { patrones } from './helpers/expresiones.js';
+import {
+    validarCampo as validarCampoCompartido,
+    obtenerPatron,
+    patrones
+} from './helpers/expresiones.js';
 
 $(document).ready(function () {
     const $formRegistrarConsumo = $('#formRegistrarConsumo');
     const $formEditarConsumo = $('#formEditarConsumo');
+    [$formRegistrarConsumo, $formEditarConsumo].forEach($form => $form.attr('novalidate', 'novalidate'));
     const $materiaPrimaRegistrar = $('#registrar_id_materia_prima');
     const $costoUnitarioRegistrar = $('#registrar_costo_unitario');
 
@@ -153,10 +159,34 @@ $(document).ready(function () {
 
     function validarCampo($campo) {
         const valor = String($campo.val() || '').trim();
+        const esCantidad = $campo.attr('name') === 'cantidad_usada';
+        const esDecimal = esCantidad
+            && valor !== ''
+            && Number.isFinite(Number(valor))
+            && !Number.isInteger(Number(valor));
+        if (esCantidad) {
+            $campo[0].setCustomValidity(esDecimal ? 'Ingresa solo números enteros.' : '');
+            let $mensaje = $campo.siblings('.feedback-entero').first();
+            if (!$mensaje.length) {
+                $mensaje = $('<small class="feedback-entero text-danger d-block"></small>');
+                $campo.after($mensaje);
+            }
+            $mensaje.text(esDecimal ? 'Ingresa solo números enteros.' : '').toggle(esDecimal);
+        }
         let esValido = $campo[0].checkValidity();
 
         if ($campo.attr('name') === 'costo_unitario' && valor === '') {
             esValido = false;
+        }
+
+        if ($campo.attr('name') === 'costo_unitario') {
+            let $mensaje = $campo.siblings('.feedback-validacion').first();
+            if (!$mensaje.length) {
+                $mensaje = $('<small class="feedback-validacion text-danger d-block"></small>');
+                $campo.after($mensaje);
+            }
+            $mensaje.text(esValido ? '' : 'Selecciona una materia prima para cargar el monto.')
+                .toggle(!esValido);
         }
 
         if (esValido && $campo.attr('name') === 'descripcion_de_consumo' && valor !== '') {
@@ -164,6 +194,29 @@ $(document).ready(function () {
         }
 
         marcarCampo($campo, esValido);
+        return esValido;
+    }
+
+    function validarCombobox($idSeleccionado, $busqueda) {
+        const esValido = validarCampoCompartido($idSeleccionado, obtenerPatron('enteroPositivo'), {
+            requerido: true,
+            estilo: false,
+            feedback: false
+        });
+        const $opciones = $busqueda.closest('.consumo-combobox').find('.dropdown-menu');
+        let $mensaje = $busqueda.closest('.consumo-combobox').children('.feedback-validacion');
+        if (!$mensaje.length) {
+            $mensaje = $('<small class="feedback-validacion text-danger d-block"></small>');
+            $opciones.after($mensaje);
+        }
+        $busqueda.toggleClass('is-valid', esValido)
+            .toggleClass('is-invalid', !esValido)
+            .css({
+                'border-color': esValido ? 'green' : 'red',
+                'box-shadow': esValido ? '0 0 5px green' : '0 0 5px red'
+            });
+        $mensaje.text(esValido ? '' : ($busqueda[0].validationMessage || 'Selecciona una opción de la lista.'))
+            .toggle(!esValido);
         return esValido;
     }
 
@@ -181,15 +234,16 @@ $(document).ready(function () {
         $form.find('.is-valid, .is-invalid')
             .removeClass('is-valid is-invalid')
             .removeAttr('style');
+        $form.find('.feedback-validacion').text('').hide();
+        $form.find('.feedback-entero').text('').hide();
     }
 
-    function configurarCombobox(inputSelector, idSelector, opcionesSelector, etiqueta) {
+    function configurarCombobox(inputSelector, idSelector, opcionesSelector, mensajeSeleccion) {
         const $busqueda = $(inputSelector);
         const $idSeleccionado = $(idSelector);
         const $opciones = $(opcionesSelector);
         const $contenedor = $busqueda.closest('.consumo-combobox');
         const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
-        const mensajeSeleccion = `Seleccione ${etiqueta} de la lista.`;
 
         function ocultarOpciones() {
             $opciones.removeClass('show');
@@ -269,13 +323,14 @@ $(document).ready(function () {
 
         $idSeleccionado.on('change', function () {
             $busqueda.get(0).setCustomValidity(this.value ? '' : mensajeSeleccion);
-            validarCampo($busqueda);
+            validarCombobox($idSeleccionado, $busqueda);
         });
 
         return {
             reset: function () {
                 $busqueda.val('').removeClass('is-valid is-invalid').removeAttr('style');
                 $busqueda.get(0).setCustomValidity(mensajeSeleccion);
+                $contenedor.children('.feedback-validacion').text('').hide();
                 $idSeleccionado.val('').removeClass('is-valid is-invalid');
                 $opciones.find('[data-value]').attr('aria-selected', 'false');
                 filtrarOpciones('');
@@ -294,25 +349,25 @@ $(document).ready(function () {
         '#buscar_registrar_materia_prima',
         '#registrar_id_materia_prima',
         '#opciones_registrar_materia_prima',
-        'una materia prima'
+        'Selecciona una materia prima.'
     );
     const comboboxOrdenRegistrar = configurarCombobox(
         '#buscar_registrar_orden_produccion',
         '#registrar_id_produccion',
         '#opciones_registrar_orden_produccion',
-        'una orden de producción'
+        'Selecciona una orden de producción.'
     );
     const comboboxMateriaEdicion = configurarCombobox(
         '#buscar_edit_materia_prima',
         '#edit_id_materia_prima',
         '#opciones_edit_materia_prima',
-        'una materia prima'
+        'Selecciona una materia prima.'
     );
     const comboboxOrdenEdicion = configurarCombobox(
         '#buscar_edit_orden_produccion',
         '#edit_id_produccion',
         '#opciones_edit_orden_produccion',
-        'una orden de producción'
+        'Selecciona una orden de producción.'
     );
 
     async function confirmarAccion(titulo, texto) {
@@ -342,6 +397,7 @@ $(document).ready(function () {
         }).done(function (data) {
             if (data.success && data.costo_unitario !== undefined) {
                 $costoUnitarioRegistrar.val(Number(data.costo_unitario).toFixed(2));
+                validarCampo($costoUnitarioRegistrar);
                 return;
             }
 
@@ -412,9 +468,21 @@ $(document).ready(function () {
         });
     });
 
+    $('#reporteMateriaPrima, #reporteEstadoProduccion').on('change', function () {
+        statusAlert(
+            'Filtro cambiado',
+            `Se seleccionó: ${$(this).find('option:selected').text().trim()}.`,
+            'info'
+        );
+    });
+
     $formRegistrarConsumo.on('submit', async function (event) {
         event.preventDefault();
-        if (!validarFormulario($(this))) {
+        const camposValidos = validarFormulario($(this));
+        const materiaPrimaValida = validarCombobox($('#registrar_id_materia_prima'), $('#buscar_registrar_materia_prima'));
+        const ordenValida = validarCombobox($('#registrar_id_produccion'), $('#buscar_registrar_orden_produccion'));
+        const comboboxesValidos = materiaPrimaValida && ordenValida;
+        if (!camposValidos || !comboboxesValidos) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
             return;
         }
@@ -435,7 +503,11 @@ $(document).ready(function () {
 
     $formEditarConsumo.on('submit', async function (event) {
         event.preventDefault();
-        if (!validarFormulario($(this))) {
+        const camposValidos = validarFormulario($(this));
+        const materiaPrimaValida = validarCombobox($('#edit_id_materia_prima'), $('#buscar_edit_materia_prima'));
+        const ordenValida = validarCombobox($('#edit_id_produccion'), $('#buscar_edit_orden_produccion'));
+        const comboboxesValidos = materiaPrimaValida && ordenValida;
+        if (!camposValidos || !comboboxesValidos) {
             await mostrarAlertaInformativa('Error', 'Revise los campos inválidos (marcados en rojo).', 'error');
             return;
         }

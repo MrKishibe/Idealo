@@ -165,8 +165,9 @@ class ConsumoMaterialModel extends Database {
             throw new InvalidArgumentException('El id del consumo de material es obligatorio para editar.');
         }
 
-        if (!is_numeric($datos['cantidad_usada']) || (float) $datos['cantidad_usada'] <= 0) {
-            throw new InvalidArgumentException('La cantidad usada debe ser un número mayor a 0.');
+        if (!is_numeric($datos['cantidad_usada']) || (float) $datos['cantidad_usada'] <= 0 ||
+            floor((float) $datos['cantidad_usada']) !== (float) $datos['cantidad_usada']) {
+            throw new InvalidArgumentException('La cantidad usada debe ser un número entero mayor a 0.');
         }
 
         if (!is_numeric($datos['costo_unitario']) || (float) $datos['costo_unitario'] < 0) {

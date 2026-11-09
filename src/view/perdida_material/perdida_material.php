@@ -122,7 +122,7 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_materia_prima">Materia prima</label>
                                 <div class="materia-combobox position-relative">
-                                    <input type="search" class="form-control" id="buscar_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_materia_prima" data-role="materia-combobox" required>
+                                    <input type="search" class="form-control" id="buscar_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_materia_prima" data-role="materia-combobox">
                                     <input type="hidden" name="id_materia_prima" id="id_materia_prima">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
@@ -143,7 +143,7 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_orden_produccion">Orden de producción</label>
                                 <div class="orden-combobox position-relative">
-                                    <input type="search" class="form-control" id="buscar_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_orden_produccion" data-role="orden-combobox" required>
+                                    <input type="search" class="form-control" id="buscar_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_orden_produccion" data-role="orden-combobox">
                                     <input type="hidden" name="id_produccion" id="id_produccion">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($ordenes as $orden): ?>
@@ -210,7 +210,7 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_edit_materia_prima">Materia prima</label>
                                 <div class="materia-combobox position-relative">
-                                    <input type="search" class="form-control" id="buscar_edit_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_materia_prima" data-role="materia-combobox" required>
+                                    <input type="search" class="form-control" id="buscar_edit_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_materia_prima" data-role="materia-combobox">
                                     <input type="hidden" name="id_materia_prima" id="edit_id_materia_prima">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_edit_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($materiasPrimas as $materiaPrima): ?>
@@ -231,7 +231,7 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="buscar_edit_orden_produccion">Orden de producción</label>
                                 <div class="orden-combobox position-relative">
-                                    <input type="search" class="form-control" id="buscar_edit_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_orden_produccion" data-role="orden-combobox" required>
+                                    <input type="search" class="form-control" id="buscar_edit_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_orden_produccion" data-role="orden-combobox">
                                     <input type="hidden" name="id_produccion" id="edit_id_produccion">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_edit_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
                                     <?php foreach ($ordenes as $orden): ?>

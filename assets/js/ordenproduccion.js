@@ -207,7 +207,11 @@ $(document).ready(function () {
             patron: patrones.fechaISO,
             requerido: obligatoria,
             estilo: true,
-            feedback: false,
+            feedback: true,
+            mensaje: diasMinimosDesdeHoy > 0
+                ? 'La fecha tiene que ser mayor a hoy.'
+                : 'La fecha no puede ser menor a hoy.',
+            mensajeVacio: 'La fecha de inicio es obligatoria.',
             validar: function (valor) {
                 return valor >= obtenerFechaLocalISO(diasMinimosDesdeHoy);
             }
@@ -221,6 +225,14 @@ $(document).ready(function () {
     
     $('#edit_fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
     $('#edit_fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
+
+    $('#estado_de_produccion, #edit_estado_de_produccion').on('change', function () {
+        mostrarAlertaInformativa(
+            'Estado cambiado',
+            `El estado de producción cambió a "${$(this).val()}".`,
+            'info'
+        );
+    });
 
     $('#modalRegistrarOrden').on('show.bs.modal', function () {
         $('#fecha_de_inicio').val(obtenerFechaLocalISO());

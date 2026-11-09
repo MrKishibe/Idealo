@@ -297,213 +297,77 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
             }
         }
 
-        // Obtener el nombre del usuario de la sesión actual de forma dinámica
-        $usuarioActual = $_SESSION['nombre_usuario'] ?? $_SESSION['user'] ?? $_SESSION['nombre'] ?? 'Administrador';
-
-        // Extender TCPDF para personalizar el pie de página con numeración automática
-        if (!class_exists('MYPDF')) {
-            class MYPDF extends \TCPDF {
-                public function Footer() {
-                    $this->SetY(-12);
-                    $this->SetFont('helvetica', 'I', 8.5);
-                    $this->SetTextColor(100, 116, 139);
-
-                    $this->SetDrawColor(203, 213, 225);
-                    $this->SetLineWidth(0.2);
-                    $this->Line(15, $this->GetY(), 195, $this->GetY());
-
-                    $this->Ln(2);
-                    $this->Cell(95, 5, 'Idéalo - Sistema de Gestión | Impreso el ' . date('d/m/Y H:i'), 0, 0, 'L');
-                    $this->Cell(85, 5, 'Página ' . $this->getAliasNumPage() . ' de ' . $this->getAliasNbPages(), 0, 0, 'R');
-                }
-            }
-        }
-
-        // Orientación VERTICAL ('P')
-        $pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-        $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('Idéalo');
-        $pdf->SetTitle('Reporte de Pedidos');
-
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(true);
-        $pdf->SetMargins(15, 12, 15);
-        $pdf->SetAutoPageBreak(TRUE, 18);
-        $pdf->AddPage();
-
-        // -------------------------------------------------------------------------
-        // ENCABEZADO Y BRANDING CORPORATIVO
-        // -------------------------------------------------------------------------
-        $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
-        if (file_exists($logoPath)) {
-            $pdf->ImageSVG($logoPath, 15, 10, 14, 14);
-        }
-
-        $pdf->SetXY(32, 10);
-        $pdf->SetFont('helvetica', 'B', 15);
-        $pdf->SetTextColor(15, 23, 42);
-        $pdf->Cell(100, 7, 'Idéalo  -  Reporte de Pedidos', 0, 0, 'L');
-
-        // Usuario posicionado hacia adentro
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->SetTextColor(100, 116, 139);
-        $pdf->SetXY(135, 11);
-        $pdf->Cell(60, 7, 'Usuario: ' . $usuarioActual, 0, 1, 'R');
-
         // Subtítulo del período seleccionado
         $periodoTexto = (!empty($filtros['fecha_inicio']) && !empty($filtros['fecha_fin']))
             ? "Detalle de transacciones: {$filtros['fecha_inicio']} al {$filtros['fecha_fin']}"
             : "Detalle general de transacciones registradas";
 
-        $pdf->SetXY(32, 17);
-        $pdf->SetFont('helvetica', '', 9.5);
-        $pdf->SetTextColor(71, 85, 105);
-        $pdf->Cell(0, 5, $periodoTexto, 0, 1, 'L');
-
-        $pdf->Ln(4);
-
-        // -------------------------------------------------------------------------
-        // TARJETAS DE MÉTRICAS / RESUMEN SUPERIOR (5 Contadores adaptados a vertical)
-        // -------------------------------------------------------------------------
-        $yCard = $pdf->GetY();
-        $pdf->SetLineWidth(0.3);
-
-        // Tarjeta 1: Total
-        $pdf->SetFillColor(248, 250, 252);
-        $pdf->SetDrawColor(226, 232, 240);
-        $pdf->Rect(15, $yCard, 34, 14, 'DF');
-        $pdf->SetXY(16, $yCard + 3);
-        $pdf->SetFont('helvetica', 'B', 8);
-        $pdf->SetTextColor(71, 85, 105);
-        $pdf->Cell(18, 5, 'Total:', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(15, 23, 42);
-        $pdf->Cell(14, 5, $totalPedidos, 0, 1, 'R');
-
-        // Tarjeta 2: Pendientes
-        $pdf->SetFillColor(254, 243, 199);
-        $pdf->SetDrawColor(252, 211, 77);
-        $pdf->Rect(51, $yCard, 34, 14, 'DF');
-        $pdf->SetXY(52, $yCard + 3);
-        $pdf->SetFont('helvetica', 'B', 8);
-        $pdf->SetTextColor(180, 83, 9);
-        $pdf->Cell(18, 5, 'Pendientes:', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(146, 64, 14);
-        $pdf->Cell(14, 5, $totalPendientes, 0, 1, 'R');
-
-        // Tarjeta 3: En Proceso
-        $pdf->SetFillColor(224, 242, 254);
-        $pdf->SetDrawColor(186, 230, 253);
-        $pdf->Rect(87, $yCard, 34, 14, 'DF');
-        $pdf->SetXY(88, $yCard + 3);
-        $pdf->SetFont('helvetica', 'B', 8);
-        $pdf->SetTextColor(3, 105, 161);
-        $pdf->Cell(18, 5, 'Procesados:', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(12, 74, 110);
-        $pdf->Cell(14, 5, $totalEnProceso, 0, 1, 'R');
-
-        // Tarjeta 4: Planificados
-        $pdf->SetFillColor(241, 245, 249);
-        $pdf->SetDrawColor(203, 213, 225);
-        $pdf->Rect(123, $yCard, 34, 14, 'DF');
-        $pdf->SetXY(124, $yCard + 3);
-        $pdf->SetFont('helvetica', 'B', 8);
-        $pdf->SetTextColor(71, 85, 105);
-        $pdf->Cell(18, 5, 'Planificados:', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(51, 65, 85);
-        $pdf->Cell(14, 5, $totalPlanificados, 0, 1, 'R');
-
-        // Tarjeta 5: Completados
-        $pdf->SetFillColor(240, 253, 244);
-        $pdf->SetDrawColor(187, 247, 208);
-        $pdf->Rect(159, $yCard, 36, 14, 'DF');
-        $pdf->SetXY(160, $yCard + 3);
-        $pdf->SetFont('helvetica', 'B', 8);
-        $pdf->SetTextColor(22, 101, 52);
-        $pdf->Cell(19, 5, 'Completados:', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(20, 83, 45);
-        $pdf->Cell(15, 5, $totalEntregadosRealizados, 0, 1, 'R');
-
-        $pdf->Ln(18);
-
-        // -------------------------------------------------------------------------
-        // CABECERA DE LA TABLA PRINCIPAL (Suma exacta = 180 mm)
-        // -------------------------------------------------------------------------
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetFillColor(30, 41, 59);
-        $pdf->SetTextColor(255, 255, 255);
-
-        $pdf->Cell(12, 8.5, 'ID', 1, 0, 'C', true);
-        $pdf->Cell(25, 8.5, 'Fecha', 1, 0, 'C', true);
-        $pdf->Cell(45, 8.5, 'Cliente', 1, 0, 'L', true);
-        $pdf->Cell(45, 8.5, 'Producto', 1, 0, 'L', true);
-        $pdf->Cell(15, 8.5, 'Cant.', 1, 0, 'C', true);
-        $pdf->Cell(20, 8.5, 'Estado', 1, 0, 'C', true);
-        $pdf->Cell(18, 8.5, 'Total', 1, 1, 'R', true);
-
-        // -------------------------------------------------------------------------
-        // FILAS DE DATOS DE LA TABLA
-        // -------------------------------------------------------------------------
-        $pdf->SetFont('helvetica', '', 9);
-        $fill = false;
+        require_once __DIR__ . '/../helpers/ReportePdf.php';
+        $pdf = new \Idealo\Helpers\ReportePdf('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $pdf->setCompactReportDetails('Reporte de Pedidos', $periodoTexto);
+        $pdf->AddPage();
+        $pdf->addCompactReportHeader();
+        $pdf->addMetricCards([
+            ['label' => 'Total:', 'value' => (string) $totalPedidos, 'width' => 34],
+            ['label' => 'Pendientes:', 'value' => (string) $totalPendientes, 'width' => 34],
+            ['label' => 'En proceso:', 'value' => (string) $totalEnProceso, 'width' => 34],
+            ['label' => 'Planificados:', 'value' => (string) $totalPlanificados, 'width' => 34],
+            ['label' => 'Completados:', 'value' => (string) $totalEntregadosRealizados, 'width' => 36],
+        ]);
+        $pdf->addTableHeader([
+            ['width' => 25, 'label' => 'Fecha', 'align' => 'C'],
+            ['width' => 51, 'label' => 'Cliente'],
+            ['width' => 51, 'label' => 'Producto'],
+            ['width' => 15, 'label' => 'Cant.', 'align' => 'C'],
+            ['width' => 20, 'label' => 'Estado', 'align' => 'C'],
+            ['width' => 18, 'label' => 'Total', 'align' => 'R'],
+        ]);
 
         if (empty($pedidos)) {
             $pdf->SetTextColor(100, 116, 139);
             $pdf->Cell(180, 10, 'No se encontraron registros con los parámetros seleccionados.', 1, 1, 'C');
         } else {
-            foreach ($pedidos as $p) {
-                $pdf->SetFillColor($fill ? 248 : 255, $fill ? 250 : 255, $fill ? 252 : 255);
-                $pdf->SetTextColor(30, 41, 59);
-
+            foreach (array_values($pedidos) as $index => $p) {
                 $cliente = trim(($p['nombre_razon_social'] ?? '') . ' ' . ($p['apellido'] ?? ''));
-
-                $pdf->Cell(12, 8, '#' . $p['id_pedido'], 'B', 0, 'C', true);
-
                 $fechaFormateada = !empty($p['fecha_creacion']) ? date('d/m/Y', strtotime($p['fecha_creacion'])) : '-';
-                $pdf->Cell(25, 8, $fechaFormateada, 'B', 0, 'C', true);
-
-                $pdf->Cell(45, 8, substr($cliente, 0, 22), 'B', 0, 'L', true);
-                $pdf->Cell(45, 8, substr($p['nombre_producto'] ?? 'N/A', 0, 22), 'B', 0, 'L', true);
-                $pdf->Cell(15, 8, $p['cantidad'], 'B', 0, 'C', true);
-
-                $estadoLower = strtolower($p['estado_pedido']);
-                $pdf->SetFont('helvetica', 'B', 8.5);
+                $estadoLower = strtolower((string) ($p['estado_pedido'] ?? ''));
                 if ($estadoLower === 'pendiente') {
-                    $pdf->SetTextColor(180, 83, 9);
+                    $colorEstado = [180, 83, 9];
                 } elseif ($estadoLower === 'entregado' || $estadoLower === 'realizado') {
-                    $pdf->SetTextColor(16, 185, 129);
+                    $colorEstado = [16, 185, 129];
                 } else {
-                    $pdf->SetTextColor(14, 165, 233);
+                    $colorEstado = [14, 165, 233];
                 }
 
-                $pdf->Cell(20, 8, ucfirst($p['estado_pedido']), 'B', 0, 'C', true);
-
-                $pdf->SetFont('helvetica', '', 9);
-                $pdf->SetTextColor(15, 23, 42);
-                $pdf->Cell(18, 8, number_format($p['monto_total'], 2), 'B', 1, 'R', true);
-
-                $fill = !$fill;
+                $pdf->addTableRow([
+                    ['width' => 25, 'text' => $fechaFormateada, 'align' => 'C'],
+                    ['width' => 51, 'text' => substr($cliente, 0, 28)],
+                    ['width' => 51, 'text' => substr((string) ($p['nombre_producto'] ?? 'N/A'), 0, 28)],
+                    ['width' => 15, 'text' => (string) ($p['cantidad'] ?? ''), 'align' => 'C'],
+                    [
+                        'width' => 20,
+                        'text' => ucfirst((string) ($p['estado_pedido'] ?? '')),
+                        'align' => 'C',
+                        'fontStyle' => 'B',
+                        'fontSize' => 8.5,
+                        'textColor' => $colorEstado,
+                    ],
+                    [
+                        'width' => 18,
+                        'text' => number_format((float) ($p['monto_total'] ?? 0), 2),
+                        'align' => 'R',
+                        'textColor' => [15, 23, 42],
+                    ],
+                ], $index % 2 !== 0);
             }
 
-            // -------------------------------------------------------------------------
-            // BLOQUE INFERIOR DE MONTO TOTAL ACUMULADO
-            // -------------------------------------------------------------------------
-            $pdf->Ln(5);
-            $pdf->SetFillColor(240, 253, 244);
-            $pdf->SetDrawColor(187, 247, 208);
-            $pdf->SetLineWidth(0.4);
-
-            $pdf->SetFont('helvetica', 'B', 10.5);
-            $pdf->SetTextColor(22, 101, 52);
-            $pdf->Cell(135, 10, 'Monto Total Acumulado:', 1, 0, 'R', true);
-            $pdf->SetFont('helvetica', 'B', 12);
-            $pdf->SetTextColor(20, 83, 45);
-            $pdf->Cell(45, 10, '$ ' . number_format($montoTotalAcumulado, 2), 1, 1, 'R', true);
         }
+
+        $pdf->Ln(2);
+        $pdf->addTotalBanner(
+            'Monto Total Acumulado',
+            '$ ' . number_format($montoTotalAcumulado, 2, '.', ',')
+        );
 
         while (ob_get_level() > 0) {
             ob_end_clean();

@@ -359,147 +359,56 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "generar_reporte") {
         }
     }
 
-    $usuarioActual = $_SESSION['nombre_usuario'] ?? $_SESSION['user'] ?? $_SESSION['nombre'] ?? 'Administrador';
-
-    // Clase extendida para el pie de página automático
-    class MYPDF extends \TCPDF {
-        public function Footer() {
-            $this->SetY(-12);
-            $this->SetFont('helvetica', 'I', 8.5);
-            $this->SetTextColor(100, 116, 139);
-            
-            $this->SetDrawColor(203, 213, 225);
-            $this->SetLineWidth(0.2);
-            // Ancho adaptado a página vertical (195 mm)
-            $this->Line(15, $this->GetY(), 195, $this->GetY());
-
-            $this->Ln(2);
-            $this->Cell(95, 5, 'Idéalo - Sistema de Gestión | Impreso el ' . date('d/m/Y H:i'), 0, 0, 'L');
-            $this->Cell(85, 5, 'Página ' . $this->getAliasNumPage() . ' de ' . $this->getAliasNbPages(), 0, 0, 'R');
-        }
-    }
-
-    // Cambiado a 'P' (Portrait / Vertical)
-    $pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-
-    $pdf->SetCreator(PDF_CREATOR);
-    $pdf->SetAuthor('Idéalo');
-    $pdf->SetTitle('Reporte de Materia Prima');
-
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(true);
-    $pdf->SetMargins(15, 12, 15);
-    $pdf->SetAutoPageBreak(true, 18);
+    require_once __DIR__ . '/../helpers/ReportePdf.php';
+    $pdf = new \Idealo\Helpers\ReportePdf('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->setCompactReportDetails(
+        'Reporte de Materia Prima',
+        'Filtro de estado: ' . ucfirst($tipoFiltroEstado)
+    );
     $pdf->AddPage();
-
-    // Encabezado corporativo
-    $logoPath = __DIR__ . '/../../assets/Img/Iconos/Idealo_logo1.svg';
-    if (file_exists($logoPath)) {
-        $pdf->ImageSVG($logoPath, 15, 10, 14, 14);
-    }
-
-    $pdf->SetXY(32, 10);
-    $pdf->SetFont('helvetica', 'B', 15);
-    $pdf->SetTextColor(15, 23, 42);
-    $pdf->Cell(100, 7, 'Idéalo  -  Reporte de Materia Prima', 0, 0, 'L');
-    
-    // Usuario posicionado hacia adentro
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->SetTextColor(100, 116, 139);
-    $pdf->SetXY(135, 11);
-    $pdf->Cell(60, 7, 'Usuario: ' . $usuarioActual, 0, 1, 'R');
-    
-    $pdf->SetXY(32, 17);
-    $pdf->SetFont('helvetica', '', 9.5);
-    $pdf->SetTextColor(71, 85, 105);
-    $pdf->Cell(0, 5, 'Filtro de estado: ' . ucfirst($tipoFiltroEstado), 0, 1, 'L');
-
-    $pdf->Ln(4);
-
-    // Tarjetas de métricas superiores (KPIs) distribuidas en formato vertical (ancho total ~180 mm)
-    $yCard = $pdf->GetY();
-    $pdf->SetLineWidth(0.3);
-
-    // Tarjeta 1: Total (57 mm)
-    $pdf->SetFillColor(248, 250, 252);
-    $pdf->SetDrawColor(226, 232, 240);
-    $pdf->Rect(15, $yCard, 57, 14, 'DF');
-    $pdf->SetXY(17, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->SetTextColor(71, 85, 105);
-    $pdf->Cell(28, 5, 'Total:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->SetTextColor(15, 23, 42);
-    $pdf->Cell(25, 5, $totalRegistros, 0, 1, 'R');
-
-    // Tarjeta 2: Activos (57 mm)
-    $pdf->SetFillColor(240, 253, 244);
-    $pdf->SetDrawColor(187, 247, 208);
-    $pdf->Rect(74, $yCard, 57, 14, 'DF');
-    $pdf->SetXY(76, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->SetTextColor(22, 101, 52);
-    $pdf->Cell(25, 5, 'Activos:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->SetTextColor(20, 83, 45);
-    $pdf->Cell(28, 5, $totalActivos, 0, 1, 'R');
-
-    // Tarjeta 3: Inactivos (62 mm)
-    $pdf->SetFillColor(254, 242, 242);
-    $pdf->SetDrawColor(254, 202, 202);
-    $pdf->Rect(133, $yCard, 62, 14, 'DF');
-    $pdf->SetXY(135, $yCard + 3);
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->SetTextColor(185, 28, 28);
-    $pdf->Cell(28, 5, 'Inactivos:', 0, 0, 'L');
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->SetTextColor(153, 27, 27);
-    $pdf->Cell(30, 5, $totalInactivos, 0, 1, 'R');
-
-    $pdf->Ln(18);
-
-    // Cabecera de la tabla PDF (Anchos proporcionales para sumar exactamente 180 mm)
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetFillColor(30, 41, 59);
-    $pdf->SetTextColor(255, 255, 255);
-
-    $pdf->Cell(48, 8.5, 'Nombre', 1, 0, 'L', true);
-    $pdf->Cell(37, 8.5, 'Tipo', 1, 0, 'L', true);
-    $pdf->Cell(25, 8.5, 'Costo Unit.', 1, 0, 'R', true);
-    $pdf->Cell(28, 8.5, 'Stock Act.', 1, 0, 'C', true);
-    $pdf->Cell(24, 8.5, 'Mín.', 1, 0, 'C', true);
-    $pdf->Cell(18, 8.5, 'Estado', 1, 1, 'C', true);
+    $pdf->addCompactReportHeader();
+    $pdf->addMetricCards([
+        ['label' => 'Total:', 'value' => (string) $totalRegistros, 'width' => 57],
+        ['label' => 'Activos:', 'value' => (string) $totalActivos, 'width' => 57],
+        ['label' => 'Inactivos:', 'value' => (string) $totalInactivos, 'width' => 62],
+    ]);
+    $pdf->addTableHeader([
+        ['width' => 48, 'label' => 'Nombre'],
+        ['width' => 37, 'label' => 'Tipo'],
+        ['width' => 25, 'label' => 'Costo Unit.', 'align' => 'R'],
+        ['width' => 28, 'label' => 'Stock Act.', 'align' => 'C'],
+        ['width' => 24, 'label' => 'Mín.', 'align' => 'C'],
+        ['width' => 18, 'label' => 'Estado', 'align' => 'C'],
+    ]);
 
     // Filas de datos con efecto Cebra
-    $pdf->SetFont('helvetica', '', 9.5);
-    $fill = false;
-
     if (empty($datosFiltrados)) {
         $pdf->SetTextColor(100, 116, 139);
         $pdf->Cell(180, 10, 'No se encontraron materias primas con los parámetros seleccionados.', 1, 1, 'C');
     } else {
-        foreach ($datosFiltrados as $mp) {
-            $pdf->SetFillColor($fill ? 248 : 255, $fill ? 250 : 255, $fill ? 252 : 255);
-            $pdf->SetTextColor(30, 41, 59);
-
-            $pdf->Cell(48, 8, substr($mp['nombre_materia_prima'], 0, 26), 'B', 0, 'L', true);
-            $pdf->Cell(37, 8, substr($mp['nombre_de_material'] ?? 'Sin tipo', 0, 20), 'B', 0, 'L', true);
-            $pdf->Cell(25, 8, number_format((float)$mp['costo_unitario'], 2), 'B', 0, 'R', true);
-            $pdf->Cell(28, 8, $mp['stock_actual'] . ' ' . $mp['unidad_de_medida'], 'B', 0, 'C', true);
-            $pdf->Cell(24, 8, $mp['stock_minimo'] . ' ' . $mp['unidad_de_medida'], 'B', 0, 'C', true);
-            
-            $estadoLower = strtolower($mp['status_materia_prima']);
-            $pdf->SetFont('helvetica', 'B', 9);
+        foreach (array_values($datosFiltrados) as $index => $mp) {
+            $estadoLower = strtolower((string) ($mp['status_materia_prima'] ?? ''));
             if ($estadoLower === 'activo') {
-                $pdf->SetTextColor(16, 185, 129);
+                $colorEstado = [16, 185, 129];
             } else {
-                $pdf->SetTextColor(239, 68, 68);
+                $colorEstado = [239, 68, 68];
             }
-            
-            $pdf->Cell(18, 8, ucfirst($mp['status_materia_prima']), 'B', 1, 'C', true);
-            $pdf->SetFont('helvetica', '', 9.5);
 
-            $fill = !$fill;
+            $pdf->addTableRow([
+                ['width' => 48, 'text' => substr((string) ($mp['nombre_materia_prima'] ?? ''), 0, 26)],
+                ['width' => 37, 'text' => substr((string) ($mp['nombre_de_material'] ?? 'Sin tipo'), 0, 20)],
+                ['width' => 25, 'text' => number_format((float) ($mp['costo_unitario'] ?? 0), 2), 'align' => 'R'],
+                ['width' => 28, 'text' => ($mp['stock_actual'] ?? '') . ' ' . ($mp['unidad_de_medida'] ?? ''), 'align' => 'C'],
+                ['width' => 24, 'text' => ($mp['stock_minimo'] ?? '') . ' ' . ($mp['unidad_de_medida'] ?? ''), 'align' => 'C'],
+                [
+                    'width' => 18,
+                    'text' => ucfirst((string) ($mp['status_materia_prima'] ?? '')),
+                    'align' => 'C',
+                    'fontStyle' => 'B',
+                    'fontSize' => 9,
+                    'textColor' => $colorEstado,
+                ],
+            ], $index % 2 !== 0, 8);
         }
     }
 

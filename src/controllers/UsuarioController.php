@@ -6,9 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../models/UsuarioModel.php';
-require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
 
-use Idealo\Helpers\ImagenPerfilHelper;
 use Idealo\Models\UsuarioModel;
 
 
@@ -79,6 +77,8 @@ if ($action === 'listarEmpleadosAjax') {
 if ($action === 'guardar') {
     header('Content-Type: application/json; charset=utf-8');
 
+    $fotoNueva = null;
+
     try {
         $esEmpleado = !empty($_POST['es_empleado']);
         $idEmpleado = intval($_POST['id_empleado'] ?? 0);
@@ -86,6 +86,8 @@ if ($action === 'guardar') {
         if ($esEmpleado && $idEmpleado <= 0) {
             throw new Exception('[Validación] Si el usuario es empleado, debes seleccionar el empleado asociado.');
         }
+
+        $fotoNueva = UsuarioModel::guardarPerfil($_FILES['foto'] ?? null);
 
         $usuarioModel = new UsuarioModel();
 
@@ -100,10 +102,26 @@ if ($action === 'guardar') {
 
         if (!empty($resultado['success'])) {
             $idUsuario = intval($resultado['id_usuario'] ?? 0);
+
+            if ($fotoNueva && $idUsuario > 0) {
+                try {
+                    $usuarioModel->actualizarImagen($idUsuario, $fotoNueva);
+                    $fotoNueva = null;
+                    $mensaje .= ' Foto de perfil guardada con éxito.';
+                } catch (Throwable $e) {
+                    UsuarioModel::eliminarPerfil($fotoNueva);
+                    $fotoNueva = null;
+                    $mensaje .= ' No se pudo guardar la foto de perfil.';
+                }
+            }
+
             if ($esEmpleado && $idEmpleado > 0 && $idUsuario > 0) {
                 $usuarioModel->vincularEmpleado($idUsuario, $idEmpleado);
                 $mensaje .= ' Empleado vinculado con éxito.';
             }
+        } elseif ($fotoNueva) {
+            UsuarioModel::eliminarPerfil($fotoNueva);
+            $fotoNueva = null;
         }
 
         echo json_encode([
@@ -112,6 +130,10 @@ if ($action === 'guardar') {
         ]);
         exit();
     } catch (Throwable $e) {
+        if ($fotoNueva) {
+            UsuarioModel::eliminarPerfil($fotoNueva);
+        }
+
         echo json_encode([
             'status' => 'error',
             'message' => $e->getMessage()
@@ -123,6 +145,8 @@ if ($action === 'guardar') {
 if ($action === 'editar') {
     header('Content-Type: application/json; charset=utf-8');
 
+    $fotoNueva = null;
+
     try {
         $esEmpleado = !empty($_POST['es_empleado']);
         $idEmpleado = intval($_POST['id_empleado'] ?? 0);
@@ -133,6 +157,8 @@ if ($action === 'editar') {
         }
 
         $usuarioModel = new UsuarioModel();
+        $fotoNueva = UsuarioModel::guardarPerfil($_FILES['foto'] ?? null);
+        $imagenAnterior = $idUsuario > 0 ? $usuarioModel->obtenerImagen($idUsuario) : null;
 
         $resultado = $usuarioModel->editar([
             'id_usuario'     => $idUsuario,
@@ -145,12 +171,28 @@ if ($action === 'editar') {
         $mensaje = $resultado['message'] ?? 'No se pudo actualizar el usuario.';
 
         if (!empty($resultado['success']) && $idUsuario > 0) {
+            if ($fotoNueva) {
+                try {
+                    $usuarioModel->actualizarImagen($idUsuario, $fotoNueva);
+                    UsuarioModel::eliminarPerfil($imagenAnterior);
+                    $fotoNueva = null;
+                    $mensaje .= ' Foto de perfil actualizada con éxito.';
+                } catch (Throwable $e) {
+                    UsuarioModel::eliminarPerfil($fotoNueva);
+                    $fotoNueva = null;
+                    $mensaje .= ' No se pudo actualizar la foto de perfil.';
+                }
+            }
+
             if ($esEmpleado && $idEmpleado > 0) {
                 $usuarioModel->vincularEmpleado($idUsuario, $idEmpleado);
                 $mensaje .= ' Empleado vinculado con éxito.';
             } else {
                 $usuarioModel->desvincularEmpleado($idUsuario);
             }
+        } elseif ($fotoNueva) {
+            UsuarioModel::eliminarPerfil($fotoNueva);
+            $fotoNueva = null;
         }
 
         echo json_encode([
@@ -159,6 +201,10 @@ if ($action === 'editar') {
         ]);
         exit();
     } catch (Throwable $e) {
+        if ($fotoNueva) {
+            UsuarioModel::eliminarPerfil($fotoNueva);
+        }
+
         echo json_encode([
             'status' => 'error',
             'message' => $e->getMessage()
@@ -259,7 +305,7 @@ if ($action === 'subirFotoPerfil') {
 
     try {
         $idUsuario = intval($_SESSION['usuario'] ?? 0);
-        $resultado = ImagenPerfilHelper::subirFotoPerfil(
+        $resultado = UsuarioModel::subirFotoPerfil(
             $idUsuario,
             $_FILES['foto_perfil'] ?? null
         );

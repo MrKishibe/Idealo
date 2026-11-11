@@ -3,11 +3,16 @@ import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
 import { limpiarValidaciones } from './helpers/validaciones.js';
+import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
 
 $(function () {
     const URL = 'index.php?controller=usuario';
+    const FOTO_POR_DEFECTO = 'assets/Img/Iconos/person-fill.svg';
+
     let tabla = null;
     let verInactivos = false;
+    const fotosPendientes = { reg: null, edit_activo: null };
+    const urlsFoto = { reg: null, edit_activo: null };
 
     const REGLAS = {
         nombre_usuario: {
@@ -26,11 +31,13 @@ $(function () {
     const FORMS = {
         registro: {
             form: '#formRegistrarUsuario', prefijo: 'reg_', accion: 'guardar', modal: 'modalRegistrarUsuario',
-            titulo: '¡Registrado!', check: '#reg_es_empleado', select: '#reg_id_empleado', esRegistro: true, reiniciar: true
+            titulo: '¡Registrado!', check: '#reg_es_empleado', select: '#reg_id_empleado', claveFoto: 'reg',
+            esRegistro: true, reiniciar: true
         },
         edicion: {
             form: '#formEditarActivo', prefijo: 'edit_activo_', accion: 'editar', modal: 'modalEditarActivo',
-            titulo: '¡Actualizado!', check: '#edit_es_empleado', select: '#edit_id_empleado', esRegistro: false, reiniciar: false
+            titulo: '¡Actualizado!', check: '#edit_es_empleado', select: '#edit_id_empleado', claveFoto: 'edit_activo',
+            esRegistro: false, reiniciar: false
         }
     };
 
@@ -74,9 +81,120 @@ $(function () {
         return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
     }
 
+    function celdaUsuario(usuario) {
+        const nombre = escapar(usuario.nombre_usuario);
+        const foto = usuario.imagen ? escapar(usuario.imagen) : FOTO_POR_DEFECTO;
+        const avatar = usuario.imagen
+            ? '<button type="button" class="empleado-avatar empleado-avatar-ver" title="Ver foto de ' + nombre + '" aria-label="Ver foto de ' + nombre + '"' +
+              ' data-foto="' + foto + '" data-nombre="' + nombre + '">' +
+              '<img src="' + foto + '" alt="Foto de ' + nombre + '"></button>'
+            : '<span class="empleado-avatar">' +
+              '<img src="' + foto + '" class="es-icono" alt="Foto de ' + nombre + '"></span>';
+
+        return '<div class="d-flex align-items-center gap-2">' +
+            avatar +
+            '<span class="fw-bold text-dark">' + nombre + '</span>' +
+            '</div>';
+    }
+
+    // Foto del usuario
+    function pintarPreviewFoto(clave, ruta) {
+        const $imagen = $('#' + clave + '_foto_preview');
+        if (!$imagen.length) return;
+
+        const src = ruta
+            ? (String(ruta).indexOf('blob:') === 0 || String(ruta).indexOf('data:') === 0 ? ruta : ruta + '?v=' + Date.now())
+            : FOTO_POR_DEFECTO;
+
+        $imagen
+            .attr('src', src)
+            .toggleClass('es-icono', !ruta);
+
+        $('#' + clave + '_foto_ver')
+            .prop('disabled', !ruta)
+            .attr('title', ruta ? 'Ver foto del usuario' : 'Sin foto');
+    }
+
+    function guardarFotoPendiente(clave, archivo) {
+        if (urlsFoto[clave]) URL.revokeObjectURL(urlsFoto[clave]);
+
+        fotosPendientes[clave] = archivo || null;
+        urlsFoto[clave] = archivo ? URL.createObjectURL(archivo) : null;
+        pintarPreviewFoto(clave, urlsFoto[clave]);
+    }
+
+    function limpiarFoto(clave) {
+        if (urlsFoto[clave]) URL.revokeObjectURL(urlsFoto[clave]);
+
+        urlsFoto[clave] = null;
+        fotosPendientes[clave] = null;
+        pintarPreviewFoto(clave, '');
+    }
+
+    function abrirVisorFoto(ruta, nombre) {
+        const $imagen = $('#verFotoUsuarioImagen');
+        if (!$imagen.length || !ruta) return;
+
+        $('#verFotoUsuarioTitulo').text(nombre ? 'Foto de ' + nombre : 'Foto del Usuario');
+
+        $imagen
+            .attr('src', ruta)
+            .attr('alt', nombre ? 'Foto de ' + nombre : 'Foto del usuario');
+
+        $('#modalVerFotoUsuario').modal('show');
+    }
+
+    function iniciarFotosUsuario() {
+        let claveActiva = 'reg';
+
+        const recortador = crearRecortadorFoto({
+            modal: '#modalRecortarFotoUsuario',
+            viewport: '#recorteUsuarioViewport',
+            imagen: '#recorteUsuarioImagen',
+            preview: '#recorteUsuarioPreview',
+            zoom: '#recorteUsuarioZoom',
+            input: '#reg_foto, #edit_activo_foto',
+            confirmar: '#btnConfirmarRecorteUsuario',
+            textoConfirmar: 'Usar Foto',
+            alConfirmar: function (archivo) {
+                guardarFotoPendiente(claveActiva, archivo);
+                return true;
+            }
+        });
+
+        if (!recortador) return;
+
+        $('.btn-subir-foto-usuario').on('click', function () {
+            claveActiva = $(this).data('prefijo');
+            $('#' + claveActiva + '_foto').trigger('click');
+        });
+
+        $('#reg_foto, #edit_activo_foto').on('change', function () {
+            claveActiva = this.id === 'reg_foto' ? 'reg' : 'edit_activo';
+
+            const archivo = this.files && this.files[0];
+            if (archivo) recortador.abrir(archivo);
+        });
+
+        $('#reg_foto_preview').on('error', function () {
+            pintarPreviewFoto('reg', '');
+        });
+
+        $('#edit_activo_foto_preview').on('error', function () {
+            pintarPreviewFoto('edit_activo', '');
+        });
+    }
+
     async function peticion(url, datos, titulo) {
         try {
-            const respuesta = await $.ajax({ url, type: 'POST', dataType: 'json', data: datos });
+            const opciones = { url, type: 'POST', dataType: 'json', data: datos };
+
+            if (datos instanceof FormData) {
+                opciones.processData = false;
+                opciones.contentType = false;
+            }
+
+            const respuesta = await $.ajax(opciones);
 
             if (respuesta.status !== 'success') {
                 await errorAlert('Error', respuesta.message || 'No se pudo completar la operación.');
@@ -180,9 +298,17 @@ $(function () {
             return errorAlert('Empleado requerido', 'Seleccione el empleado asociado al usuario.');
         }
 
-        const respuesta = await peticion(URL + '&action=' + config.accion, $form.serialize(), config.titulo);
+        const datos = new FormData($form[0]);
+        datos.delete('foto');
+
+        if (fotosPendientes[config.claveFoto]) {
+            datos.append('foto', fotosPendientes[config.claveFoto]);
+        }
+
+        const respuesta = await peticion(URL + '&action=' + config.accion, datos, config.titulo);
         if (!respuesta) return;
 
+        limpiarFoto(config.claveFoto);
         $('#' + config.modal).modal('hide');
         recargar(config.reiniciar);
     }
@@ -228,6 +354,7 @@ $(function () {
     $('#modalRegistrarUsuario').on('show.bs.modal', function () {
         const $form = $('#formRegistrarUsuario');
         $form[0].reset();
+        limpiarFoto('reg');
         limpiarValidaciones($form);
         $('#reg_es_empleado').prop('checked', false).trigger('change');
         cargarEmpleados($('#reg_id_empleado'), null, false, null);
@@ -248,6 +375,8 @@ $(function () {
         $('#edit_activo_correo').val(usuario.correo);
         $('#edit_activo_id_rol').val(usuario.id_rol);
         $('#edit_activo_contrasena, #edit_activo_confirmar_contrasena').val('');
+        limpiarFoto('edit_activo');
+        if (usuario.imagen) pintarPreviewFoto('edit_activo', usuario.imagen);
         limpiarValidaciones('#formEditarActivo');
 
         const empleado = usuario.id_empleado_vinculado ? String(usuario.id_empleado_vinculado) : null;
@@ -298,6 +427,38 @@ $(function () {
         if (confirmacion.isConfirmed) await cambiarEstado(id, estado, 'modalEditarInactivo', '¡Reactivado!');
     });
 
+    // Foto del usuario
+    $('#tablaUsuarios tbody').on('click', '.empleado-avatar-ver', function () {
+        abrirVisorFoto($(this).data('foto'), $(this).data('nombre'));
+    });
+
+    $('#reg_foto_ver, #edit_activo_foto_ver').on('click', function () {
+        if ($(this).prop('disabled')) return;
+
+        const $preview = $('#' + $(this).data('preview'));
+        if ($preview.length) abrirVisorFoto($preview.attr('src'), '');
+    });
+
+    $('#modalVerFotoUsuario').on('hidden.bs.modal', function () {
+        $('#verFotoUsuarioImagen').removeAttr('src');
+    });
+
+    $('#modalRegistrarUsuario').on('hidden.bs.modal', function () {
+        $('#formRegistrarUsuario')[0].reset();
+        limpiarFoto('reg');
+        limpiarValidaciones('#formRegistrarUsuario');
+        $('#reg_es_empleado').prop('checked', false);
+        $('#reg_empleado_wrap').addClass('d-none');
+        $('#reg_id_empleado').html('<option value="">Seleccione el empleado...</option>');
+    });
+
+    $('#modalEditarActivo, #modalEditarInactivo').on('hidden.bs.modal', function () {
+        if (this.id === 'modalEditarActivo') limpiarFoto('edit_activo');
+        limpiarValidaciones($(this).find('form'));
+    });
+
+    iniciarFotosUsuario();
+
     // Tabla
     tabla = $('#tablaUsuarios').DataTable({
         ajax: {
@@ -306,7 +467,7 @@ $(function () {
         },
         columns: [
             { data: 'id_usuario', render: (id, tipo) => tipo === 'display' ? `<code>#${escapar(id)}</code>` : id },
-            { data: 'nombre_usuario', className: 'fw-bold text-dark', render: escapar },
+            { data: 'nombre_usuario', render: (nombre, tipo, usuario) => tipo === 'display' ? celdaUsuario(usuario) : escapar(nombre) },
             { data: 'correo', className: 'text-muted small', render: escapar },
             { data: 'tipo_de_usuario', render: badgeRol },
             { data: 'status_usuario', render: badgeEstado },

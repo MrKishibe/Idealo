@@ -311,7 +311,7 @@ if (!isset($empleados)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionActivo">Guardar Cambios</button>
+                        <button type="button" class="btn-idealo-success" id="btnGuardarEdicionActivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>
@@ -344,7 +344,7 @@ if (!isset($empleados)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                        <button type="button" class="btn-idealo-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>

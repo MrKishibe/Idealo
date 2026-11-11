@@ -1,8 +1,5 @@
 <?php
 
-require_once __DIR__ . '/../helpers/ImagenEmpleadoHelper.php';
-
-use Idealo\Helpers\ImagenEmpleadoHelper;
 use Idealo\Models\EmpleadoModel;
 
 $rutaVista = __DIR__ . '/../view/empleado/listar.php';
@@ -47,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 $fotoAnterior = EmpleadoModel::obtenerFoto($id);
 
                 try {
-                    $fotoNueva = ImagenEmpleadoHelper::guardar($_FILES['foto'] ?? null);
+                    $fotoNueva = EmpleadoModel::guardarEmpleado($_FILES['foto'] ?? null);
                     if ($fotoNueva) {
                         EmpleadoModel::setFoto($fotoNueva);
                     }
@@ -67,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     $mensaje = $resultado['existoso'];
 
                     if ($fotoNueva) {
-                        ImagenEmpleadoHelper::eliminar($fotoAnterior);
+                        EmpleadoModel::eliminarEmpleado($fotoAnterior);
                     }
 
                     if ($esUsuario) {
@@ -93,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     ], JSON_UNESCAPED_UNICODE);
                 } else {
                     if ($fotoNueva) {
-                        ImagenEmpleadoHelper::eliminar($fotoNueva);
+                        EmpleadoModel::eliminarEmpleado($fotoNueva);
                     }
 
                     echo json_encode([
@@ -167,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             $fotoNueva = null;
 
             try {
-                $fotoNueva = ImagenEmpleadoHelper::guardar($_FILES['foto'] ?? null);
+                $fotoNueva = EmpleadoModel::guardarEmpleado($_FILES['foto'] ?? null);
                 if ($fotoNueva) {
                     EmpleadoModel::setFoto($fotoNueva);
                 }
@@ -209,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 ], JSON_UNESCAPED_UNICODE);
             } else {
                 if ($fotoNueva) {
-                    ImagenEmpleadoHelper::eliminar($fotoNueva);
+                    EmpleadoModel::eliminarEmpleado($fotoNueva);
                 }
 
                 echo json_encode([

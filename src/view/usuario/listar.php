@@ -19,6 +19,7 @@ if (!isset($roles)) {
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
+    <link rel="stylesheet" href="assets/libs/css/recorte-foto.css?v=<?= filemtime(__DIR__ . '/../../../assets/libs/css/recorte-foto.css') ?>">
 </head>
 
 <body>
@@ -60,10 +61,28 @@ if (!isset($roles)) {
                             <?php if (is_array($usuarios)): ?>
                                 <?php foreach ($usuarios as $user):
                                     $estadoReal = strtolower($user['status_usuario'] ?? 'activo');
+                                    $fotoUsuario = trim($user['imagen'] ?? '');
                                 ?>
                                     <tr id="fila-<?php echo $user['id_usuario']; ?>" data-estado="<?php echo $estadoReal; ?>">
                                         <td class="fw-bold"><code>#<?php echo htmlspecialchars($user['id_usuario']); ?></code></td>
-                                        <td class="fw-bold text-dark"><?php echo htmlspecialchars($user['nombre_usuario']); ?></td>
+                                        <td class="fw-bold text-dark">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php if ($fotoUsuario): ?>
+                                                    <button type="button" class="empleado-avatar empleado-avatar-ver"
+                                                        data-foto="<?php echo htmlspecialchars($fotoUsuario); ?>"
+                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
+                                                        title="Ver foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>"
+                                                        aria-label="Ver foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
+                                                        <img src="<?php echo htmlspecialchars($fotoUsuario); ?>" alt="Foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="empleado-avatar">
+                                                        <img src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
+                                                    </span>
+                                                <?php endif; ?>
+                                                <span><?php echo htmlspecialchars($user['nombre_usuario']); ?></span>
+                                            </div>
+                                        </td>
                                         <td class="text-muted small"><?php echo htmlspecialchars($user['correo'] ?? ''); ?></td>
                                         <td>
                                             <span class="badge bg-light text-primary border px-2 py-1" style="font-weight: 600; font-size: 12px; border-radius: 6px;">
@@ -112,13 +131,13 @@ if (!isset($roles)) {
 
     <!-- MODAL REGISTRAR USUARIO -->
     <div class="modal fade modal-idealo" id="modalRegistrarUsuario" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2"></i>Registrar Usuario</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="formRegistrarUsuario" class="needs-validation" novalidate>
+                <form id="formRegistrarUsuario" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-12">
@@ -145,6 +164,25 @@ if (!isset($roles)) {
                                         <option value="<?php echo $rol['id_rol']; ?>"><?php echo htmlspecialchars(ucfirst($rol['tipo_de_usuario'])); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="foto-empleado-bloque">
+                                    <button type="button" class="foto-empleado-preview foto-empleado-preview-lg" id="reg_foto_ver"
+                                        data-preview="reg_foto_preview" title="Ver foto del usuario"
+                                        aria-label="Ver foto del usuario" disabled>
+                                        <img id="reg_foto_preview" src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Vista previa de la foto">
+                                    </button>
+                                    <div class="flex-grow-1">
+                                        <div class="form-label fw-semibold mb-1">Foto de perfil <span class="text-muted fw-normal">(opcional)</span></div>
+                                        <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-usuario" data-prefijo="reg">
+                                                <i class="bi bi-camera-fill me-1"></i> Subir foto
+                                            </button>
+                                            <input type="file" id="reg_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12">
                                 <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
@@ -178,13 +216,13 @@ if (!isset($roles)) {
 
     <!-- MODAL EDITAR USUARIO -->
     <div class="modal fade modal-idealo" id="modalEditarActivo" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Usuario</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <form id="formEditarActivo" class="needs-validation" novalidate>
+                <form id="formEditarActivo" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="edit_activo_id_usuario" name="id_usuario">
                     <div class="modal-body">
                         <div class="row g-3">
@@ -214,6 +252,25 @@ if (!isset($roles)) {
                                 </select>
                             </div>
                             <div class="col-12">
+                                <div class="foto-empleado-bloque">
+                                    <button type="button" class="foto-empleado-preview foto-empleado-preview-lg" id="edit_activo_foto_ver"
+                                        data-preview="edit_activo_foto_preview" title="Ver foto del usuario"
+                                        aria-label="Ver foto del usuario" disabled>
+                                        <img id="edit_activo_foto_preview" src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Vista previa de la foto">
+                                    </button>
+                                    <div class="flex-grow-1">
+                                        <div class="form-label fw-semibold mb-1">Foto de perfil <span class="text-muted fw-normal">(opcional)</span></div>
+                                        <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-usuario" data-prefijo="edit_activo">
+                                                <i class="bi bi-camera-fill me-1"></i> Subir foto
+                                            </button>
+                                            <input type="file" id="edit_activo_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
                                     <i class="bi bi-link-45deg flex-shrink-0" style="font-size:20px;"></i>
                                     <div class="flex-grow-1">
@@ -236,7 +293,7 @@ if (!isset($roles)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="btnGuardarEdicionActivo">Guardar Cambios</button>
+                        <button type="submit" class="btn-idealo-success" id="btnGuardarEdicionActivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>
@@ -270,9 +327,62 @@ if (!isset($roles)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                        <button type="button" class="btn-idealo-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade modal-idealo" id="modalRecortarFotoUsuario" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <i class="bi bi-camera-fill"></i>
+                        <span>Ajustar Foto del Usuario</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="recorte-layout">
+                        <div class="recorte-viewport" id="recorteUsuarioViewport" tabindex="0"
+                            role="application" aria-label="Área de recorte. Arrastra o usa las flechas para centrar la imagen.">
+                            <img id="recorteUsuarioImagen" alt="Vista de recorte" draggable="false">
+                        </div>
+                        <div class="recorte-preview-wrap">
+                            <span>Vista previa</span>
+                            <canvas id="recorteUsuarioPreview" width="128" height="128"
+                                role="img" aria-label="Vista previa de la foto recortada"></canvas>
+                        </div>
+                    </div>
+                    <div class="recorte-controles">
+                        <label for="recorteUsuarioZoom" class="form-label">Zoom</label>
+                        <input type="range" class="form-range" id="recorteUsuarioZoom" min="1" max="3" step="0.01" value="1" disabled>
+                        <div class="form-text">Arrastra la imagen para centrarla y ajusta el zoom a tu gusto.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn-idealo-success" id="btnConfirmarRecorteUsuario" disabled>Usar Foto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade modal-idealo" id="modalVerFotoUsuario" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <i class="bi bi-camera-fill"></i>
+                        <span id="verFotoUsuarioTitulo">Foto del Usuario</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center ver-foto-empleado-cuerpo">
+                    <img id="verFotoUsuarioImagen" src="" class="ver-foto-empleado" alt="Foto del usuario">
+                </div>
             </div>
         </div>
     </div>

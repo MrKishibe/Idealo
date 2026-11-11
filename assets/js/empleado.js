@@ -597,6 +597,6 @@ $(function () {
         pageLength: 10,
         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         responsive: true,
-        ordering: false
+        order: [[0, 'desc']]
     });
 });

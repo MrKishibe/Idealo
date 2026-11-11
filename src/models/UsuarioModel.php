@@ -3,12 +3,16 @@
 namespace Idealo\Models;
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
 
 use Idealo\Config\Database;
+use Idealo\Helpers\ImagenPerfilHelper;
 use Exception;
 
 class UsuarioModel extends Database
 {
+    use ImagenPerfilHelper;
+
     private $conex;
 
     public $expNombreUsuario = '/^[a-zA-Z0-9_]{3,20}$/';
@@ -34,6 +38,7 @@ class UsuarioModel extends Database
         $sql = "SELECT u.id_usuario,
                        u.nombre_usuario,
                        u.correo,
+                       u.imagen,
                        u.status_usuario,
                        u.id_rol,
                        r.tipo_de_usuario,

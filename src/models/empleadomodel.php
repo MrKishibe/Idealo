@@ -2,12 +2,16 @@
 
 namespace Idealo\Models;
 
+require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
+
 use Idealo\Config\Database;
+use Idealo\Helpers\ImagenPerfilHelper;
 use PDO;
 use PDOException;
 
 class EmpleadoModel extends Database
 {
+    use ImagenPerfilHelper;
 
     private static $id_empleado;
     private static $nombres;

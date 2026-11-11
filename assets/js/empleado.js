@@ -56,6 +56,7 @@ $(function () {
         registro: {
             form: '#formEmpleado',
             prefijo: 'reg_',
+            prefijoUsuario: 'reg_',
             claveFoto: 'reg',
             incluirCedula: true,
             modal: 'modalRegistrarEmpleado',
@@ -65,6 +66,7 @@ $(function () {
         edicion: {
             form: '#formEditarActivo',
             prefijo: 'edit_activo_',
+            prefijoUsuario: 'edit_',
             claveFoto: 'edit_activo',
             incluirCedula: false,
             modal: 'modalEditarActivo',
@@ -112,9 +114,9 @@ $(function () {
         return fila && fila.data() ? fila.data() : null;
     }
 
-    function botonAccion(clase, icono, color, alt, id) {
-        return '<button type="button" class="btn btn-sm ' + clase + '" data-id="' + escaparHTML(id) + '">' +
-            '<img src="assets/Img/Iconos/' + icono + '" class="icono-svg ' + color + '" alt="' + alt + '"></button>';
+    function botonAccion(clase, icono, alt, id) {
+        return '<button type="button" class="btn btn-sm ' + clase + '" data-id="' + escaparHTML(id) + '" title="' + alt + '">' +
+            '<i class="bi bi-' + icono + '"></i></button>';
     }
 
     // Foto del empleado
@@ -283,8 +285,8 @@ $(function () {
     // Guardar (registro y edición activa)
     async function guardarEmpleado(config) {
         const $form = $(config.form);
-        const $usuario = $('#' + config.prefijo + 'id_usuario');
-        const usaUsuario = $('#' + config.prefijo + 'es_usuario').prop('checked');
+        const $usuario = $('#' + config.prefijoUsuario + 'id_usuario');
+        const usaUsuario = $('#' + config.prefijoUsuario + 'es_usuario').prop('checked');
 
         limpiarValidaciones($form);
 
@@ -373,7 +375,9 @@ $(function () {
             .toggleClass('btn-secondary', verInactivos);
 
         $('#txtBotonEstado').text(verInactivos ? 'Ver Activos' : 'Ver inhabilitados');
-        $('#iconoEstado').attr('src', verInactivos ? 'assets/Img/Iconos/eye.svg' : 'assets/Img/Iconos/eye-slash.svg');
+        $('#iconoEstado')
+            .toggleClass('bi-eye-slash-fill', !verInactivos)
+            .toggleClass('bi-eye-fill', verInactivos);
         $('#tituloVista').text(verInactivos ? 'Empleados Inhabilitados' : 'Gestión de Empleados');
 
         recargar(true);
@@ -544,7 +548,7 @@ $(function () {
                         '<div>' +
                         '<div class="fw-bold text-dark">' + escaparHTML(nombre) + '</div>' +
                         '<small class="text-muted">' +
-                        '<img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección">' +
+                        '<i class="bi bi-geo-alt me-1"></i>' +
                         escaparHTML(empleado.direccion || 'Sin dirección') +
                         '</small>' +
                         '</div></div>';
@@ -581,9 +585,9 @@ $(function () {
                     const id = empleado.id_empleado;
 
                     const botones = estaActivo(empleado)
-                        ? botonAccion('btn-outline-primary btnEditarActivo', 'pencil-square.svg', 'icono-azul', 'Editar', id) +
-                          botonAccion('btn-outline-danger btnCambiarEstado', 'trash.svg', 'icono-rojo', 'Inhabilitar', id)
-                        : botonAccion('btn-outline-warning btnEditarInactivo', 'pencil-square.svg', 'icono-amarillo', 'Editar', id);
+                        ? botonAccion('btn-outline-primary btnEditarActivo', 'pencil-square', 'Editar', id) +
+                          botonAccion('btn-outline-danger btnCambiarEstado', 'trash3-fill', 'Inhabilitar', id)
+                        : botonAccion('btn-outline-warning btnEditarInactivo', 'pencil-square', 'Editar', id);
 
                     return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
                 }
@@ -591,6 +595,7 @@ $(function () {
         ],
         language: lenguajeDataTableEs,
         pageLength: 10,
+        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         responsive: true,
         ordering: false
     });

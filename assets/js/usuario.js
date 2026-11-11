@@ -27,6 +27,10 @@ $(function () {
         registro: {
             form: '#formRegistrarUsuario', prefijo: 'reg_', accion: 'guardar', modal: 'modalRegistrarUsuario',
             titulo: '¡Registrado!', check: '#reg_es_empleado', select: '#reg_id_empleado', esRegistro: true, reiniciar: true
+        },
+        edicion: {
+            form: '#formEditarActivo', prefijo: 'edit_activo_', accion: 'editar', modal: 'modalEditarActivo',
+            titulo: '¡Actualizado!', check: '#edit_es_empleado', select: '#edit_id_empleado', esRegistro: false, reiniciar: false
         }
     };
 
@@ -40,20 +44,19 @@ $(function () {
     }
 
     function boton(clases, icono, alt, id) {
-        return `<button type="button" class="${clases}" data-id="${escapar(id)}" title="${alt}">` +
-            `<img src="assets/Img/Iconos/${icono}" class="icono-svg" alt="${alt}"></button>`;
+        return `<button type="button" class="btn btn-sm ${clases}" data-id="${escapar(id)}" title="${alt}">` +
+            `<i class="bi bi-${icono}"></i></button>`;
     }
 
     function reactivar(id) {
-        return `<button type="button" class="btn-accion-reactivar btnEditarInactivo" data-id="${escapar(id)}">` +
-            '<img src="assets/Img/Iconos/arrow-counterclockwise.svg" class="icono-svg icono-amarillo" alt="Reactivar">' +
-            '<span>Reactivar</span></button>';
+        return `<button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="${escapar(id)}" title="Reactivar Usuario">` +
+            '<i class="bi bi-arrow-counterclockwise"></i></button>';
     }
 
     function badgeRol(rol) {
         const nombre = escapar(rol ? rol.charAt(0).toUpperCase() + rol.slice(1) : 'Sin rol');
         return '<span class="badge bg-light text-primary border px-2 py-1" style="font-weight: 600; font-size: 12px; border-radius: 6px;">' +
-            '<img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-gris me-1">' + nombre + '</span>';
+            '<i class="bi bi-shield-lock me-1"></i>' + nombre + '</span>';
     }
 
     function badgeEstado(valor) {
@@ -64,7 +67,8 @@ $(function () {
 
     function acciones(usuario) {
         const botones = activo(usuario)
-            ? boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Usuario', usuario.id_usuario)
+            ? boton('btn-outline-primary btnEditarActivo', 'pencil-square', 'Editar Usuario', usuario.id_usuario) +
+              boton('btn-outline-danger btnCambiarEstado', 'trash3-fill', 'Inactivar Usuario', usuario.id_usuario)
             : reactivar(usuario.id_usuario);
 
         return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
@@ -192,11 +196,12 @@ $(function () {
     }
 
     // Validación en vivo
-    $('#modalRegistrarUsuario').on('input change', 'input, select', function () {
+    $('#modalRegistrarUsuario, #modalEditarActivo').on('input change', 'input, select', function () {
         const $campo = $(this);
         if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
 
-        validarCampoUsuario($campo, FORMS.registro);
+        const config = $campo.closest('#modalEditarActivo').length ? FORMS.edicion : FORMS.registro;
+        validarCampoUsuario($campo, config);
     });
 
     // Activos / inhabilitados
@@ -204,14 +209,16 @@ $(function () {
         verInactivos = !verInactivos;
         $(this).toggleClass('btn-outline-secondary', !verInactivos).toggleClass('btn-secondary', verInactivos);
         $('#txtBotonEstado').text(verInactivos ? 'Ver Activos' : 'Ver inhabilitados');
-        $('#iconoEstado').attr('src', verInactivos ? 'assets/Img/Iconos/eye.svg' : 'assets/Img/Iconos/eye-slash.svg');
+        $('#iconoEstado')
+            .toggleClass('bi-eye-slash-fill', !verInactivos)
+            .toggleClass('bi-eye-fill', verInactivos);
         $('#tituloVista').text(verInactivos ? 'Usuarios Inhabilitados' : 'Gestión de Usuarios');
         recargar(true);
     });
 
     // Empleado asociado
-    $('#reg_es_empleado').on('change', function () {
-        const config = FORMS.registro;
+    $('#reg_es_empleado, #edit_es_empleado').on('change', function () {
+        const config = this.id.startsWith('edit_') ? FORMS.edicion : FORMS.registro;
         $(config.select).closest('[id$="_empleado_wrap"]').toggleClass('d-none', !this.checked);
 
         if (!this.checked) $(config.select).val('').removeClass('is-valid is-invalid');
@@ -229,6 +236,29 @@ $(function () {
     $('#formRegistrarUsuario').on('submit', function (e) {
         e.preventDefault();
         guardarUsuario(FORMS.registro);
+    });
+
+    // Editar usuario activo
+    $('#tablaUsuarios tbody').on('click', '.btnEditarActivo', function () {
+        const usuario = deFila($(this));
+        if (!usuario) return;
+
+        $('#edit_activo_id_usuario').val(usuario.id_usuario);
+        $('#edit_activo_nombre_usuario').val(usuario.nombre_usuario);
+        $('#edit_activo_correo').val(usuario.correo);
+        $('#edit_activo_id_rol').val(usuario.id_rol);
+        $('#edit_activo_contrasena, #edit_activo_confirmar_contrasena').val('');
+        limpiarValidaciones('#formEditarActivo');
+
+        const empleado = usuario.id_empleado_vinculado ? String(usuario.id_empleado_vinculado) : null;
+        $('#edit_es_empleado').prop('checked', Boolean(empleado)).trigger('change');
+        cargarEmpleados($('#edit_id_empleado'), usuario.id_usuario, true, empleado);
+        $('#modalEditarActivo').modal('show');
+    });
+
+    $('#formEditarActivo').on('submit', function (e) {
+        e.preventDefault();
+        guardarUsuario(FORMS.edicion);
     });
 
     // Inactivar
@@ -285,6 +315,7 @@ $(function () {
         columnDefs: [{ targets: 0, type: 'num' }],
         language: lenguajeDataTableEs,
         pageLength: 10,
+        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         order: [[0, 'desc']]
     });
 });

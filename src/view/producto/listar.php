@@ -29,13 +29,11 @@ if (!isset($productos)) {
                     <p>Administra los productos, características y variantes de tallas de la empresa.</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
-                        <img src="assets/Img/Iconos/eye-slash.svg" id="iconoEstado" class="icono-svg icono-sm icono-gris me-1" alt="Icono">
-                        <span id="txtBotonEstado">Ver inhabilitados</span>
+                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary" data-vista="activos">
+                        <i class="bi bi-eye-slash-fill" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarProducto">
-                        <img src="assets/Img/Iconos/box-seam.svg" class="icono-svg icono-sm icono-blanco me-1" alt="Registrar">
-                        <span>Registrar Producto</span>
+                        <i class="bi bi-box-seam-fill"></i> Registrar Producto
                     </button>
                 </div>
             </header>
@@ -88,9 +86,9 @@ if (!isset($productos)) {
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="text-center d-flex justify-content-center gap-1">
+                                            <div class="text-center">
                                                 <?php if ($estadoReal === 'activo'): ?>
-                                                    <button type="button" class="btn-accion-edit btnEditarActivo"
+                                                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo me-1"
                                                         data-id="<?php echo $prod['id_producto']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
                                                         data-tipo="<?php echo htmlspecialchars($prod['tipo_de_producto']); ?>"
@@ -99,20 +97,20 @@ if (!isset($productos)) {
                                                         data-color="<?php echo htmlspecialchars($prod['color'] ?? ''); ?>"
                                                         data-tallas="<?php echo htmlspecialchars($tallasStr); ?>"
                                                         title="Editar Producto">
-                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg" alt="Editar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
-                                                    <button type="button" class="btn-accion-delete btnCambiarEstado"
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado"
                                                         data-id="<?php echo $prod['id_producto']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
                                                         title="Inactivar Producto">
-                                                        <img src="assets/Img/Iconos/trash.svg" class="icono-svg" alt="Inactivar">
+                                                        <i class="bi bi-trash3-fill"></i>
                                                     </button>
                                                 <?php else: ?>
-                                                    <button type="button" class="btn-accion-reactivar btnEditarInactivo"
+                                                    <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo"
                                                         data-id="<?php echo $prod['id_producto']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>">
-                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">
-                                                        <span>Editar / Reactivar</span>
+                                                        data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
+                                                        title="Editar / Reactivar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -133,8 +131,7 @@ if (!isset($productos)) {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/box-seam.svg" class="icono-svg icono-md" alt="Registrar">
-                        <span>Registrar Producto</span>
+                        <i class="bi bi-box-seam-fill me-2"></i>Registrar Producto
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -196,8 +193,7 @@ if (!isset($productos)) {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md icono-azul" alt="Editar">
-                        <span>Editar Ficha de Producto</span>
+                        <i class="bi bi-pencil-square me-2"></i>Editar Ficha de Producto
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -268,8 +264,7 @@ if (!isset($productos)) {
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md" alt="Editar">
-                        <span>Editar Registro Inhabilitado</span>
+                        <i class="bi bi-pencil-square me-2"></i>Editar Registro Inhabilitado
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -292,7 +287,7 @@ if (!isset($productos)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>

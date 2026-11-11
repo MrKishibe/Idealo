@@ -30,11 +30,11 @@ if (!isset($empleados)) {
                     <p>Administra los cargos, salarios e información del personal de la empresa.</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
-                        <img src="assets/Img/Iconos/eye-slash.svg" id="iconoEstado" class="icono-svg icono-sm icono-gris me-1" alt="Icono"> <span id="txtBotonEstado">Ver inhabilitados</span>
+                    <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary" data-vista="activos">
+                        <i class="bi bi-eye-slash-fill" id="iconoEstado"></i> <span id="txtBotonEstado">Ver inhabilitados</span>
                     </button>
                     <button type="button" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalRegistrarEmpleado">
-                        <img src="assets/Img/Iconos/person-plus-fill.svg" class="icono-svg icono-sm icono-blanco me-1" alt="Registrar"> Registrar Empleado
+                        <i class="bi bi-person-plus-fill"></i> Registrar Empleado
                     </button>
                 </div>
             </header>
@@ -79,7 +79,7 @@ if (!isset($empleados)) {
                                                 <?php endif; ?>
                                                 <div>
                                                     <div class="fw-bold text-dark"><?php echo htmlspecialchars($nombreCompleto); ?></div>
-                                                    <small class="text-muted"><img src="assets/Img/Iconos/geo-alt.svg" class="icono-svg icono-gris me-1" alt="Dirección"> <?php echo htmlspecialchars($emp['direccion'] ?: 'Sin dirección'); ?></small>
+                                                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i><?php echo htmlspecialchars($emp['direccion'] ?: 'Sin dirección'); ?></small>
                                                 </div>
                                             </div>
                                         </td>
@@ -102,18 +102,18 @@ if (!isset($empleados)) {
                                                         data-cargo="<?php echo htmlspecialchars($emp['cargo']); ?>"
                                                         data-salario="<?php echo htmlspecialchars($emp['salario']); ?>"
                                                         data-usuario="<?php echo htmlspecialchars($emp['id_usuario_vinculado'] ?? ''); ?>">
-<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-azul" alt="Editar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-danger btnCambiarEstado"
                                                         data-id="<?php echo $emp['id_empleado']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <img src="assets/Img/Iconos/trash.svg" class="icono-svg icono-rojo" alt="Inhabilitar">
+                                                        <i class="bi bi-trash3-fill"></i>
                                                     </button>
                                                 <?php else: ?>
                                                     <button class="btn btn-sm btn-outline-warning btnEditarInactivo"
                                                         data-id="<?php echo $emp['id_empleado']; ?>"
                                                         data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -132,7 +132,7 @@ if (!isset($empleados)) {
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title d-flex align-items-center gap-2"><img src="assets/Img/Iconos/person-plus-fill.svg" class="icono-svg icono-md" alt="Registrar">Registrar Empleado</h5>
+                    <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2"></i>Registrar Empleado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="formEmpleado" class="needs-validation" novalidate>
@@ -182,7 +182,7 @@ if (!isset($empleados)) {
                                         <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-empleado" data-prefijo="reg">
-                                                <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris me-1" alt="Subir foto"> Subir foto
+                                                <i class="bi bi-camera-fill me-1"></i> Subir foto
                                             </button>
                                             <input type="file" id="reg_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
                                         </div>
@@ -195,7 +195,7 @@ if (!isset($empleados)) {
                             </div>
                             <div class="col-12">
                                 <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
-                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <i class="bi bi-link-45deg flex-shrink-0" style="font-size:20px;"></i>
                                     <div class="flex-grow-1">
                                         <label class="form-label fw-semibold mb-0" for="reg_es_usuario">Este empleado tiene un usuario</label>
                                         <small class="text-muted d-block">Márcalo si la persona entra al sistema con sus credenciales.</small>
@@ -227,7 +227,7 @@ if (!isset($empleados)) {
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title d-flex align-items-center gap-2"><img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md" alt="Editar">Editar Ficha de Empleado</h5>
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Ficha de Empleado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="formEditarActivo" class="needs-validation" novalidate>
@@ -277,7 +277,7 @@ if (!isset($empleados)) {
                                         <p class="text-muted small mb-2">JPG, PNG o WEBP · Máx. 2 MB. Podrás ajustar el encuadre antes de guardarla.</p>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <button type="button" class="btn btn-outline-secondary btn-sm btn-subir-foto-empleado" data-prefijo="edit_activo">
-                                                <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris me-1" alt="Subir foto"> Subir foto
+                                                <i class="bi bi-camera-fill me-1"></i> Subir foto
                                             </button>
                                             <input type="file" id="edit_activo_foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
                                         </div>
@@ -290,7 +290,7 @@ if (!isset($empleados)) {
                             </div>
                             <div class="col-12">
                                 <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa; border:1px solid #dee2e6;">
-                                    <img src="assets/Img/Iconos/link-45deg.svg" class="icono-svg icono-gris flex-shrink-0" style="width:20px;height:20px;" alt="Vínculo">
+                                    <i class="bi bi-link-45deg flex-shrink-0" style="font-size:20px;"></i>
                                     <div class="flex-grow-1">
                                         <label class="form-label fw-semibold mb-0" for="edit_es_usuario">Este empleado tiene un usuario</label>
                                         <small class="text-muted d-block">Márcalo si la persona entra al sistema con sus credenciales.</small>
@@ -322,7 +322,7 @@ if (!isset($empleados)) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2"><img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-md" alt="Editar">Editar Registro Inhabilitado</h5>
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Registro Inhabilitado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="formEditarInactivo">
@@ -344,7 +344,7 @@ if (!isset($empleados)) {
                     </div>
                     <div class="modal-footer border-0 pt-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                        <button type="button" class="btn btn-success" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
                     </div>
                 </form>
             </div>
@@ -356,7 +356,7 @@ if (!isset($empleados)) {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-sm icono-gris" alt="">
+                        <i class="bi bi-camera-fill"></i>
                         <span id="verFotoEmpleadoTitulo">Foto del Empleado</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -373,7 +373,7 @@ if (!isset($empleados)) {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-sm icono-gris" alt="">
+                        <i class="bi bi-camera-fill"></i>
                         <span>Ajustar Foto del Empleado</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>

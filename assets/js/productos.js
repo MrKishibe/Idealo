@@ -77,13 +77,12 @@ $(function () {
 
     function boton(clases, icono, alt, id) {
         return `<button type="button" class="${clases}" data-id="${escapar(id)}" title="${alt}">` +
-            `<img src="assets/Img/Iconos/${icono}" class="icono-svg" alt="${alt}"></button>`;
+            `<i class="bi ${icono}"></i></button>`;
     }
 
     function reactivar(id) {
-        return `<button type="button" class="btn-accion-reactivar btnEditarInactivo" data-id="${escapar(id)}">` +
-            '<img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-amarillo" alt="Editar">' +
-            '<span>Editar / Reactivar</span></button>';
+        return `<button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="${escapar(id)}" title="Editar / Reactivar">` +
+            '<i class="bi bi-pencil-square"></i></button>';
     }
 
     function badgeEstado(valor) {
@@ -103,11 +102,11 @@ $(function () {
 
     function acciones(producto) {
         const botones = activo(producto)
-            ? boton('btn-accion-edit btnEditarActivo', 'pencil-square.svg', 'Editar Producto', producto.id_producto) +
-              boton('btn-accion-delete btnCambiarEstado', 'trash.svg', 'Inactivar Producto', producto.id_producto)
+            ? boton('btn btn-sm btn-outline-primary btnEditarActivo me-1', 'bi-pencil-square', 'Editar Producto', producto.id_producto) +
+              boton('btn btn-sm btn-outline-danger btnCambiarEstado', 'bi-trash3-fill', 'Inactivar Producto', producto.id_producto)
             : reactivar(producto.id_producto);
 
-        return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
+        return '<div class="text-center">' + botones + '</div>';
     }
 
     async function peticion(url, datos, titulo) {
@@ -226,10 +225,16 @@ $(function () {
     // Activos / inhabilitados
     $('#btnAlternarEstado').on('click', function () {
         verInactivos = !verInactivos;
-        $(this).toggleClass('btn-outline-secondary', !verInactivos).toggleClass('btn-secondary', verInactivos);
         $('#txtBotonEstado').text(verInactivos ? 'Ver Activos' : 'Ver inhabilitados');
-        $('#iconoEstado').attr('src', verInactivos ? 'assets/Img/Iconos/eye.svg' : 'assets/Img/Iconos/eye-slash.svg');
-        $('#tituloVista').text(verInactivos ? 'Productos Inhabilitados' : 'Catálogo de Productos');
+        if (verInactivos) {
+            $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
+            $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
+            $('#tituloVista').text('Productos Inhabilitados');
+        } else {
+            $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
+            $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
+            $('#tituloVista').text('Catálogo de Productos');
+        }
         recargar(true);
     });
 
@@ -339,6 +344,7 @@ $(function () {
         ],
         language: lenguajeDataTableEs,
         pageLength: 10,
+        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         order: [[0, 'desc']]
     });
 });

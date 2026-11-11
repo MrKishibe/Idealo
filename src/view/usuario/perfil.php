@@ -3,11 +3,14 @@ if (!isset($perfil)) {
     $perfil = null;
 }
 
-$nombreMostrar   = $perfil['nombre_usuario'] ?? 'Usuario';
+$nombreCompleto = trim(($perfil['nombres'] ?? '') . ' ' . ($perfil['apellidos'] ?? ''));
+$nombreUsuario  = $perfil['nombre_usuario'] ?? 'Usuario';
+$nombreMostrar  = $nombreCompleto !== '' ? $nombreCompleto : $nombreUsuario;
+$usaNombreUsuario = $nombreCompleto === '';
+
 $subRol          = ucfirst($perfil['tipo_de_usuario'] ?? 'Sin rol');
 $estadoReal      = strtolower($perfil['status_usuario'] ?? 'activo');
-$estadoBadge     = $estadoReal === 'activo' ? 'bg-success' : 'bg-danger';
-$tieneEmpleado   = !empty($perfil['nombres']) || !empty($perfil['cedula']);
+$esActivo        = $estadoReal === 'activo';
 
 $imagenPerfil = trim($perfil['imagen'] ?? '');
 $tieneFoto    = $imagenPerfil !== '' && is_file(__DIR__ . '/../../../' . ltrim($imagenPerfil, '/'));
@@ -25,40 +28,37 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
-    <link rel="stylesheet" href="assets/libs/css/perfil.css">
+    <link rel="stylesheet" href="assets/libs/css/perfil.css?v=<?= filemtime(__DIR__ . '/../../../assets/libs/css/perfil.css') ?>">
     <link rel="stylesheet" href="assets/libs/css/recorte-foto.css">
 </head>
 
 <body>
 
-    <div class="dashboard-layout">
+    <?php include 'src/view/sidebar.php'; ?>
 
-        <?php include 'src/view/sidebar.php'; ?>
-
-        <main class="main-content">
+    <main class="main-content">
             <div class="view-container">
 
-                <div class="page-header">
+                <header class="page-header">
                     <div>
                         <h1>Mi Perfil</h1>
-                        <p>Gestiona tu información personal y credenciales de acceso</p>
+                        <p>Gestiona tu información personal y tus credenciales de acceso</p>
                     </div>
-                </div>
+                </header>
 
-                <div class="profile-container">
-                    <div class="profile-card">
+                <div class="perfil-layout">
 
-                        <div class="profile-cover"></div>
+                    <!-- Columna izquierda: resumen del perfil -->
+                    <aside class="perfil-columna perfil-columna-lateral">
+                        <section class="perfil-card perfil-resumen" aria-labelledby="perfilNombreH2">
 
-                        <div class="profile-body">
-
-                            <div class="profile-avatar-wrapper">
-                                <div class="profile-avatar" id="perfilAvatar">
+                            <div class="perfil-avatar-wrapper">
+                                <div class="perfil-avatar" id="perfilAvatar">
                                     <img id="perfilAvatarImg"
                                         src="<?php echo htmlspecialchars($rutaFoto); ?>"
                                         class="<?php echo $tieneFoto ? 'perfil-foto' : 'icono-svg icono-gris'; ?>"
                                         alt="Foto de perfil">
-                                    <button type="button" class="btn-foto-perfil" id="btnCambiarFoto"
+                                    <button type="button" class="btn-foto-perfil" id="btnCambiarFotoAccion"
                                         title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil">
                                         <img src="assets/Img/Iconos/camera-fill.svg" alt="">
                                     </button>
@@ -66,176 +66,128 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
                                 </div>
                             </div>
 
-                            <div class="profile-header-text">
-                                <h2 id="perfilNombreH2"><?php echo htmlspecialchars($nombreMostrar); ?></h2>
-                                <p id="perfilSubtitulo">
+                            <h2 class="perfil-nombre" id="perfilNombreH2"<?php echo $usaNombreUsuario ? ' data-usa-usuario="1"' : ''; ?>>
+                                <?php echo htmlspecialchars($nombreMostrar); ?>
+                            </h2>
+                            <p class="perfil-usuario" id="perfilUsuario">@<?php echo htmlspecialchars($nombreUsuario); ?></p>
+
+                            <div class="perfil-rol">
+                                <span class="perfil-rol-texto">
+                                    <img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-verde" alt="Rol">
                                     <?php echo htmlspecialchars($subRol); ?>
-                                    <span class="badge <?php echo $estadoBadge; ?> ms-2"><?php echo ucfirst($estadoReal); ?></span>
-                                </p>
+                                </span>
+                                <span class="perfil-badge <?php echo $esActivo ? 'perfil-badge-activo' : 'perfil-badge-inactivo'; ?>" id="perfilEstado">
+                                    <span class="perfil-badge-punto" aria-hidden="true"></span>
+                                    <?php echo $esActivo ? 'Activo' : 'Inactivo'; ?>
+                                </span>
                             </div>
 
-                            <hr class="profile-separator">
-
-                            <div class="profile-info-grid">
-
-                                <div class="info-group">
-                                    <label>Nombre de Usuario</label>
-                                    <div class="info-value">
-                                        <img src="assets/Img/Iconos/person-badge.svg" class="icono-svg icono-gris" alt="Nombre de usuario">
-                                        <span id="perfilNombreUsuario"><?php echo htmlspecialchars($perfil['nombre_usuario'] ?? 'N/A'); ?></span>
-                                    </div>
-                                </div>
-
-                                <div class="info-group">
-                                    <label>Correo Electrónico</label>
-                                    <div class="info-value">
-                                        <img src="assets/Img/Iconos/envelope.svg" class="icono-svg icono-gris" alt="Correo electrónico">
-                                        <span id="perfilCorreo"><?php echo htmlspecialchars($perfil['correo'] ?? 'N/A'); ?></span>
-                                    </div>
-                                </div>
-
-                                <?php if ($tieneEmpleado): ?>
-                                    <div class="info-group">
-                                        <label>Nombre Completo</label>
-                                        <div class="info-value">
-                                            <img src="assets/Img/Iconos/person-lines-fill.svg" class="icono-svg icono-gris" alt="Nombre completo">
-                                            <span><?php echo htmlspecialchars(trim(($perfil['nombres'] ?? '') . ' ' . ($perfil['apellidos'] ?? ''))); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="info-group">
-                                        <label>Cédula</label>
-                                        <div class="info-value">
-                                            <img src="assets/Img/Iconos/credit-card.svg" class="icono-svg icono-gris" alt="Cédula">
-                                            <span><?php echo htmlspecialchars($perfil['cedula'] ?? 'N/A'); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="info-group">
-                                        <label>Teléfono</label>
-                                        <div class="info-value">
-                                            <img src="assets/Img/Iconos/telephone.svg" class="icono-svg icono-gris" alt="Teléfono">
-                                            <span><?php echo htmlspecialchars($perfil['telefono'] ?? 'N/A'); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="info-group">
-                                        <label>Cargo</label>
-                                        <div class="info-value">
-                                            <img src="assets/Img/Iconos/briefcase.svg" class="icono-svg icono-gris" alt="Cargo">
-                                            <span><?php echo htmlspecialchars($perfil['cargo'] ?? 'N/A'); ?></span>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
-
-                                <div class="info-group">
-                                    <label>Rol de Usuario</label>
-                                    <div class="info-value">
-                                        <img src="assets/Img/Iconos/shield-lock.svg" class="icono-svg icono-gris" alt="Rol">
-                                        <span class="badge-role"><?php echo htmlspecialchars($subRol); ?></span>
-                                    </div>
-                                </div>
-
-                                <div class="info-group">
-                                    <label>ID de Usuario</label>
-                                    <div class="info-value">
-                                        <img src="assets/Img/Iconos/hash.svg" class="icono-svg icono-gris" alt="ID">
-                                        <span>#<?php echo htmlspecialchars($perfil['id_usuario'] ?? ''); ?></span>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <hr class="profile-separator">
-
-                            <div class="profile-actions">
-                                <button type="button" class="btn-idealo-secondary" id="btnCambiarFotoAccion">
-                                    <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-gris" alt="Cambiar foto"> Cambiar Foto
+                            <div class="perfil-acciones">
+                                <button type="button" class="perfil-btn perfil-btn-secundario perfil-btn-bloque" id="btnCambiarFoto">
+                                    <img src="assets/Img/Iconos/camera-fill.svg" class="icono-svg icono-verde" alt="Cambiar foto">
+                                    Cambiar Foto
                                 </button>
-                                <button class="btn-idealo-secondary" data-bs-toggle="modal" data-bs-target="#modalCambiarContrasena">
-                                    <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-gris" alt="Cambiar contraseña"> Cambiar Contraseña
+
+                                <button type="button" class="perfil-btn perfil-btn-secundario perfil-btn-bloque"
+                                    id="btnCambiarContrasena" data-bs-toggle="modal" data-bs-target="#modalCambiarContrasena">
+                                    <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-verde" alt="Cambiar contraseña">
+                                    Cambiar Contraseña
                                 </button>
-                                <button class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalEditarPerfil">
-                                    <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-blanco" alt="Editar perfil"> Editar Perfil
+
+                                <button type="button" class="perfil-btn perfil-btn-primario perfil-btn-bloque" id="btnEditarPerfil" data-modo="editar">
+                                    <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-blanco" alt="">
+                                    <span class="perfil-btn-texto">Editar Perfil</span>
                                 </button>
                             </div>
 
-                        </div>
+                        </section>
+                    </aside>
+
+                    <!-- Columna derecha: datos y seguridad -->
+                    <div class="perfil-columna perfil-columna-principal">
+
+                        <!-- Tarjeta: datos personales -->
+                        <section class="perfil-card" id="tarjetaDatos" aria-labelledby="tituloDatosPersonales">
+
+                            <header class="perfil-card-header">
+                                <img src="assets/Img/Iconos/person-lines-fill.svg" class="icono-svg icono-verde" alt="">
+                                <h2 id="tituloDatosPersonales">Datos Personales</h2>
+                            </header>
+
+                            <p class="perfil-aviso">
+                                <img src="assets/Img/Iconos/lock.svg" class="icono-svg icono-gris" alt="">
+                                Los campos bloqueados se administran desde el módulo de Empleados.
+                            </p>
+
+                            <div class="perfil-grid">
+
+                                <div class="perfil-campo" data-campo="nombre_usuario">
+                                    <label class="perfil-campo-label" for="perfil_nombre_usuario">Nombre de usuario</label>
+                                    <span class="perfil-campo-valor" id="perfilNombreUsuario"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_nombre_usuario"
+                                        name="nombre_usuario" maxlength="20" autocomplete="username" required>
+                                    <small class="perfil-error" id="error_nombre_usuario"></small>
+                                </div>
+
+                                <div class="perfil-campo" data-campo="correo">
+                                    <label class="perfil-campo-label" for="perfil_correo">Correo electrónico</label>
+                                    <span class="perfil-campo-valor" id="perfilCorreo"><?php echo htmlspecialchars($perfil['correo'] ?? 'N/A'); ?></span>
+                                    <input type="email" class="perfil-input perfil-input-inline" id="perfil_correo"
+                                        name="correo" autocomplete="email" required>
+                                    <small class="perfil-error" id="error_correo"></small>
+                                </div>
+
+                                <div class="perfil-campo" data-campo="nombre_completo">
+                                    <span class="perfil-campo-label">Nombre completo</span>
+                                    <span class="perfil-campo-valor"><?php echo htmlspecialchars($nombreCompleto !== '' ? $nombreCompleto : 'No registrado'); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_nombre_completo"
+                                        value="<?php echo htmlspecialchars($nombreCompleto); ?>" readonly tabindex="-1" aria-label="Nombre completo (solo lectura)">
+                                </div>
+
+                                <div class="perfil-campo" data-campo="cedula">
+                                    <span class="perfil-campo-label">Cédula</span>
+                                    <span class="perfil-campo-valor"><?php echo htmlspecialchars($perfil['cedula'] ?? 'N/A'); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_cedula"
+                                        value="<?php echo htmlspecialchars($perfil['cedula'] ?? ''); ?>" readonly tabindex="-1" aria-label="Cédula (solo lectura)">
+                                </div>
+
+                                <div class="perfil-campo" data-campo="telefono">
+                                    <span class="perfil-campo-label">Teléfono</span>
+                                    <span class="perfil-campo-valor"><?php echo htmlspecialchars($perfil['telefono'] ?? 'N/A'); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_telefono"
+                                        value="<?php echo htmlspecialchars($perfil['telefono'] ?? ''); ?>" readonly tabindex="-1" aria-label="Teléfono (solo lectura)">
+                                </div>
+
+                                <div class="perfil-campo" data-campo="cargo">
+                                    <span class="perfil-campo-label">Cargo</span>
+                                    <span class="perfil-campo-valor"><?php echo htmlspecialchars($perfil['cargo'] ?? 'N/A'); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_cargo"
+                                        value="<?php echo htmlspecialchars($perfil['cargo'] ?? ''); ?>" readonly tabindex="-1" aria-label="Cargo (solo lectura)">
+                                </div>
+
+                                <div class="perfil-campo" data-campo="rol">
+                                    <span class="perfil-campo-label">Rol de usuario</span>
+                                    <span class="perfil-campo-valor"><span class="perfil-rol-badge"><?php echo htmlspecialchars($subRol); ?></span></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_rol"
+                                        value="<?php echo htmlspecialchars($subRol); ?>" readonly tabindex="-1" aria-label="Rol de usuario (solo lectura)">
+                                </div>
+
+                                <div class="perfil-campo" data-campo="id_usuario">
+                                    <span class="perfil-campo-label">ID de usuario</span>
+                                    <span class="perfil-campo-valor">#<?php echo htmlspecialchars($perfil['id_usuario'] ?? ''); ?></span>
+                                    <input type="text" class="perfil-input perfil-input-inline" id="perfil_id_usuario"
+                                        value="#<?php echo htmlspecialchars($perfil['id_usuario'] ?? ''); ?>" readonly tabindex="-1" aria-label="ID de usuario (solo lectura)">
+                                </div>
+
+                            </div>
+
+                        </section>
+
                     </div>
                 </div>
 
             </div>
         </main>
-
-    </div>
-
-    <!-- MODAL CAMBIAR CONTRASEÑA -->
-    <div class="modal fade modal-idealo" id="modalCambiarContrasena" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-sm icono-gris" alt="Cambiar contraseña">
-                        <span>Cambiar Contraseña</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formCambiarContrasena" class="needs-validation" novalidate>
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Contraseña Actual</label>
-                                <input type="password" class="form-control" id="contrasena_actual" name="contrasena_actual" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Nueva Contraseña</label>
-                                <input type="password" class="form-control" id="contrasena_nueva" name="contrasena_nueva" minlength="6" placeholder="Mínimo 6 caracteres" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Confirmar Nueva Contraseña</label>
-                                <input type="password" class="form-control" id="confirmar_contrasena_nueva" minlength="6" placeholder="Repite la nueva contraseña" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Actualizar Contraseña</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL EDITAR PERFIL -->
-    <div class="modal fade modal-idealo" id="modalEditarPerfil" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title d-flex align-items-center gap-2">
-                        <img src="assets/Img/Iconos/pencil-square.svg" class="icono-svg icono-sm icono-gris" alt="Editar perfil">
-                        <span>Editar Perfil</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formEditarPerfil" class="needs-validation" novalidate>
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Nombre de Usuario</label>
-                                <input type="text" class="form-control" id="perfil_nombre_usuario" name="nombre_usuario" maxlength="20" required>
-                                <small class="text-muted">Entre 3 y 20 caracteres (letras, números o guiones bajos).</small>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Correo Electrónico</label>
-                                <input type="email" class="form-control" id="perfil_correo" name="correo" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Guardar Cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- MODAL RECORTAR FOTO -->
     <div class="modal fade modal-idealo" id="modalRecortarFoto" tabindex="-1" aria-labelledby="tituloRecortarFoto" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -270,6 +222,45 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" id="btnConfirmarRecorte" disabled>Confirmar Foto</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CAMBIAR CONTRASEÑA -->
+    <div class="modal fade modal-idealo" id="modalCambiarContrasena" tabindex="-1" aria-labelledby="tituloCambiarContrasena" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="tituloCambiarContrasena">
+                        <img src="assets/Img/Iconos/key.svg" class="icono-svg icono-md icono-verde" alt="">
+                        <span>Cambiar Contraseña</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="formCambiarContrasena" novalidate>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="contrasena_actual">Contraseña actual</label>
+                            <input type="password" class="form-control" id="contrasena_actual" name="contrasena_actual"
+                                autocomplete="current-password" placeholder="Ingresa tu contraseña actual" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="contrasena_nueva">Nueva contraseña</label>
+                            <input type="password" class="form-control" id="contrasena_nueva" name="contrasena_nueva"
+                                minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="confirmar_contrasena_nueva">Confirmar nueva contraseña</label>
+                            <input type="password" class="form-control" id="confirmar_contrasena_nueva"
+                                name="confirmar_contrasena_nueva" minlength="6" autocomplete="new-password"
+                                placeholder="Repite la nueva contraseña" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-idealo-success" id="btnGuardarContrasena">Guardar Contraseña</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -1,26 +1,15 @@
 import $ from 'jquery';
-import { successAlert, errorAlert, statusAlert } from './helpers/alerts.js';
+import { successAlert, errorAlert } from './helpers/alerts.js';
+import { obtenerPatron } from './helpers/expresiones.js';
 import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
 
 $(function () {
     const URL_MODULO = 'index.php?controller=usuario';
     const FOTO_POR_DEFECTO = 'assets/Img/Iconos/person-fill.svg';
 
-    // Datos del modal de edición
-    function cargarPerfilEdicion() {
-        $('#perfil_nombre_usuario').val(String($('#perfilNombreUsuario').text()).trim());
-        $('#perfil_correo').val(String($('#perfilCorreo').text()).trim());
-    }
-
-    function actualizarPerfilEnPantalla() {
-        const nombre = $('#perfil_nombre_usuario').val();
-        const correo = $('#perfil_correo').val();
-
-        $('#perfilNombreUsuario, #perfilNombreH2').text(nombre);
-        $('#perfilCorreo').text(correo);
-    }
-
-    // Avatar
+    /* ======================================================================
+       Foto de perfil
+       ====================================================================== */
     function mostrarFotoPorDefecto() {
         $('#perfilAvatarImg')
             .attr('src', FOTO_POR_DEFECTO)
@@ -91,69 +80,210 @@ $(function () {
         });
     }
 
-    // Contraseña
-    $('#formCambiarContrasena').on('submit', async function (e) {
-        e.preventDefault();
+    /* ======================================================================
+       Utilidades de validación en línea
+       ====================================================================== */
+    function marcarError($campo, $mensaje, texto) {
+        $campo.addClass('campo-invalido').attr('aria-invalid', 'true');
+        $mensaje.text(texto).addClass('visible');
+    }
 
-        const nueva = $('#contrasena_nueva').val();
-        const confirmar = $('#confirmar_contrasena_nueva').val();
+    function limpiarErrores($contenedor) {
+        $contenedor.find('.perfil-input').removeClass('campo-invalido').removeAttr('aria-invalid');
+        $contenedor.find('.perfil-error').removeClass('visible').text('');
+    }
 
-        if (nueva !== confirmar) {
-            statusAlert('Contraseñas no coinciden', 'La nueva contraseña y su confirmación deben ser iguales.', 'warning');
-            return;
+    /* ======================================================================
+       Tarjeta: Datos Personales (edición en línea)
+       ====================================================================== */
+    const $tarjetaDatos = $('#tarjetaDatos');
+    const $btnDatos = $('#btnEditarPerfil');
+    const $nombreUsuario = $('#perfil_nombre_usuario');
+    const $correo = $('#perfil_correo');
+
+    function estaEditandoDatos() {
+        return $tarjetaDatos.hasClass('modo-edicion');
+    }
+
+    function ponerModoDatos(editar) {
+        $tarjetaDatos.toggleClass('modo-edicion', editar);
+        $btnDatos.find('.perfil-btn-texto').text(editar ? 'Guardar Cambios' : 'Editar Perfil');
+        limpiarErrores($tarjetaDatos);
+
+        if (editar) {
+            $nombreUsuario.val($('#perfilNombreUsuario').text().trim());
+            $correo.val($('#perfilCorreo').text().trim());
+            $nombreUsuario.trigger('focus');
+        }
+    }
+
+    function validarDatos() {
+        limpiarErrores($tarjetaDatos);
+
+        let valido = true;
+        const usuario = String($nombreUsuario.val() || '').trim();
+        const correo = String($correo.val() || '').trim();
+
+        if (!obtenerPatron('usuario').test(usuario)) {
+            marcarError($nombreUsuario, $('#error_nombre_usuario'), 'Usa entre 3 y 20 caracteres: letras, números o guion bajo.');
+            valido = false;
         }
 
-        const $form = $(this);
-
-        try {
-            const respuesta = await $.ajax({
-                url: URL_MODULO + '&action=cambiarContrasena',
-                type: 'POST',
-                data: new FormData(this),
-                processData: false,
-                contentType: false,
-                dataType: 'json'
-            });
-
-            if (respuesta.status === 'success') {
-                $('#modalCambiarContrasena').modal('hide');
-                $form[0].reset();
-                successAlert('¡Actualizado!', respuesta.message);
-            } else {
-                errorAlert('Error', respuesta.message);
-            }
-        } catch (error) {
-            errorAlert('Error', 'Error de comunicación con el servidor.');
+        if (!obtenerPatron('correo').test(correo)) {
+            marcarError($correo, $('#error_correo'), 'Ingresa un correo electrónico válido.');
+            valido = false;
         }
-    });
 
-    // Datos del perfil
-    $('#modalEditarPerfil').on('show.bs.modal', cargarPerfilEdicion);
+        return valido;
+    }
 
-    $('#formEditarPerfil').on('submit', async function (e) {
-        e.preventDefault();
+    async function guardarDatos() {
+        if (!validarDatos()) return;
+
+        const usuario = String($nombreUsuario.val() || '').trim();
+        const correo = String($correo.val() || '').trim();
+
+        $btnDatos.prop('disabled', true).find('.perfil-btn-texto').text('Guardando...');
 
         try {
             const respuesta = await $.ajax({
                 url: URL_MODULO + '&action=actualizarPerfil',
                 type: 'POST',
-                data: new FormData(this),
-                processData: false,
-                contentType: false,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    nombre_usuario: usuario,
+                    correo: correo
+                }
             });
 
-            if (respuesta.status === 'success') {
-                $('#modalEditarPerfil').modal('hide');
-                actualizarPerfilEnPantalla();
-                successAlert('¡Actualizado!', respuesta.message);
-            } else {
-                errorAlert('Error', respuesta.message);
+            if (respuesta.status !== 'success') {
+                await errorAlert('Error', respuesta.message || 'No se pudo actualizar el perfil.');
+                return;
             }
+
+            $('#perfilNombreUsuario').text(usuario);
+            $('#perfilCorreo').text(correo);
+            $('#perfilUsuario').text('@' + usuario);
+
+            if ($('#perfilNombreH2').data('usa-usuario')) {
+                $('#perfilNombreH2').text(usuario);
+            }
+
+            ponerModoDatos(false);
+            await successAlert('¡Actualizado!', respuesta.message);
         } catch (error) {
-            errorAlert('Error', 'Error de comunicación con el servidor.');
+            await errorAlert('Error', 'Error de comunicación con el servidor.');
+        } finally {
+            $btnDatos
+                .prop('disabled', false)
+                .find('.perfil-btn-texto')
+                .text(estaEditandoDatos() ? 'Guardar Cambios' : 'Editar Perfil');
+        }
+    }
+
+    $btnDatos.on('click', function () {
+        if (estaEditandoDatos()) {
+            guardarDatos();
+        } else {
+            ponerModoDatos(true);
         }
     });
 
+    $tarjetaDatos.on('keydown', '.perfil-input-inline', function (e) {
+        if (e.key === 'Enter' && estaEditandoDatos()) {
+            e.preventDefault();
+            guardarDatos();
+        }
+    });
+
+    /* ======================================================================
+       Modal: Cambiar contraseña
+       ====================================================================== */
+    const $modalContrasena = $('#modalCambiarContrasena');
+    const $formContrasena = $('#formCambiarContrasena');
+    const $btnGuardarContrasena = $('#btnGuardarContrasena');
+
+    function limpiarFormularioContrasena() {
+        if (!$formContrasena.length) return;
+        $formContrasena[0].reset();
+        $formContrasena.find('.form-control').removeClass('is-invalid');
+    }
+
+    function validarContrasena() {
+        const actual = String($('#contrasena_actual').val() || '');
+        const nueva = String($('#contrasena_nueva').val() || '');
+        const confirmar = String($('#confirmar_contrasena_nueva').val() || '');
+
+        $formContrasena.find('.form-control').removeClass('is-invalid');
+
+        if (actual.trim() === '') {
+            $('#contrasena_actual').addClass('is-invalid').trigger('focus');
+            return 'Ingresa tu contraseña actual.';
+        }
+
+        if (nueva.length < 6) {
+            $('#contrasena_nueva').addClass('is-invalid').trigger('focus');
+            return 'La nueva contraseña debe tener al menos 6 caracteres.';
+        }
+
+        if (confirmar === '' || confirmar !== nueva) {
+            $('#confirmar_contrasena_nueva').addClass('is-invalid').trigger('focus');
+            return 'La confirmación no coincide con la nueva contraseña.';
+        }
+
+        return null;
+    }
+
+    async function guardarContrasena() {
+        const error = validarContrasena();
+        if (error) {
+            await errorAlert('Revisa los datos', error);
+            return;
+        }
+
+        $btnGuardarContrasena.prop('disabled', true).text('Guardando...');
+
+        try {
+            const respuesta = await $.ajax({
+                url: URL_MODULO + '&action=cambiarContrasena',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    contrasena_actual: String($('#contrasena_actual').val() || ''),
+                    contrasena_nueva: String($('#contrasena_nueva').val() || '')
+                }
+            });
+
+            if (respuesta.status !== 'success') {
+                await errorAlert('Error', respuesta.message || 'No se pudo actualizar la contraseña.');
+                return;
+            }
+
+            const modal = bootstrap.Modal.getInstance($modalContrasena[0]);
+            if (modal) modal.hide();
+
+            limpiarFormularioContrasena();
+            await successAlert('¡Actualizado!', respuesta.message);
+        } catch (error) {
+            await errorAlert('Error', 'Error de comunicación con el servidor.');
+        } finally {
+            $btnGuardarContrasena.prop('disabled', false).text('Guardar Contraseña');
+        }
+    }
+
+    $formContrasena.on('submit', function (e) {
+        e.preventDefault();
+        guardarContrasena();
+    });
+
+    $modalContrasena.on('show.bs.modal', limpiarFormularioContrasena);
+
+    $modalContrasena.on('shown.bs.modal', function () {
+        $('#contrasena_actual').trigger('focus');
+    });
+
+    /* ======================================================================
+       Inicialización
+       ====================================================================== */
     iniciarFotoPerfil();
 });

@@ -7,6 +7,7 @@ require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
 
 use Idealo\Config\Database;
 use Idealo\Helpers\ImagenPerfilHelper;
+use PDO;
 use PDOException;
 use Exception;
 
@@ -32,7 +33,7 @@ class UsuarioModel extends Database
                     ORDER BY id_rol ASC";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute();
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al listar roles: ' . $error->getMessage());
             return [];
@@ -56,7 +57,7 @@ class UsuarioModel extends Database
                     ORDER BY u.id_usuario DESC";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute();
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al listar usuarios: ' . $error->getMessage());
             return [];
@@ -249,7 +250,7 @@ class UsuarioModel extends Database
                     LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':id_usuario' => $idUsuario]);
-            $perfil = $stmt->fetch();
+            $perfil = $stmt->fetch(PDO::FETCH_ASSOC);
             return $perfil ?: null;
         } catch (PDOException $error) {
             error_log('Error al obtener el perfil del usuario: ' . $error->getMessage());
@@ -263,7 +264,7 @@ class UsuarioModel extends Database
             $sql = "SELECT contrasena FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':id_usuario' => $idUsuario]);
-            $fila = $stmt->fetch();
+            $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$fila) {
                 throw new Exception("[Validación] El usuario no existe.");
@@ -471,7 +472,7 @@ class UsuarioModel extends Database
                 $stmt->execute([':nombre' => $nombre]);
             }
 
-            return (bool)$stmt->fetch();
+            return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al verificar el nombre de usuario: ' . $error->getMessage());
             throw new Exception('No se pudo verificar el nombre de usuario. Intente nuevamente.');
@@ -501,7 +502,7 @@ class UsuarioModel extends Database
                 $stmt->execute([':correo' => $correo]);
             }
 
-            return (bool)$stmt->fetch();
+            return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al verificar el correo del usuario: ' . $error->getMessage());
             throw new Exception('No se pudo verificar el correo electrónico. Intente nuevamente.');
@@ -517,7 +518,7 @@ class UsuarioModel extends Database
                     LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':correo' => $correo]);
-            $resultado = $stmt->fetch();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
             return $resultado ?: null;
         } catch (PDOException $error) {
             error_log('Error al obtener el usuario por correo: ' . $error->getMessage());
@@ -535,7 +536,7 @@ class UsuarioModel extends Database
                     LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':credencial1' => $credencial, ':credencial2' => $credencial]);
-            $resultado = $stmt->fetch();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
             return $resultado ?: null;
         } catch (PDOException $error) {
             error_log('Error al obtener el usuario por credencial: ' . $error->getMessage());
@@ -553,7 +554,7 @@ class UsuarioModel extends Database
                     LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':id_usuario' => $idUsuario]);
-            $resultado = $stmt->fetch();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
             return $resultado ?: null;
         } catch (PDOException $error) {
             error_log('Error al obtener el usuario por id: ' . $error->getMessage());
@@ -570,7 +571,7 @@ class UsuarioModel extends Database
             $sql = "SELECT id_rol FROM roles WHERE id_rol = :id_rol LIMIT 1";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute([':id_rol' => $idRol]);
-            return (bool)$stmt->fetch();
+            return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al verificar el rol: ' . $error->getMessage());
             throw new Exception('No se pudo verificar el rol seleccionado. Intente nuevamente.');
@@ -605,7 +606,7 @@ class UsuarioModel extends Database
                     ORDER BY e.nombres ASC, e.apellidos ASC";
             $stmt = $this->conex->prepare($sql);
             $stmt->execute();
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
             error_log('Error al listar empleados para vincular: ' . $error->getMessage());
             return [];
@@ -648,14 +649,3 @@ class UsuarioModel extends Database
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-

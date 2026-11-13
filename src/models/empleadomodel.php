@@ -151,6 +151,7 @@ class EmpleadoModel extends Database
             $foto = $consulta->fetchColumn();
             return $foto ?: null;
         } catch (PDOException $error) {
+            error_log('Error al obtener la foto del empleado: ' . $error->getMessage());
             return null;
         }
     }
@@ -195,7 +196,8 @@ class EmpleadoModel extends Database
             $consulta->execute();
             return $consulta->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al consultar los empleados: ' . $error->getMessage());
+            return array("error" => "No se pudieron consultar los empleados. Intente nuevamente.");
         }
     }
 
@@ -233,7 +235,8 @@ class EmpleadoModel extends Database
                 "id" => $db->lastInsertId()
             );
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al registrar el empleado: ' . $error->getMessage());
+            return array("error" => "No se pudo registrar el empleado. Intente nuevamente.");
         }
     }
 
@@ -256,7 +259,8 @@ class EmpleadoModel extends Database
 
             return array("existoso" => "Registro actualizado.");
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al actualizar el empleado: ' . $error->getMessage());
+            return array("error" => "No se pudo actualizar el empleado. Intente nuevamente.");
         }
     }
 
@@ -271,7 +275,8 @@ class EmpleadoModel extends Database
 
             return array("existoso" => "Estado cambiado.");
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al cambiar el estado del empleado: ' . $error->getMessage());
+            return array("error" => "No se pudo cambiar el estado del empleado. Intente nuevamente.");
         }
     }
 
@@ -293,7 +298,8 @@ class EmpleadoModel extends Database
             $consulta->execute();
             return $consulta->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al listar los usuarios para vincular: ' . $error->getMessage());
+            return array("error" => "No se pudieron consultar los usuarios. Intente nuevamente.");
         }
     }
 
@@ -326,7 +332,8 @@ class EmpleadoModel extends Database
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
-            return array("error" => $error->getMessage());
+            error_log('Error al vincular el usuario: ' . $error->getMessage());
+            return array("error" => "No se pudo vincular el usuario. Intente nuevamente.");
         }
     }
 
@@ -341,7 +348,8 @@ class EmpleadoModel extends Database
             $stmt->execute([intval($idEmpleado)]);
             return array("existoso" => "Vínculo con el usuario eliminado.");
         } catch (PDOException $error) {
-            return array("error" => $error->getMessage());
+            error_log('Error al desvincular el usuario: ' . $error->getMessage());
+            return array("error" => "No se pudo desvincular el usuario. Intente nuevamente.");
         }
     }
 }

@@ -7,7 +7,6 @@ require_once __DIR__ . '/../../config/database.php';
 use Idealo\Config\Database;
 use PDO;
 use PDOException;
-use Exception;
 
 class ProductoModel extends Database
 {
@@ -77,6 +76,7 @@ class ProductoModel extends Database
 
             return $lista;
         } catch (PDOException $error) {
+            error_log('Error al listar los productos: ' . $error->getMessage());
             return [];
         }
     }
@@ -123,6 +123,7 @@ class ProductoModel extends Database
 
             return $lista;
         } catch (PDOException $error) {
+            error_log('Error al listar los productos: ' . $error->getMessage());
             return [];
         }
     }
@@ -175,8 +176,9 @@ class ProductoModel extends Database
             } else {
                 return $this->actualizarTransaccional();
             }
-        } catch (Exception $error) {
-            return ["error" => $error->getMessage()];
+        } catch (PDOException $error) {
+            error_log('Error al procesar el producto: ' . $error->getMessage());
+            return ["error" => 'No se pudo procesar el producto. Intente nuevamente.'];
         }
     }
 
@@ -237,11 +239,12 @@ class ProductoModel extends Database
 
             $this->conex->commit();
             return ["success" => true];
-        } catch (Exception $error) {
+        } catch (PDOException $error) {
             if ($this->conex->inTransaction()) {
                 $this->conex->rollBack();
             }
-            return ["error" => "Error en el registro transaccional: " . $error->getMessage()];
+            error_log('Error en el registro transaccional del producto: ' . $error->getMessage());
+            return ["error" => 'No se pudo registrar el producto. Intente nuevamente.'];
         }
     }
 
@@ -332,11 +335,12 @@ class ProductoModel extends Database
 
             $this->conex->commit();
             return ["success" => true];
-        } catch (Exception $error) {
+        } catch (PDOException $error) {
             if ($this->conex->inTransaction()) {
                 $this->conex->rollBack();
             }
-            return ["error" => "Error al actualizar: " . $error->getMessage()];
+            error_log('Error al actualizar el producto: ' . $error->getMessage());
+            return ["error" => 'No se pudo actualizar el producto. Intente nuevamente.'];
         }
     }
 
@@ -355,11 +359,12 @@ class ProductoModel extends Database
 
             $this->conex->commit();
             return ["success" => true];
-        } catch (Exception $error) {
+        } catch (PDOException $error) {
             if ($this->conex->inTransaction()) {
                 $this->conex->rollBack();
             }
-            return ["error" => $error->getMessage()];
+            error_log('Error al cambiar el estado del producto: ' . $error->getMessage());
+            return ["error" => 'No se pudo cambiar el estado del producto. Intente nuevamente.'];
         }
     }
 }

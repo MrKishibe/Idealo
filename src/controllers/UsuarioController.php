@@ -13,11 +13,6 @@ use Idealo\Models\UsuarioModel;
 $action = $_GET['action'] ?? 'listar';
 
 if ($action === 'listar') {
-    $usuarioModel = new UsuarioModel();
-
-    $usuarios = $usuarioModel->listarTodos();
-    $roles = $usuarioModel->listarRoles();
-
     require_once __DIR__ . '/../view/usuario/listar.php';
     exit();
 }
@@ -42,6 +37,27 @@ if ($action === 'listarUsuariosAjax') {
         echo json_encode([
             'status' => 'success',
             'usuarios' => $usuarios
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+if ($action === 'listarRolesAjax') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $usuarioModel = new UsuarioModel();
+        $roles = $usuarioModel->listarRoles();
+
+        echo json_encode([
+            'status' => 'success',
+            'roles' => $roles
         ]);
         exit();
     } catch (Throwable $e) {

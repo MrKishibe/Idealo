@@ -209,6 +209,37 @@ $(function () {
         }
     }
 
+    function cargarRoles() {
+        const $selects = $('#reg_id_rol, #edit_activo_id_rol');
+        if (!$selects.length) return;
+
+        $.ajax({ url: URL + '&action=listarRolesAjax', dataType: 'json' })
+            .done(function (respuesta) {
+                if (!respuesta || respuesta.status !== 'success') return;
+
+                const roles = respuesta.roles || [];
+
+                $selects.each(function () {
+                    const $select = $(this);
+                    const valorActual = $select.val();
+
+                    $select.empty()
+                        .append($('<option>', { value: '', text: 'Seleccione un rol' }));
+
+                    $.each(roles, function (_, rol) {
+                        const nombre = String(rol.tipo_de_usuario || '');
+
+                        $select.append($('<option>', {
+                            value: rol.id_rol,
+                            text: nombre.charAt(0).toUpperCase() + nombre.slice(1)
+                        }));
+                    });
+
+                    if (valorActual) $select.val(valorActual);
+                });
+            });
+    }
+
     function cargarEmpleados($select, usuarioActual, esEdicion, preseleccionado) {
         $select.html('<option value="">Cargando...</option>');
 
@@ -458,6 +489,7 @@ $(function () {
     });
 
     iniciarFotosUsuario();
+    cargarRoles();
 
     // Tabla
     tabla = $('#tablaUsuarios').DataTable({

@@ -1,8 +1,3 @@
-<?php
-if (!isset($empleados)) {
-    $empleados = [];
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -53,75 +48,7 @@ if (!isset($empleados)) {
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php if (is_array($empleados)): ?>
-                                <?php foreach ($empleados as $emp):
-                                    $nombreCompleto = $emp['nombres'] . ' ' . $emp['apellidos'];
-                                    $estadoReal = strtolower($emp['status_empleado'] ?? 'activo');
-                                    $fotoEmpleado = trim($emp['foto'] ?? '');
-                                ?>
-                                    <tr id="fila-<?php echo $emp['id_empleado']; ?>" data-estado="<?php echo $estadoReal; ?>">
-                                        <td class="fw-bold"><?php echo htmlspecialchars($emp['cedula']); ?></td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <?php if ($fotoEmpleado): ?>
-                                                    <button type="button" class="empleado-avatar empleado-avatar-ver"
-                                                        data-foto="<?php echo htmlspecialchars($fotoEmpleado); ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>"
-                                                        title="Ver foto de <?php echo htmlspecialchars($nombreCompleto); ?>"
-                                                        aria-label="Ver foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <img src="<?php echo htmlspecialchars($fotoEmpleado); ?>" alt="Foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                    </button>
-                                                <?php else: ?>
-                                                    <span class="empleado-avatar">
-                                                        <img src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Foto de <?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                    </span>
-                                                <?php endif; ?>
-                                                <div>
-                                                    <div class="fw-bold text-dark"><?php echo htmlspecialchars($nombreCompleto); ?></div>
-                                                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i><?php echo htmlspecialchars($emp['direccion'] ?: 'Sin dirección'); ?></small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($emp['telefono'] ?: 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($emp['cargo']); ?></td>
-                                        <td class="text-success fw-bold">$<?php echo number_format((float)$emp['salario'], 2, '.', ''); ?></td>
-                                        <td>
-                                            <span class="badge <?php echo $estadoReal === 'activo' ? 'bg-success' : 'bg-danger'; ?>"><?php echo ucfirst($estadoReal); ?></span>
-                                        </td>
-                                        <td>
-                                            <div class="text-center d-flex justify-content-center gap-1">
-                                                <?php if ($estadoReal === 'activo'): ?>
-                                                    <button class="btn btn-sm btn-outline-primary btnEditarActivo"
-                                                        data-id="<?php echo $emp['id_empleado']; ?>"
-                                                        data-cedula="<?php echo htmlspecialchars($emp['cedula']); ?>"
-                                                        data-nombres="<?php echo htmlspecialchars($emp['nombres']); ?>"
-                                                        data-apellidos="<?php echo htmlspecialchars($emp['apellidos']); ?>"
-                                                        data-telefono="<?php echo htmlspecialchars($emp['telefono'] ?? ''); ?>"
-                                                        data-direccion="<?php echo htmlspecialchars($emp['direccion'] ?? ''); ?>"
-                                                        data-cargo="<?php echo htmlspecialchars($emp['cargo']); ?>"
-                                                        data-salario="<?php echo htmlspecialchars($emp['salario']); ?>"
-                                                        data-usuario="<?php echo htmlspecialchars($emp['id_usuario_vinculado'] ?? ''); ?>">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger btnCambiarEstado"
-                                                        data-id="<?php echo $emp['id_empleado']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <i class="bi bi-trash3-fill"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button class="btn btn-sm btn-outline-warning btnEditarInactivo"
-                                                        data-id="<?php echo $emp['id_empleado']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($nombreCompleto); ?>">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>

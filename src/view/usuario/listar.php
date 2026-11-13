@@ -1,11 +1,3 @@
-<?php
-if (!isset($usuarios)) {
-    $usuarios = [];
-}
-if (!isset($roles)) {
-    $roles = [];
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -57,72 +49,7 @@ if (!isset($roles)) {
                                 <th class="text-center">ACCIONES</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php if (is_array($usuarios)): ?>
-                                <?php foreach ($usuarios as $user):
-                                    $estadoReal = strtolower($user['status_usuario'] ?? 'activo');
-                                    $fotoUsuario = trim($user['imagen'] ?? '');
-                                ?>
-                                    <tr id="fila-<?php echo $user['id_usuario']; ?>" data-estado="<?php echo $estadoReal; ?>">
-                                        <td class="fw-bold"><code>#<?php echo htmlspecialchars($user['id_usuario']); ?></code></td>
-                                        <td class="fw-bold text-dark">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <?php if ($fotoUsuario): ?>
-                                                    <button type="button" class="empleado-avatar empleado-avatar-ver"
-                                                        data-foto="<?php echo htmlspecialchars($fotoUsuario); ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        title="Ver foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        aria-label="Ver foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
-                                                        <img src="<?php echo htmlspecialchars($fotoUsuario); ?>" alt="Foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
-                                                    </button>
-                                                <?php else: ?>
-                                                    <span class="empleado-avatar">
-                                                        <img src="assets/Img/Iconos/person-fill.svg" class="es-icono" alt="Foto de <?php echo htmlspecialchars($user['nombre_usuario']); ?>">
-                                                    </span>
-                                                <?php endif; ?>
-                                                <span><?php echo htmlspecialchars($user['nombre_usuario']); ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="text-muted small"><?php echo htmlspecialchars($user['correo'] ?? ''); ?></td>
-                                        <td>
-                                            <span class="badge bg-light text-primary border px-2 py-1" style="font-weight: 600; font-size: 12px; border-radius: 6px;">
-                                                <i class="bi bi-shield-lock me-1"></i><?php echo htmlspecialchars(ucfirst($user['tipo_de_usuario'] ?? 'Sin rol')); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?php echo $estadoReal === 'activo' ? 'bg-success' : 'bg-danger'; ?>">
-                                                <?php echo ucfirst($estadoReal); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="text-center d-flex justify-content-center gap-1">
-                                                <?php if ($estadoReal === 'activo'): ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo"
-                                                        data-id="<?php echo $user['id_usuario']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        title="Editar Usuario">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado"
-                                                        data-id="<?php echo $user['id_usuario']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        title="Inactivar Usuario">
-                                                        <i class="bi bi-trash3-fill"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo"
-                                                        data-id="<?php echo $user['id_usuario']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($user['nombre_usuario']); ?>"
-                                                        title="Reactivar Usuario">
-                                                        <i class="bi bi-arrow-counterclockwise"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -160,9 +87,6 @@ if (!isset($roles)) {
                                 <label class="form-label">Rol de Permisos</label>
                                 <select class="form-select" id="reg_id_rol" name="id_rol" required>
                                     <option value="">Seleccione un rol</option>
-                                    <?php foreach ($roles as $rol): ?>
-                                        <option value="<?php echo $rol['id_rol']; ?>"><?php echo htmlspecialchars(ucfirst($rol['tipo_de_usuario'])); ?></option>
-                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -246,9 +170,6 @@ if (!isset($roles)) {
                                 <label class="form-label">Rol de Permisos</label>
                                 <select class="form-select" id="edit_activo_id_rol" name="id_rol" required>
                                     <option value="">Seleccione un rol</option>
-                                    <?php foreach ($roles as $rol): ?>
-                                        <option value="<?php echo $rol['id_rol']; ?>"><?php echo htmlspecialchars(ucfirst($rol['tipo_de_usuario'])); ?></option>
-                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="col-12">

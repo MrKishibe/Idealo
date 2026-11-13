@@ -12,9 +12,6 @@ use Idealo\Models\ProductoModel;
 $action = $_GET['action'] ?? 'listar';
 
 if ($action === 'listar') {
-    $productoModel = new ProductoModel();
-    $productos = $productoModel->listarTodos();
-
     require_once __DIR__ . '/../view/producto/listar.php';
     exit();
 }

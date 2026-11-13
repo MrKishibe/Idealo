@@ -7,6 +7,7 @@ require_once __DIR__ . '/../helpers/ImagenPerfilHelper.php';
 
 use Idealo\Config\Database;
 use Idealo\Helpers\ImagenPerfilHelper;
+use PDOException;
 use Exception;
 
 class UsuarioModel extends Database
@@ -24,32 +25,42 @@ class UsuarioModel extends Database
 
     public function listarRoles(): array
     {
-        $sql = "SELECT id_rol, tipo_de_usuario
-                FROM roles
-                WHERE status_roles = 'activo'
-                ORDER BY id_rol ASC";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll();
+        try {
+            $sql = "SELECT id_rol, tipo_de_usuario
+                    FROM roles
+                    WHERE status_roles = 'activo'
+                    ORDER BY id_rol ASC";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (PDOException $error) {
+            error_log('Error al listar roles: ' . $error->getMessage());
+            return [];
+        }
     }
 
     public function listarTodos(): array
     {
-        $sql = "SELECT u.id_usuario,
-                       u.nombre_usuario,
-                       u.correo,
-                       u.imagen,
-                       u.status_usuario,
-                       u.id_rol,
-                       r.tipo_de_usuario,
-                       ae.id_empleado AS id_empleado_vinculado
-                FROM usuario u
-                LEFT JOIN roles r ON u.id_rol = r.id_rol
-                LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
-                ORDER BY u.id_usuario DESC";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll();
+        try {
+            $sql = "SELECT u.id_usuario,
+                           u.nombre_usuario,
+                           u.correo,
+                           u.imagen,
+                           u.status_usuario,
+                           u.id_rol,
+                           r.tipo_de_usuario,
+                           ae.id_empleado AS id_empleado_vinculado
+                    FROM usuario u
+                    LEFT JOIN roles r ON u.id_rol = r.id_rol
+                    LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
+                    ORDER BY u.id_usuario DESC";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (PDOException $error) {
+            error_log('Error al listar usuarios: ' . $error->getMessage());
+            return [];
+        }
     }
 
     public function guardar(array $datos): array
@@ -82,21 +93,26 @@ class UsuarioModel extends Database
 
         $hash = password_hash($contrasena, PASSWORD_BCRYPT);
 
-        $sql = "INSERT INTO usuario (nombre_usuario, correo, contrasena, status_usuario, id_rol)
-                VALUES (:nombre_usuario, :correo, :contrasena, 'activo', :id_rol)";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':nombre_usuario' => $nombreUsuario,
-            ':correo'         => $correo,
-            ':contrasena'     => $hash,
-            ':id_rol'         => $idRol
-        ]);
+        try {
+            $sql = "INSERT INTO usuario (nombre_usuario, correo, contrasena, status_usuario, id_rol)
+                    VALUES (:nombre_usuario, :correo, :contrasena, 'activo', :id_rol)";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':nombre_usuario' => $nombreUsuario,
+                ':correo'         => $correo,
+                ':contrasena'     => $hash,
+                ':id_rol'         => $idRol
+            ]);
 
-        return [
-            'success'    => true,
-            'message'    => 'Usuario registrado con éxito.',
-            'id_usuario' => (int)$this->conex->lastInsertId()
-        ];
+            return [
+                'success'    => true,
+                'message'    => 'Usuario registrado con éxito.',
+                'id_usuario' => (int)$this->conex->lastInsertId()
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al guardar usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo registrar el usuario. Intente nuevamente.');
+        }
     }
 
     public function editar(array $datos): array
@@ -161,13 +177,18 @@ class UsuarioModel extends Database
             ];
         }
 
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute($params);
+        try {
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute($params);
 
-        return [
-            'success' => true,
-            'message' => 'Usuario actualizado con éxito.'
-        ];
+            return [
+                'success' => true,
+                'message' => 'Usuario actualizado con éxito.'
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al editar usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo actualizar el usuario. Intente nuevamente.');
+        }
     }
 
     public function cambiarEstado(int $id, string $estado): array
@@ -181,94 +202,114 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] El estado del usuario no es válido.");
         }
 
-        $sql = "UPDATE usuario
-                SET status_usuario = :estado
-                WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':estado'      => $estado,
-            ':id_usuario'  => $id
-        ]);
+        try {
+            $sql = "UPDATE usuario
+                    SET status_usuario = :estado
+                    WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':estado'      => $estado,
+                ':id_usuario'  => $id
+            ]);
 
-        $mensaje = $estado === 'activo'
-            ? 'Usuario activado con éxito.'
-            : 'Usuario inactivado con éxito.';
+            $mensaje = $estado === 'activo'
+                ? 'Usuario activado con éxito.'
+                : 'Usuario inactivado con éxito.';
 
-        return [
-            'success' => true,
-            'message' => $mensaje
-        ];
+            return [
+                'success' => true,
+                'message' => $mensaje
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al cambiar el estado del usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo cambiar el estado del usuario. Intente nuevamente.');
+        }
     }
 
     public function obtenerPerfil(int $idUsuario): ?array
     {
-        $sql = "SELECT u.id_usuario,
-                       u.nombre_usuario,
-                       u.correo,
-                       u.imagen,
-                       u.status_usuario,
-                       u.id_rol,
-                       r.tipo_de_usuario,
-                       e.nombres,
-                       e.apellidos,
-                       e.cedula,
-                       e.telefono,
-                       e.cargo
-                FROM usuario u
-                LEFT JOIN roles r ON u.id_rol = r.id_rol
-                LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
-                LEFT JOIN empleado e ON ae.id_empleado = e.id_empleado
-                WHERE u.id_usuario = :id_usuario
-                LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':id_usuario' => $idUsuario]);
-        $perfil = $stmt->fetch();
-        return $perfil ?: null;
+        try {
+            $sql = "SELECT u.id_usuario,
+                           u.nombre_usuario,
+                           u.correo,
+                           u.imagen,
+                           u.status_usuario,
+                           u.id_rol,
+                           r.tipo_de_usuario,
+                           e.nombres,
+                           e.apellidos,
+                           e.cedula,
+                           e.telefono,
+                           e.cargo
+                    FROM usuario u
+                    LEFT JOIN roles r ON u.id_rol = r.id_rol
+                    LEFT JOIN acceso_empleado ae ON ae.id_usuario = u.id_usuario
+                    LEFT JOIN empleado e ON ae.id_empleado = e.id_empleado
+                    WHERE u.id_usuario = :id_usuario
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':id_usuario' => $idUsuario]);
+            $perfil = $stmt->fetch();
+            return $perfil ?: null;
+        } catch (PDOException $error) {
+            error_log('Error al obtener el perfil del usuario: ' . $error->getMessage());
+            return null;
+        }
     }
 
     public function cambiarContrasena(int $idUsuario, string $contrasenaActual, string $nuevaContrasena): array
     {
-        $sql = "SELECT contrasena FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':id_usuario' => $idUsuario]);
-        $fila = $stmt->fetch();
+        try {
+            $sql = "SELECT contrasena FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':id_usuario' => $idUsuario]);
+            $fila = $stmt->fetch();
 
-        if (!$fila) {
-            throw new Exception("[Validación] El usuario no existe.");
+            if (!$fila) {
+                throw new Exception("[Validación] El usuario no existe.");
+            }
+
+            if (!password_verify($contrasenaActual, $fila['contrasena'])) {
+                throw new Exception("[Validación] La contraseña actual es incorrecta.");
+            }
+
+            $this->validarContrasena($nuevaContrasena);
+
+            $hash = password_hash($nuevaContrasena, PASSWORD_BCRYPT);
+            $sql = "UPDATE usuario
+                    SET contrasena = :contrasena
+                    WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':contrasena' => $hash,
+                ':id_usuario' => $idUsuario
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Contraseña actualizada con éxito.'
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al cambiar la contraseña: ' . $error->getMessage());
+            throw new Exception('No se pudo cambiar la contraseña. Intente nuevamente.');
         }
-
-        if (!password_verify($contrasenaActual, $fila['contrasena'])) {
-            throw new Exception("[Validación] La contraseña actual es incorrecta.");
-        }
-
-        $this->validarContrasena($nuevaContrasena);
-
-        $hash = password_hash($nuevaContrasena, PASSWORD_BCRYPT);
-        $sql = "UPDATE usuario
-                SET contrasena = :contrasena
-                WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':contrasena' => $hash,
-            ':id_usuario' => $idUsuario
-        ]);
-
-        return [
-            'success' => true,
-            'message' => 'Contraseña actualizada con éxito.'
-        ];
     }
 
     public function cambiarContrasenaSimple(int $idUsuario, string $contrasena): bool
     {
         $this->validarContrasena($contrasena);
         $hash = password_hash($contrasena, PASSWORD_BCRYPT);
-        $sql = "UPDATE usuario SET contrasena = :contrasena WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        return (bool)$stmt->execute([
-            ':contrasena' => $hash,
-            ':id_usuario' => $idUsuario
-        ]);
+        try {
+            $sql = "UPDATE usuario SET contrasena = :contrasena WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            return (bool)$stmt->execute([
+                ':contrasena' => $hash,
+                ':id_usuario' => $idUsuario
+            ]);
+        } catch (PDOException $error) {
+            error_log('Error al cambiar la contraseña: ' . $error->getMessage());
+            throw new Exception('No se pudo cambiar la contraseña. Intente nuevamente.');
+        }
     }
 
     public function cambiarNombreUsuario(int $idUsuario, string $nuevoNombre): array
@@ -281,19 +322,24 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] El nombre de usuario '{$nuevoNombre}' ya está registrado.");
         }
 
-        $sql = "UPDATE usuario
-                SET nombre_usuario = :nombre_usuario
-                WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':nombre_usuario' => $nuevoNombre,
-            ':id_usuario'     => $idUsuario
-        ]);
+        try {
+            $sql = "UPDATE usuario
+                    SET nombre_usuario = :nombre_usuario
+                    WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':nombre_usuario' => $nuevoNombre,
+                ':id_usuario'     => $idUsuario
+            ]);
 
-        return [
-            'success' => true,
-            'message' => 'Perfil actualizado con éxito.'
-        ];
+            return [
+                'success' => true,
+                'message' => 'Perfil actualizado con éxito.'
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al cambiar el nombre de usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo actualizar el perfil. Intente nuevamente.');
+        }
     }
 
     /**
@@ -323,21 +369,26 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] El correo electrónico '{$nuevoCorreo}' ya está registrado.");
         }
 
-        $sql = "UPDATE usuario
-                SET nombre_usuario = :nombre_usuario,
-                    correo = :correo
-                WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':nombre_usuario' => $nuevoNombre,
-            ':correo'         => $nuevoCorreo,
-            ':id_usuario'     => $idUsuario
-        ]);
+        try {
+            $sql = "UPDATE usuario
+                    SET nombre_usuario = :nombre_usuario,
+                        correo = :correo
+                    WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':nombre_usuario' => $nuevoNombre,
+                ':correo'         => $nuevoCorreo,
+                ':id_usuario'     => $idUsuario
+            ]);
 
-        return [
-            'success' => true,
-            'message' => 'Perfil actualizado con éxito.'
-        ];
+            return [
+                'success' => true,
+                'message' => 'Perfil actualizado con éxito.'
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al actualizar el perfil: ' . $error->getMessage());
+            throw new Exception('No se pudo actualizar el perfil. Intente nuevamente.');
+        }
     }
 
     /**
@@ -349,12 +400,17 @@ class UsuarioModel extends Database
             return null;
         }
 
-        $sql = "SELECT imagen FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':id_usuario' => $idUsuario]);
-        $imagen = $stmt->fetchColumn();
+        try {
+            $sql = "SELECT imagen FROM usuario WHERE id_usuario = :id_usuario LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':id_usuario' => $idUsuario]);
+            $imagen = $stmt->fetchColumn();
 
-        return $imagen !== false && trim((string) $imagen) !== '' ? trim((string) $imagen) : null;
+            return $imagen !== false && trim((string) $imagen) !== '' ? trim((string) $imagen) : null;
+        } catch (PDOException $error) {
+            error_log('Error al obtener la imagen del usuario: ' . $error->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -371,108 +427,138 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] La ruta de la imagen no es válida.");
         }
 
-        $sql = "UPDATE usuario
-                SET imagen = :imagen
-                WHERE id_usuario = :id_usuario";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([
-            ':imagen'     => $ruta,
-            ':id_usuario' => $idUsuario
-        ]);
+        try {
+            $sql = "UPDATE usuario
+                    SET imagen = :imagen
+                    WHERE id_usuario = :id_usuario";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([
+                ':imagen'     => $ruta,
+                ':id_usuario' => $idUsuario
+            ]);
 
-        return [
-            'success' => true,
-            'message' => 'Foto de perfil actualizada con éxito.',
-            'imagen'  => $ruta
-        ];
+            return [
+                'success' => true,
+                'message' => 'Foto de perfil actualizada con éxito.',
+                'imagen'  => $ruta
+            ];
+        } catch (PDOException $error) {
+            error_log('Error al actualizar la imagen del usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo actualizar la foto de perfil. Intente nuevamente.');
+        }
     }
 
     public function existeNombreUsuario(string $nombre, ?int $exceptuarId = null): bool
     {
-        if ($exceptuarId !== null && $exceptuarId > 0) {
-            $sql = "SELECT id_usuario
-                    FROM usuario
-                    WHERE nombre_usuario = :nombre
-                      AND id_usuario <> :id
-                    LIMIT 1";
-            $stmt = $this->conex->prepare($sql);
-            $stmt->execute([
-                ':nombre' => $nombre,
-                ':id'     => $exceptuarId
-            ]);
-        } else {
-            $sql = "SELECT id_usuario
-                    FROM usuario
-                    WHERE nombre_usuario = :nombre
-                    LIMIT 1";
-            $stmt = $this->conex->prepare($sql);
-            $stmt->execute([':nombre' => $nombre]);
-        }
+        try {
+            if ($exceptuarId !== null && $exceptuarId > 0) {
+                $sql = "SELECT id_usuario
+                        FROM usuario
+                        WHERE nombre_usuario = :nombre
+                          AND id_usuario <> :id
+                        LIMIT 1";
+                $stmt = $this->conex->prepare($sql);
+                $stmt->execute([
+                    ':nombre' => $nombre,
+                    ':id'     => $exceptuarId
+                ]);
+            } else {
+                $sql = "SELECT id_usuario
+                        FROM usuario
+                        WHERE nombre_usuario = :nombre
+                        LIMIT 1";
+                $stmt = $this->conex->prepare($sql);
+                $stmt->execute([':nombre' => $nombre]);
+            }
 
-        return (bool)$stmt->fetch();
+            return (bool)$stmt->fetch();
+        } catch (PDOException $error) {
+            error_log('Error al verificar el nombre de usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo verificar el nombre de usuario. Intente nuevamente.');
+        }
     }
 
     public function existeCorreo(string $correo, ?int $exceptuarId = null): bool
     {
-        if ($exceptuarId !== null && $exceptuarId > 0) {
-            $sql = "SELECT id_usuario
-                    FROM usuario
-                    WHERE correo = :correo
-                      AND id_usuario <> :id
-                    LIMIT 1";
-            $stmt = $this->conex->prepare($sql);
-            $stmt->execute([
-                ':correo' => $correo,
-                ':id'     => $exceptuarId
-            ]);
-        } else {
-            $sql = "SELECT id_usuario
-                    FROM usuario
-                    WHERE correo = :correo
-                    LIMIT 1";
-            $stmt = $this->conex->prepare($sql);
-            $stmt->execute([':correo' => $correo]);
-        }
+        try {
+            if ($exceptuarId !== null && $exceptuarId > 0) {
+                $sql = "SELECT id_usuario
+                        FROM usuario
+                        WHERE correo = :correo
+                          AND id_usuario <> :id
+                        LIMIT 1";
+                $stmt = $this->conex->prepare($sql);
+                $stmt->execute([
+                    ':correo' => $correo,
+                    ':id'     => $exceptuarId
+                ]);
+            } else {
+                $sql = "SELECT id_usuario
+                        FROM usuario
+                        WHERE correo = :correo
+                        LIMIT 1";
+                $stmt = $this->conex->prepare($sql);
+                $stmt->execute([':correo' => $correo]);
+            }
 
-        return (bool)$stmt->fetch();
+            return (bool)$stmt->fetch();
+        } catch (PDOException $error) {
+            error_log('Error al verificar el correo del usuario: ' . $error->getMessage());
+            throw new Exception('No se pudo verificar el correo electrónico. Intente nuevamente.');
+        }
     }
 
     public function obtenerUsuarioPorCorreo(string $correo): ?array
     {
-        $sql = "SELECT id_usuario, nombre_usuario, correo, contrasena, status_usuario, id_rol
-                FROM usuario
-                WHERE correo = :correo AND status_usuario = 'activo'
-                LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':correo' => $correo]);
-        $resultado = $stmt->fetch();
-        return $resultado ?: null;
+        try {
+            $sql = "SELECT id_usuario, nombre_usuario, correo, contrasena, status_usuario, id_rol
+                    FROM usuario
+                    WHERE correo = :correo AND status_usuario = 'activo'
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':correo' => $correo]);
+            $resultado = $stmt->fetch();
+            return $resultado ?: null;
+        } catch (PDOException $error) {
+            error_log('Error al obtener el usuario por correo: ' . $error->getMessage());
+            return null;
+        }
     }
 
     public function obtenerPorCredencial(string $credencial): ?array
     {
-        $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
-                FROM usuario u
-                LEFT JOIN roles r ON u.id_rol = r.id_rol
-                WHERE (u.nombre_usuario = :credencial1 OR u.correo = :credencial2) AND u.status_usuario = 'activo'
-                LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':credencial1' => $credencial, ':credencial2' => $credencial]);
-        $resultado = $stmt->fetch();
-        return $resultado ?: null;
+        try {
+            $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
+                    FROM usuario u
+                    LEFT JOIN roles r ON u.id_rol = r.id_rol
+                    WHERE (u.nombre_usuario = :credencial1 OR u.correo = :credencial2) AND u.status_usuario = 'activo'
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':credencial1' => $credencial, ':credencial2' => $credencial]);
+            $resultado = $stmt->fetch();
+            return $resultado ?: null;
+        } catch (PDOException $error) {
+            error_log('Error al obtener el usuario por credencial: ' . $error->getMessage());
+            return null;
+        }
     }
 
     public function obtenerPorId(int $idUsuario): ?array
     {
-        $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
-                FROM usuario u
-                LEFT JOIN roles r ON u.id_rol = r.id_rol
-                WHERE u.id_usuario = :id_usuario
-                LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':id_usuario' => $idUsuario]);
-        $resultado = $stmt->fetch();
-        return $resultado ?: null;
+        try {
+            $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
+                    FROM usuario u
+                    LEFT JOIN roles r ON u.id_rol = r.id_rol
+                    WHERE u.id_usuario = :id_usuario
+                    LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':id_usuario' => $idUsuario]);
+            $resultado = $stmt->fetch();
+            return $resultado ?: null;
+        } catch (PDOException $error) {
+            error_log('Error al obtener el usuario por id: ' . $error->getMessage());
+            return null;
+        }
     }
 
     private function rolExiste(int $idRol): bool
@@ -480,10 +566,15 @@ class UsuarioModel extends Database
         if ($idRol <= 0) {
             return false;
         }
-        $sql = "SELECT id_rol FROM roles WHERE id_rol = :id_rol LIMIT 1";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute([':id_rol' => $idRol]);
-        return (bool)$stmt->fetch();
+        try {
+            $sql = "SELECT id_rol FROM roles WHERE id_rol = :id_rol LIMIT 1";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute([':id_rol' => $idRol]);
+            return (bool)$stmt->fetch();
+        } catch (PDOException $error) {
+            error_log('Error al verificar el rol: ' . $error->getMessage());
+            throw new Exception('No se pudo verificar el rol seleccionado. Intente nuevamente.');
+        }
     }
 
     private function validarNombreUsuario(string $nombre): void
@@ -506,14 +597,19 @@ class UsuarioModel extends Database
      */
     public function listarEmpleadosParaVincular(): array
     {
-        $sql = "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.status_empleado,
-                       ae.id_usuario AS id_usuario_vinculado
-                FROM empleado e
-                LEFT JOIN acceso_empleado ae ON ae.id_empleado = e.id_empleado
-                ORDER BY e.nombres ASC, e.apellidos ASC";
-        $stmt = $this->conex->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll();
+        try {
+            $sql = "SELECT e.id_empleado, e.nombres, e.apellidos, e.cedula, e.status_empleado,
+                           ae.id_usuario AS id_usuario_vinculado
+                    FROM empleado e
+                    LEFT JOIN acceso_empleado ae ON ae.id_empleado = e.id_empleado
+                    ORDER BY e.nombres ASC, e.apellidos ASC";
+            $stmt = $this->conex->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (PDOException $error) {
+            error_log('Error al listar empleados para vincular: ' . $error->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -526,11 +622,16 @@ class UsuarioModel extends Database
             throw new Exception("[Validación] Usuario o empleado inválido para vincular.");
         }
 
-        $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u OR id_empleado = :e");
-        $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
+        try {
+            $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u OR id_empleado = :e");
+            $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
 
-        $stmt = $this->conex->prepare("INSERT INTO acceso_empleado (id_usuario, id_empleado) VALUES (:u, :e)");
-        return $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
+            $stmt = $this->conex->prepare("INSERT INTO acceso_empleado (id_usuario, id_empleado) VALUES (:u, :e)");
+            return $stmt->execute([':u' => $idUsuario, ':e' => $idEmpleado]);
+        } catch (PDOException $error) {
+            error_log('Error al vincular el empleado: ' . $error->getMessage());
+            throw new Exception('No se pudo vincular el empleado. Intente nuevamente.');
+        }
     }
 
     /**
@@ -538,8 +639,13 @@ class UsuarioModel extends Database
      */
     public function desvincularEmpleado(int $idUsuario): bool
     {
-        $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u");
-        return $stmt->execute([':u' => $idUsuario]);
+        try {
+            $stmt = $this->conex->prepare("DELETE FROM acceso_empleado WHERE id_usuario = :u");
+            return $stmt->execute([':u' => $idUsuario]);
+        } catch (PDOException $error) {
+            error_log('Error al desvincular el empleado: ' . $error->getMessage());
+            throw new Exception('No se pudo desvincular el empleado. Intente nuevamente.');
+        }
     }
 }
 

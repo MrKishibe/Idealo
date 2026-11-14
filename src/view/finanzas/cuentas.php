@@ -84,7 +84,7 @@
                                 <option value="Ahorro">Ahorro</option>
                                 <option value="Zelle">Zelle</option>
                                 <option value="Pago Móvil">Pago Móvil</option>
-                                <option value="Binance Pay">Binance Pay</option>
+                                <option value="efectivo">Efectivo</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -173,7 +173,12 @@
 <script src="assets/libs/sweetalert2.all.min.js"></script>
 
 <script type="importmap">
-    {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js"}}
+    {
+        "imports": {
+            "jquery": "./assets/js/helpers/jquery-bridge.js",
+            "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
+        }
+    }
 </script>
 <script type="module" src="assets/js/finanzas.js"></script>
 </body>

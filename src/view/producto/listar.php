@@ -1,8 +1,3 @@
-<?php
-if (!isset($productos)) {
-    $productos = [];
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -54,71 +49,7 @@ if (!isset($productos)) {
                                 <th class="text-center">ACCIONES</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php if (is_array($productos)): ?>
-                                <?php foreach ($productos as $prod):
-                                    $estadoReal = strtolower($prod['status_producto'] ?? 'activo');
-                                    $tallasStr = !empty($prod['tallas_array']) ? implode(', ', $prod['tallas_array']) : '';
-                                ?>
-                                    <tr id="fila-<?php echo $prod['id_producto']; ?>" data-estado="<?php echo $estadoReal; ?>">
-                                        <td class="fw-bold"><code>#<?php echo htmlspecialchars($prod['id_producto']); ?></code></td>
-                                        <td class="fw-bold text-dark"><?php echo htmlspecialchars($prod['nombre_producto']); ?></td>
-                                        <td><?php echo htmlspecialchars($prod['tipo_de_producto']); ?></td>
-                                        <td><?php echo htmlspecialchars($prod['tipo_de_prenda'] ?? 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($prod['detalle_material'] ?? 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($prod['color'] ?? 'N/A'); ?></td>
-                                        <td>
-                                            <?php if (!empty($prod['tallas_array'])): ?>
-                                                <div class="d-flex flex-wrap gap-1">
-                                                    <?php foreach ($prod['tallas_array'] as $t): ?>
-                                                        <span class="badge bg-light text-primary border px-2 py-1" style="text-transform: uppercase;">
-                                                            <?php echo htmlspecialchars($t); ?>
-                                                        </span>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-muted small">Sin tallas</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?php echo $estadoReal === 'activo' ? 'bg-success' : 'bg-danger'; ?>">
-                                                <?php echo ucfirst($estadoReal); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="text-center">
-                                                <?php if ($estadoReal === 'activo'): ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo me-1"
-                                                        data-id="<?php echo $prod['id_producto']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
-                                                        data-tipo="<?php echo htmlspecialchars($prod['tipo_de_producto']); ?>"
-                                                        data-prenda="<?php echo htmlspecialchars($prod['tipo_de_prenda'] ?? ''); ?>"
-                                                        data-material="<?php echo htmlspecialchars($prod['detalle_material'] ?? ''); ?>"
-                                                        data-color="<?php echo htmlspecialchars($prod['color'] ?? ''); ?>"
-                                                        data-tallas="<?php echo htmlspecialchars($tallasStr); ?>"
-                                                        title="Editar Producto">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado"
-                                                        data-id="<?php echo $prod['id_producto']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
-                                                        title="Inactivar Producto">
-                                                        <i class="bi bi-trash3-fill"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo"
-                                                        data-id="<?php echo $prod['id_producto']; ?>"
-                                                        data-nombre="<?php echo htmlspecialchars($prod['nombre_producto']); ?>"
-                                                        title="Editar / Reactivar">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>

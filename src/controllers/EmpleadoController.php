@@ -291,16 +291,6 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     exit;
 }
 
-$empleados = EmpleadoModel::consultarEmpleados();
-
-if (is_array($empleados) && isset($empleados['error'])) {
-    die("Error Crítico de Datos: " . htmlspecialchars($empleados['error']));
-}
-
-if (!is_array($empleados)) {
-    $empleados = array();
-}
-
 if (!file_exists($rutaVista)) {
     header("HTTP/1.1 404 Not Found");
     die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");

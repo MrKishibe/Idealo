@@ -79,7 +79,14 @@ class EmpleadoModel extends Database
         self::$id_empleado = $id !== null ? intval($id) : null;
         self::$cedula = $cedula;
 
-        if (self::verificarDuplicado()) {
+        try {
+            $duplicado = self::verificarDuplicado();
+        } catch (PDOException $error) {
+            error_log('Error al verificar duplicado de empleado: ' . $error->getMessage());
+            return array("error" => "No se pudo verificar la cédula del empleado. Intente nuevamente.");
+        }
+
+        if ($duplicado) {
             return array("error" => "La cédula ya se encuentra registrada en el sistema.");
         }
 

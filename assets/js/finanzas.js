@@ -1,5 +1,12 @@
 import $ from 'jquery';
-import { validar } from './helpers/expresiones.js';
+import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
+import { obtenerPatron, validarCampo, validarLongitud, formatearFechaLatinoamericana } from './helpers/expresiones.js';
+import { limpiarValidaciones, soloNumerosTeclado, soloLetrasTeclado } from './helpers/validaciones.js';
+import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
+import { abrirReporteEnPestana } from './helpers/report-viewer.js';
+
+console.log("Finanzas conectado correctamente");
 
 $(document).ready(function () {
     let verInhabilitados = false;
@@ -11,17 +18,116 @@ $(document).ready(function () {
         return ahora.toISOString().slice(0, 16);
     }
 
+    function limpiarFormularioModal(formSelector) {
+        const $form = $(formSelector);
+        if ($form.length) {
+            $form[0].reset();
+            limpiarValidaciones($form);
+            $form.find('select.form-select').val('').trigger('change');
+            $form.find('input[name="referencia"]').prop('disabled', false).attr('required', true);
+        }
+    }
+
+    // Inicializar Select2 en modales
+    if ($('#select_registrar_pedido').length) {
+        $('#select_registrar_pedido').select2({
+            dropdownParent: $('#modalRegistrarPago'),
+            width: '100%',
+            placeholder: 'Seleccione un pedido...',
+            language: { noResults: () => "No se encontraron pedidos" }
+        });
+    }
+
+    if ($('#edit_id_pedido').length) {
+        $('#edit_id_pedido').select2({
+            dropdownParent: $('#modalEditarPago'),
+            width: '100%',
+            placeholder: 'Seleccione un pedido...',
+            language: { noResults: () => "No se encontraron pedidos" }
+        });
+    }
+
+    // =========================================================================
+    // VALIDACIONES EN TIEMPO REAL Y LÓGICA DE EFECTIVO
+    // =========================================================================
+
+    // Detectar cambio en método de pago para manejar la referencia obligatoria o deshabilitada si es efectivo
+    $(document).on('change', 'select[name="id_metodo_de_pago"]', function () {
+        const textoMetodo = $(this).find('option:selected').text().toLowerCase();
+        const $form = $(this).closest('form');
+        const $inputRef = $form.find('input[name="referencia"]');
+
+        if (textoMetodo.includes('efectivo')) {
+            $inputRef.val('').prop('disabled', true).removeAttr('required');
+            $inputRef.removeClass('is-invalid is-valid');
+            $inputRef.siblings('.feedback-validacion').hide();
+        } else {
+            $inputRef.prop('disabled', false).attr('required', true);
+        }
+
+        validarCampo(this, { requerido: true, mensaje: 'Seleccione un método de pago válido.' });
+    });
+
+    // Validación en tiempo real para Pedido
+    $(document).on('change', 'select[name="id_pedido"]', function () {
+        validarCampo(this, { requerido: true, mensaje: 'Debe seleccionar un pedido.' });
+    });
+
+    // Validación en tiempo real para Referencia
+    $(document).on('input keypress', 'input[name="referencia"]', function (e) {
+        if ($(this).is(':disabled')) return;
+        if (e.type === 'keypress') {
+            soloNumerosTeclado(e);
+        }
+        let valorLimpio = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+        if (this.value !== valorLimpio) {
+            this.value = valorLimpio;
+        }
+
+        validarCampo(this, {
+            patron: 'referenciaPago',
+            mensaje: 'La referencia debe contener exactamente 6 dígitos numéricos.'
+        });
+    });
+
+    // Validación en tiempo real para Monto
+    $(document).on('input keypress', 'input[name="monto_pago"]', function (e) {
+        let valor = this.value;
+        if (e.type === 'keypress') {
+            const charCode = (e.which) ? e.which : e.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57) && charCode !== 46) {
+                e.preventDefault();
+            }
+            if (charCode === 46 && valor.indexOf('.') !== -1) {
+                e.preventDefault();
+            }
+        }
+
+        validarCampo(this, {
+            patron: 'moneda',
+            mensaje: 'Ingrese un monto válido mayor a 0.'
+        });
+    });
+
+    // Validación en tiempo real para Fecha de Pago
+    $(document).on('change input', 'input[name="fecha_pago"]', function () {
+        validarCampo(this, { requerido: true, mensaje: 'Seleccione una fecha de pago válida.' });
+    });
+
     function determinarConfiguracionTabla() {
         if ($('#tablaPagos').length > 0) {
             return {
                 url: 'index.php?controller=Finanzas&action=pagos&ajax=listar',
-                arrayKey: 'datos',
                 columns: [
                     { data: 'referencia', render: d => `<strong>${d || 'N/A'}</strong>` },
-                    { data: 'id_pedido', render: (d, t, r) => `Pedido #${d || ''}<br><small class="text-muted">${(r.nombre_razon_social || '')} ${(r.apellido || '')}</small>` },
+                    { 
+                        data: 'id_pedido', 
+                        render: (d, t, r) => `${r.descripcion_pedido || 'Pedido #' + d}<br><small class="text-muted">${(r.nombre_razon_social || '')} ${(r.apellido || '')}</small>` 
+                    },
                     { data: 'monto_pago', render: d => `<span class="text-success fw-bold">$${parseFloat(d || 0).toFixed(2)}</span>` },
                     { data: 'nombre_metodo', render: d => d || 'N/A' },
-                    { data: 'fecha_pago', render: d => d ? d.replace('T', ' ') : '' },
+                    // Formato de fecha latinoamericano: Día / Mes / Año
+                    { data: 'fecha_pago', render: d => d ? formatearFechaLatinoamericana(d) : '' },
                     { 
                         data: 'estado', 
                         render: d => (d === 'inhabilitado') 
@@ -36,9 +142,16 @@ $(document).ready(function () {
                         render: function (data) {
                             let esInhabilitado = data.estado === 'inhabilitado';
                             let jsonStr = JSON.stringify(data).replace(/'/g, "&apos;");
-                            let btn = `<button type="button" class="btn btn-sm btn-outline-primary btn-editar-pago me-1" style="border-radius:8px;" data-pago='${jsonStr}'><i class="bi bi-pencil-square"></i></button>`;
+                            let btn = '';
+
+                            if (data.comprobante_de_pago) {
+                                btn += `<button type="button" class="btn btn-sm btn-outline-secondary btn-ver-comprobante me-1" style="border-radius:8px;" data-ruta="${data.comprobante_de_pago}" title="Ver Comprobante"><i class="bi bi-file-earmark-text-fill"></i></button>`;
+                            }
+
+                            btn += `<button type="button" class="btn btn-sm btn-outline-primary btn-editar-pago me-1" style="border-radius:8px;" data-pago='${jsonStr}' title="Editar Pago"><i class="bi bi-pencil-square"></i></button>`;
+                            
                             if (!esInhabilitado) {
-                                btn += `<button type="button" class="btn btn-sm btn-outline-danger" style="border-radius:8px;" onclick="cambiarEstado(${data.id_pago}, 'pago', 'inhabilitado')"><i class="bi bi-trash-fill"></i></button>`;
+                                btn += `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pago" style="border-radius:8px;" data-id="${data.id_pago}" title="Inhabilitar Pago"><i class="bi bi-trash-fill"></i></button>`;
                             }
                             return btn;
                         }
@@ -48,7 +161,6 @@ $(document).ready(function () {
         } else if ($('#tablaCuentas').length > 0) {
             return {
                 url: 'index.php?controller=Finanzas&action=cuentas&ajax=listar',
-                arrayKey: 'datos',
                 columns: [
                     { data: 'id_cuenta', render: d => `#${d || ''}` },
                     { data: 'titular', render: d => `<strong>${d || ''}</strong>` },
@@ -71,7 +183,7 @@ $(document).ready(function () {
                             let jsonStr = JSON.stringify(data).replace(/'/g, "&apos;");
                             let btn = `<button type="button" class="btn btn-sm btn-outline-primary btn-editar-cuenta me-1" style="border-radius:8px;" data-cuenta='${jsonStr}'><i class="bi bi-pencil-square"></i></button>`;
                             if (!esInhabilitado) {
-                                btn += `<button type="button" class="btn btn-sm btn-outline-danger" style="border-radius:8px;" onclick="cambiarEstado(${data.id_cuenta}, 'cuenta', 'inhabilitado')"><i class="bi bi-trash-fill"></i></button>`;
+                                btn += `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-cuenta" style="border-radius:8px;" data-id="${data.id_cuenta}"><i class="bi bi-trash-fill"></i></button>`;
                             }
                             return btn;
                         }
@@ -81,7 +193,6 @@ $(document).ready(function () {
         } else if ($('#tablaMetodos').length > 0) {
             return {
                 url: 'index.php?controller=Finanzas&action=metodos&ajax=listar',
-                arrayKey: 'datos',
                 columns: [
                     { data: 'id_metodo_de_pago', render: d => `#${d || ''}` },
                     { data: 'nombre_metodo_de_pago', render: d => `<strong>${d || ''}</strong>` },
@@ -101,7 +212,7 @@ $(document).ready(function () {
                             let jsonStr = JSON.stringify(data).replace(/'/g, "&apos;");
                             let btn = `<button type="button" class="btn btn-sm btn-outline-primary btn-editar-metodo me-1" style="border-radius:8px;" data-metodo='${jsonStr}'><i class="bi bi-pencil-square"></i></button>`;
                             if (!esInhabilitado) {
-                                btn += `<button type="button" class="btn btn-sm btn-outline-danger" style="border-radius:8px;" onclick="cambiarEstado(${data.id_metodo_de_pago}, 'metodo', 'inhabilitado')"><i class="bi bi-trash-fill"></i></button>`;
+                                btn += `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-metodo" style="border-radius:8px;" data-id="${data.id_metodo_de_pago}"><i class="bi bi-trash-fill"></i></button>`;
                             }
                             return btn;
                         }
@@ -125,7 +236,7 @@ $(document).ready(function () {
                     if (json && json.success === false) {
                         console.error("Error en respuesta:", json.message);
                     } else if (json && typeof json === 'object') {
-                        registros = json.datos || json.pagos || [];
+                        registros = json.datos || json.pagos || json.cuentas || json.metodos || [];
                     } else if (Array.isArray(json)) {
                         registros = json;
                     }
@@ -138,17 +249,7 @@ $(document).ready(function () {
                 }
             },
             columns: config.columns,
-            language: {
-                "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ registros",
-                "sZeroRecords": "No se encontraron resultados",
-                "sEmptyTable": "Ningún dato disponible en esta tabla",
-                "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
-                "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
-                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
-                "sSearch": "Buscar:",
-                "oPaginate": { "sFirst": "Primero", "sLast": "Último", "sNext": "Siguiente", "sPrevious": "Anterior" }
-            },
+            language: lenguajeDataTableEs,
             pageLength: 10,
             responsive: true,
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
@@ -178,13 +279,73 @@ $(document).ready(function () {
         window.recargarDatos();
     });
 
+    // Abrir modal de filtros de reporte al hacer clic en el botón de generar reporte
+    $(document).on('click', '#btnGenerarReportePagos, .btn-generar-reportes', function (e) {
+        e.preventDefault();
+        const modalEl = document.getElementById('modalFiltroReporte');
+        if (modalEl) {
+            new bootstrap.Modal(modalEl).show();
+        } else {
+            errorAlert('Aviso', 'No se encontró la ventana de filtros de reporte.');
+        }
+    });
+
+    $(document).on('submit', '#formFiltroReporte', function (e) {
+        e.preventDefault();
+
+        const urlReporte = new URL(this.getAttribute('action'), window.location.href);
+        new FormData(this).forEach((valor, nombre) => {
+            if (typeof valor === 'string') {
+                urlReporte.searchParams.set(nombre, valor);
+            }
+        });
+
+        const pestanaReporte = abrirReporteEnPestana(urlReporte.toString());
+        if (!pestanaReporte) {
+            errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
+            return;
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalFiltroReporte'));
+        if (modal) modal.hide();
+    });
+
+    $(document).on('click', '.btn-ver-comprobante', function () {
+        const ruta = $(this).data('ruta');
+        if (!ruta) {
+            errorAlert('Aviso', 'No se encontró el archivo de comprobante.');
+            return;
+        }
+
+        const extension = ruta.split('.').pop().toLowerCase();
+        const $contenedor = $('#contenedorComprobante');
+        $contenedor.empty();
+
+        if (extension === 'pdf') {
+            $contenedor.append(`<iframe src="${ruta}" style="width:100%; height:500px; border:none; border-radius: 8px;"></iframe>`);
+        } else if (['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
+            $contenedor.append(`<img src="${ruta}" alt="Comprobante de Pago" class="img-fluid rounded shadow-sm" style="max-height: 500px; object-fit: contain;">`);
+        } else {
+            $contenedor.append(`<div class="alert alert-warning w-100">Este formato no se puede previsualizar directamente, pero puedes descargarlo.</div>`);
+        }
+
+        $('#btnDescargarComprobante').attr('href', ruta);
+
+        const modalEl = document.getElementById('modalVerComprobante');
+        if (modalEl) {
+            new bootstrap.Modal(modalEl).show();
+        } else {
+            window.open(ruta, '_blank');
+        }
+    });
+
     $(document).on('click', '.btn-editar-pago', function () {
         const data = $(this).data('pago');
         if (!data) return;
         $('#edit_id_pago').val(data.id_pago);
         $('#edit_id_pedido').val(data.id_pedido).trigger('change');
         $('#edit_monto_pago').val(data.monto_pago);
-        $('#edit_id_metodo').val(data.id_metodo_de_pago);
+        $('#edit_id_metodo').val(data.id_metodo_de_pago).trigger('change');
         $('#edit_referencia').val(data.referencia);
         $('#edit_fecha').val(data.fecha_pago ? data.fecha_pago.replace(' ', 'T') : obtenerFechaHoraActual());
         $('#edit_status_pago').val(data.estado || 'procesado');
@@ -228,34 +389,23 @@ $(document).ready(function () {
             });
 
             if (data.success) {
-                $formActual[0].reset();
                 $('.modal.show').each(function() {
                     let modalInstance = bootstrap.Modal.getInstance(this);
                     if (modalInstance) modalInstance.hide();
                 });
-                await Swal.fire({ icon: 'success', title: '¡Éxito!', text: data.message, timer: 1500, showConfirmButton: false });
+                limpiarFormularioModal($formActual);
+                await successAlert('¡Éxito!', data.message || 'Operación realizada correctamente.');
                 window.recargarDatos();
             } else {
-                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Error en el servidor.' });
+                await errorAlert('Error de Validación', data.message || 'No se pudo procesar la solicitud.');
             }
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Fallo de conexión con el servidor.' });
+            await errorAlert('Error de Conexión', 'Fallo de comunicación con el servidor.');
         }
     });
 
-    window.cambiarEstado = async function(id, entidad, nuevoEstado) {
-        const titulo = (nuevoEstado === 'inhabilitado') ? '¿Inactivar registro?' : '¿Habilitar registro?';
-        const result = await Swal.fire({
-            title: titulo,
-            text: 'Esta acción cambiará el estado del registro.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (nuevoEstado === 'inhabilitado') ? '#d33' : '#28a745',
-            confirmButtonText: 'Confirmar',
-            cancelButtonText: 'Cancelar'
-        });
-
-        if (result.isConfirmed) {
+    async function ejecutarCambioEstado(id, entidad, nuevoEstado) {
+        confirmDeleteAlert(async () => {
             try {
                 const data = await $.ajax({
                     url: 'index.php?controller=Finanzas',
@@ -265,14 +415,26 @@ $(document).ready(function () {
                 });
 
                 if (data.success) {
-                    await Swal.fire({ title: '¡Éxito!', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false });
+                    await successAlert('Inhabilitado', data.message || 'El registro ha sido inhabilitado.');
                     window.recargarDatos();
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    await errorAlert('Error', data.message || 'No se pudo cambiar el estado.');
                 }
             } catch (error) {
-                Swal.fire('Error', 'No se pudo contactar al servidor', 'error');
+                await errorAlert('Error', 'No se pudo contactar al servidor.');
             }
-        }
-    };
+        });
+    }
+
+    $(document).on('click', '.btn-eliminar-pago', function() {
+        ejecutarCambioEstado($(this).data('id'), 'pago', 'inhabilitado');
+    });
+
+    $(document).on('click', '.btn-eliminar-cuenta', function() {
+        ejecutarCambioEstado($(this).data('id'), 'cuenta', 'inhabilitado');
+    });
+
+    $(document).on('click', '.btn-eliminar-metodo', function() {
+        ejecutarCambioEstado($(this).data('id'), 'metodo', 'inhabilitado');
+    });
 });

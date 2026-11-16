@@ -164,7 +164,8 @@ class OrdenDeProduccionModel extends Database {
         }
 
         $hoy = (new \DateTimeImmutable('now', new \DateTimeZone('America/Caracas')))->format('Y-m-d');
-        if ($fecha_inicio < $hoy) {
+        $inactivandoOrden = $esEdicion && $estado === 'Inactiva';
+        if (!$inactivandoOrden && $fecha_inicio < $hoy) {
             throw new Exception('La fecha de inicio no puede ser anterior a hoy.');
         }
 
@@ -174,7 +175,7 @@ class OrdenDeProduccionModel extends Database {
                 throw new Exception('La fecha de finalización no tiene un formato válido (YYYY-MM-DD).');
             }
 
-            if ($fecha_terminado <= $hoy) {
+            if (!$inactivandoOrden && $fecha_terminado <= $hoy) {
                 throw new Exception('La fecha de finalización debe ser posterior a hoy.');
             }
         }

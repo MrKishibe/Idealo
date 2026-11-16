@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import {
     successAlert,
     errorAlert,
@@ -141,7 +142,11 @@ $(document).ready(function () {
                 }
             }
         ],
-        language: lenguajeDataTableEs,
+        processing: true,
+        language: {
+            ...lenguajeDataTableEs,
+            processing: crearMarkupSkeletonDataTable(7)
+        },
         pageLength: 10,
         responsive: true,
         ordering: true,
@@ -379,6 +384,85 @@ $(document).ready(function () {
             ? await errorAlert(titulo, texto)
             : await successAlert(titulo, texto);
     }
+
+    function agregarOpcionCombobox($menu, valor, etiqueta) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'dropdown-item text-wrap';
+        boton.setAttribute('role', 'option');
+        boton.setAttribute('aria-selected', 'false');
+        boton.dataset.value = valor;
+        boton.textContent = etiqueta;
+        $menu.find('[data-empty-message]').before(boton);
+    }
+
+    function cargarDatosVista() {
+        $.ajax({
+            url: urlControlador,
+            type: 'GET',
+            data: { accion: 'datosVista' },
+            dataType: 'json'
+        }).done(function (respuesta) {
+            const datos = respuesta && respuesta.data;
+            if (!respuesta || !respuesta.success || !datos ||
+                !Array.isArray(datos.materias) || !Array.isArray(datos.ordenes) ||
+                !Array.isArray(datos.consumos) || !Array.isArray(datos.estados)) {
+                mostrarAlertaInformativa('Error', respuesta && respuesta.message || 'No se pudieron cargar las opciones de la vista.', 'error');
+                return;
+            }
+
+            datos.materias.forEach(function (materia) {
+                const etiqueta = materia.unidad_de_medida
+                    ? `${materia.nombre_materia_prima} (${materia.unidad_de_medida})`
+                    : materia.nombre_materia_prima;
+                agregarOpcionCombobox($('#opciones_registrar_materia_prima'), materia.id_materia_prima, etiqueta);
+                agregarOpcionCombobox($('#opciones_edit_materia_prima'), materia.id_materia_prima, etiqueta);
+            });
+
+            datos.ordenes.forEach(function (orden) {
+                let etiqueta = `Orden #${orden.id_produccion || 'N/A'}`;
+                if (orden.descripcion_pedido) etiqueta += ` - ${orden.descripcion_pedido}`;
+                if (orden.estado_de_produccion) etiqueta += ` - ${orden.estado_de_produccion}`;
+                agregarOpcionCombobox($('#opciones_registrar_orden_produccion'), orden.id_produccion || '', etiqueta);
+                agregarOpcionCombobox($('#opciones_edit_orden_produccion'), orden.id_produccion || '', etiqueta);
+            });
+
+            const materiasReporte = new Map();
+            const estadosReporte = new Map();
+            datos.estados.forEach(function (estado) {
+                estadosReporte.set(estado.toLocaleLowerCase(), estado);
+            });
+            datos.consumos.forEach(function (consumo) {
+                const idMateria = String(consumo.id_materia_prima || '');
+                if (idMateria) {
+                    materiasReporte.set(idMateria, {
+                        nombre: consumo.nombre_materia_prima || 'Materia prima',
+                        unidad: consumo.unidad_de_medida || ''
+                    });
+                }
+                const estado = String(consumo.estado_de_produccion || '').trim();
+                if (estado) estadosReporte.set(estado.toLocaleLowerCase(), estado);
+            });
+
+            const $filtroMateria = $('#reporteMateriaPrima');
+            materiasReporte.forEach(function (materia, idMateria) {
+                const etiqueta = materia.unidad ? `${materia.nombre} (${materia.unidad})` : materia.nombre;
+                $filtroMateria.append(new Option(etiqueta, idMateria));
+            });
+            const $filtroEstado = $('#reporteEstadoProduccion');
+            estadosReporte.forEach(function (estado) {
+                const etiqueta = estado.toLocaleLowerCase() === 'en espera'
+                    ? 'Pendiente (En espera)'
+                    : estado;
+                $filtroEstado.append(new Option(etiqueta, estado));
+            });
+        }).fail(function (xhr, estado, error) {
+            console.error('Error al cargar las opciones de consumo de material:', error || estado);
+            mostrarAlertaInformativa('Error', 'No se pudieron cargar los datos para los formularios.', 'error');
+        });
+    }
+
+    cargarDatosVista();
 
     function cargarCostoMateriaPrima(idMateriaPrima) {
         if (solicitudCostoMateriaPrima) solicitudCostoMateriaPrima.abort();

@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
@@ -68,12 +70,6 @@
                             <label class="form-label" for="reporteMateriaPrima">Materia prima</label>
                             <select class="form-select" id="reporteMateriaPrima">
                                 <option value="">Todas las materias primas</option>
-                                <?php $materiasReporte = $materiasReporte ?? []; ?>
-                                <?php foreach ($materiasReporte as $idMateria => $materia): ?>
-                                    <option value="<?= htmlspecialchars($idMateria, ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars($materia['nombre'] . ($materia['unidad'] !== '' ? ' (' . $materia['unidad'] . ')' : ''), ENT_QUOTES, 'UTF-8') ?>
-                                    </option>
-                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div>
@@ -81,12 +77,6 @@
                             <select class="form-select" id="reporteEstadoProduccion">
                                 <option value="">Todos los estados</option>
                                 <option value="activas">Activas (cualquier estado excepto Inactiva)</option>
-                                <?php $estadosProduccionReporte = $estadosProduccionReporte ?? []; ?>
-                                <?php foreach ($estadosProduccionReporte as $estado): ?>
-                                    <option value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars(strtolower($estado) === 'en espera' ? 'Pendiente (En espera)' : $estado, ENT_QUOTES, 'UTF-8') ?>
-                                    </option>
-                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -117,18 +107,7 @@
                                     <input type="search" class="form-control" id="buscar_registrar_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_registrar_materia_prima" data-role="consumo-combobox">
                                     <input type="hidden" name="id_materia_prima" id="registrar_id_materia_prima">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_registrar_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php $materias = $materias ?? []; ?>
-                                    <?php foreach ($materias as $materia): ?>
-                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>"
-                                            <?php echo (float) ($materia['stock_actual'] ?? 0) <= 0 ? 'disabled' : ''; ?>>
-                                            <?php echo htmlspecialchars($materia['nombre_materia_prima']); ?>
-                                            (<?php echo htmlspecialchars($materia['unidad_de_medida']); ?>)
-                                            <?php if ((float) ($materia['stock_actual'] ?? 0) <= 0): ?>
-                                                - Sin stock
-                                            <?php endif; ?>
-                                        </button>
-                                    <?php endforeach; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay materias primas que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay materias primas que coincidan.</div>
                                     </div>
                                 </div>
                             </div>
@@ -138,22 +117,7 @@
                                     <input type="search" class="form-control" id="buscar_registrar_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_registrar_orden_produccion" data-role="consumo-combobox">
                                     <input type="hidden" name="id_produccion" id="registrar_id_produccion">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_registrar_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php $ordenes = $ordenes ?? []; ?>
-                                    <?php foreach ($ordenes as $orden): ?>
-                                        <?php
-                                        $labelOrden = 'Orden #' . ($orden['id_produccion'] ?? 'N/A');
-                                        if (!empty($orden['descripcion_pedido'])) {
-                                            $labelOrden .= ' - ' . $orden['descripcion_pedido'];
-                                        }
-                                        if (!empty($orden['estado_de_produccion'])) {
-                                            $labelOrden .= ' - ' . $orden['estado_de_produccion'];
-                                        }
-                                        ?>
-                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
-                                            <?php echo htmlspecialchars($labelOrden); ?>
-                                        </button>
-                                    <?php endforeach; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay órdenes que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay órdenes que coincidan.</div>
                                     </div>
                                 </div>
                             </div>
@@ -199,13 +163,7 @@
                                     <input type="search" class="form-control" id="buscar_edit_materia_prima" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_materia_prima" data-role="consumo-combobox">
                                     <input type="hidden" name="id_materia_prima" id="edit_id_materia_prima">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_edit_materia_prima" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php foreach ($materias as $materia): ?>
-                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($materia['id_materia_prima']); ?>">
-                                            <?php echo htmlspecialchars($materia['nombre_materia_prima']); ?>
-                                            (<?php echo htmlspecialchars($materia['unidad_de_medida']); ?>)
-                                        </button>
-                                    <?php endforeach; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay materias primas que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay materias primas que coincidan.</div>
                                     </div>
                                 </div>
                             </div>
@@ -215,21 +173,7 @@
                                     <input type="search" class="form-control" id="buscar_edit_orden_produccion" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_orden_produccion" data-role="consumo-combobox">
                                     <input type="hidden" name="id_produccion" id="edit_id_produccion">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_edit_orden_produccion" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php foreach ($ordenes as $orden): ?>
-                                        <?php
-                                        $labelOrden = 'Orden #' . ($orden['id_produccion'] ?? 'N/A');
-                                        if (!empty($orden['descripcion_pedido'])) {
-                                            $labelOrden .= ' - ' . $orden['descripcion_pedido'];
-                                        }
-                                        if (!empty($orden['estado_de_produccion'])) {
-                                            $labelOrden .= ' - ' . $orden['estado_de_produccion'];
-                                        }
-                                        ?>
-                                        <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?php echo htmlspecialchars($orden['id_produccion'] ?? ''); ?>">
-                                            <?php echo htmlspecialchars($labelOrden); ?>
-                                        </button>
-                                    <?php endforeach; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay órdenes que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay órdenes que coincidan.</div>
                                     </div>
                                 </div>
                             </div>

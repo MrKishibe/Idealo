@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { confirmActionAlert, statusAlert } from './helpers/alerts.js';
 import {
     validarCampo as validarCampoCompartido,
@@ -48,23 +49,29 @@ $(document).ready(function () {
                 render: function (data, type, row) {
                     return `
                         <div class="d-flex gap-2 justify-content-center">
-                            <button type="button" class="btn btn-sm btn-primary btn-editar" data-orden='${JSON.stringify(row)}'>
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-editar" data-orden='${JSON.stringify(row)}' title="Editar orden">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger btn-eliminar" data-id="${row.id_produccion}">
-                                <i class="bi bi-trash"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${row.id_produccion}" title="Inactivar orden">
+                                <i class="bi bi-trash3-fill"></i>
                             </button>
                         </div>
                     `;
                 }
             }
         ],
-        language: lenguajeDataTableEs,
+        processing: true,
+        language: {
+            ...lenguajeDataTableEs,
+            processing: crearMarkupSkeletonDataTable(6)
+        },
         pageLength: 10,
         responsive: true,
         ordering: true,
         dom: '<"row align-items-center mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row"<"col-md-6"i><"col-md-6"p>>'
     });
+
+    tablaOrdenes.column(4).search('^(?!Inactiva$).*$', true, false).draw();
 
     function configurarBusquedaPedido(inputSelector, idSelector, opcionesSelector) {
         const $busqueda = $(inputSelector);
@@ -192,6 +199,107 @@ $(document).ready(function () {
         '#opciones_edit_detalle_pedido'
     );
 
+    function agregarOpcionPedido($menu, detalle, permitirPedidosAsignados) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'dropdown-item text-wrap';
+        boton.setAttribute('role', 'option');
+        boton.setAttribute('aria-selected', 'false');
+        boton.dataset.value = detalle.id_detalle_pedido;
+        const yaAsignado = Boolean(detalle.id_produccion);
+        boton.disabled = yaAsignado && !permitirPedidosAsignados;
+        boton.textContent = `${detalle.descripcion || ''}${yaAsignado && !permitirPedidosAsignados ? ' (Ya tiene una orden de producción)' : ''}`;
+        $menu.find('[data-empty-message]').before(boton);
+    }
+
+    function agregarEmpleado($contenedor, empleado, prefijo) {
+        const idEmpleado = String(empleado.id_empleado);
+        const idCheckbox = `${prefijo}${idEmpleado}`;
+        const fila = document.createElement('div');
+        fila.className = 'form-check';
+
+        const checkbox = document.createElement('input');
+        checkbox.className = 'form-check-input';
+        if (prefijo === 'edit_emp_') checkbox.classList.add('check-edit-empleado');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'empleados[]';
+        checkbox.value = idEmpleado;
+        checkbox.id = idCheckbox;
+
+        const label = document.createElement('label');
+        label.className = 'form-check-label';
+        label.htmlFor = idCheckbox;
+        label.append(document.createTextNode(`${empleado.nombres || ''} ${empleado.apellidos || ''} `));
+        const cargo = document.createElement('span');
+        cargo.className = 'text-muted';
+        cargo.style.fontSize = '0.85em';
+        cargo.textContent = `(${empleado.cargo || ''})`;
+        label.append(cargo);
+
+        fila.append(checkbox, label);
+        $contenedor.append(fila);
+    }
+
+    function cargarDatosVista() {
+        $.ajax({
+            url: urlControlador,
+            type: 'GET',
+            data: { accion: 'datos_vista' },
+            dataType: 'json'
+        }).done(function (respuesta) {
+            if (!respuesta.success || !respuesta.data) {
+                mostrarAlertaInformativa('Error', respuesta.message || 'No se pudieron cargar las opciones de la vista.', 'error');
+                return;
+            }
+
+            const datos = respuesta.data;
+            const $estados = $('#reporteEstadosProduccion');
+            $('#mensajeEstadosReporte').remove();
+            datos.estados.forEach(function (estado, indice) {
+                const columna = document.createElement('div');
+                columna.className = 'col-sm-6';
+                const contenedor = document.createElement('div');
+                contenedor.className = 'form-check';
+                const checkbox = document.createElement('input');
+                checkbox.className = 'form-check-input check-estado-reporte';
+                checkbox.type = 'checkbox';
+                checkbox.name = 'estados[]';
+                checkbox.value = estado;
+                checkbox.id = `reporteEstado${indice}`;
+                checkbox.checked = true;
+                const label = document.createElement('label');
+                label.className = 'form-check-label';
+                label.htmlFor = checkbox.id;
+                label.textContent = estado.charAt(0).toUpperCase() + estado.slice(1);
+                contenedor.append(checkbox, label);
+                columna.append(contenedor);
+                $estados.append(columna);
+            });
+
+            datos.detalles_pedido.forEach(function (detalle) {
+                agregarOpcionPedido($('#opciones_detalle_pedido'), detalle, false);
+                agregarOpcionPedido($('#opciones_edit_detalle_pedido'), detalle, true);
+            });
+
+            const $empleadosRegistrar = $('#empleadosRegistrar').empty();
+            const $empleadosEditar = $('#empleadosEditar').empty();
+            if (!datos.empleados.length) {
+                $('<p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>').appendTo($empleadosRegistrar);
+                $('<p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>').appendTo($empleadosEditar);
+                return;
+            }
+            datos.empleados.forEach(function (empleado) {
+                agregarEmpleado($empleadosRegistrar, empleado, 'emp_');
+                agregarEmpleado($empleadosEditar, empleado, 'edit_emp_');
+            });
+        }).fail(function (xhr, estado, error) {
+            console.error('Error al cargar las opciones de órdenes de producción:', error || estado);
+            mostrarAlertaInformativa('Error', 'No se pudieron cargar los datos para los formularios.', 'error');
+        });
+    }
+
+    cargarDatosVista();
+
     
     function validarCampoOrden(input, patron, obligatorio = true) {
         const regla = typeof patron === 'string' ? obtenerPatron(patron) : patron;
@@ -202,7 +310,17 @@ $(document).ready(function () {
         });
     }
 
-    function validarFechaOrden(input, obligatoria, diasMinimosDesdeHoy) {
+    function obtenerFechaMaximaAnioActual() {
+        return `${new Date().getFullYear()}-12-31`;
+    }
+
+    $('#fecha_de_inicio, #fecha_terminado, #edit_fecha_de_inicio, #edit_fecha_terminado, #reporteFechaDesde, #reporteFechaHasta')
+        .attr('max', obtenerFechaMaximaAnioActual());
+
+    function validarFechaOrden(input, obligatoria, diasMinimosDesdeHoy, permitirFechasPasadas = false) {
+        const fechaMaxima = obtenerFechaMaximaAnioActual();
+        input.attr('max', fechaMaxima);
+
         return validarCampoCompartido(input, {
             patron: patrones.fechaISO,
             requerido: obligatoria,
@@ -213,6 +331,12 @@ $(document).ready(function () {
                 : 'La fecha no puede ser menor a hoy.',
             mensajeVacio: 'La fecha de inicio es obligatoria.',
             validar: function (valor) {
+                if (valor > fechaMaxima) {
+                    return 'La fecha no puede exceder el año actual.';
+                }
+                if (permitirFechasPasadas) {
+                    return true;
+                }
                 return valor >= obtenerFechaLocalISO(diasMinimosDesdeHoy);
             }
         });
@@ -223,8 +347,16 @@ $(document).ready(function () {
     $('#fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
     
     
-    $('#edit_fecha_de_inicio').on('input change', function() { validarFechaOrden($(this), true, 0); });
-    $('#edit_fecha_terminado').on('input change', function() { validarFechaOrden($(this), false, 1); });
+    function validarFechasEdicion() {
+        const permitirFechasPasadas = String($('#edit_estado_de_produccion').val()).trim().toLowerCase() === 'inactiva';
+        validarFechaOrden($('#edit_fecha_de_inicio'), true, 0, permitirFechasPasadas);
+        validarFechaOrden($('#edit_fecha_terminado'), false, 1, permitirFechasPasadas);
+    }
+
+    $('#edit_fecha_de_inicio, #edit_fecha_terminado')
+        .on('input change', validarFechasEdicion);
+
+    $('#edit_estado_de_produccion').on('change', validarFechasEdicion);
 
     $('#estado_de_produccion, #edit_estado_de_produccion').on('change', function () {
         mostrarAlertaInformativa(
@@ -265,15 +397,21 @@ $(document).ready(function () {
         let confirmacion = await confirmarAccion('¿Registrar Orden?', 'Se creará una nueva orden de producción.');
         if (!confirmacion.isConfirmed) return;
 
-        let formData = new FormData(this);
+        const $formulario = $(this);
+        const $botonEnviar = $formulario.find('button[type="submit"]').first();
+        $botonEnviar.prop('disabled', true);
 
-        try {
-            let response = await fetch(urlControlador, {
-                method: 'POST',
-                body: formData
-            });
-            let data = await response.json();
-
+        $.ajax({
+            url: urlControlador,
+            type: 'POST',
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                Accept: 'application/json'
+            }
+        }).done(async function (data) {
             if (data.success) {
                 await mostrarAlertaInformativa('¡Éxito!', data.message, 'success');
                 $('#modalRegistrarOrden').modal('hide');
@@ -284,9 +422,12 @@ $(document).ready(function () {
             } else {
                 await mostrarAlertaInformativa('Error', data.message, 'error');
             }
-        } catch (error) {
-            await mostrarAlertaInformativa('Error crítico', 'Fallo al procesar la solicitud.', 'error');
-        }
+        }).fail(async function (xhr, estado, error) {
+            console.error('Error al registrar la orden de producción:', error || estado);
+            await mostrarAlertaInformativa('Error de red', 'No se pudo contactar con el servidor.', 'error');
+        }).always(function () {
+            $botonEnviar.prop('disabled', false);
+        });
     });
 
 
@@ -329,8 +470,9 @@ $(document).ready(function () {
         e.preventDefault();
 
         
-        let v1 = validarFechaOrden($('#edit_fecha_de_inicio'), true, 0);
-        let v2 = validarFechaOrden($('#edit_fecha_terminado'), false, 1);
+        const permitirFechasPasadas = String($('#edit_estado_de_produccion').val()).trim().toLowerCase() === 'inactiva';
+        let v1 = validarFechaOrden($('#edit_fecha_de_inicio'), true, 0, permitirFechasPasadas);
+        let v2 = validarFechaOrden($('#edit_fecha_terminado'), false, 1, permitirFechasPasadas);
         let v3 = validarPedidoCombobox($('#edit_id_detalle_pedido'), $('#buscar_edit_detalle_pedido'));
 
         if (!v1 || !v2 || !v3) {
@@ -341,15 +483,21 @@ $(document).ready(function () {
         let confirmacion = await confirmarAccion('¿Guardar Cambios?', 'Se actualizarán los datos de la orden de producción.');
         if (!confirmacion.isConfirmed) return;
 
-        let formData = new FormData(this);
+        const $formulario = $(this);
+        const $botonEnviar = $formulario.find('button[type="submit"]').first();
+        $botonEnviar.prop('disabled', true);
 
-        try {
-            let response = await fetch(urlControlador, {
-                method: 'POST',
-                body: formData
-            });
-            let data = await response.json();
-
+        $.ajax({
+            url: urlControlador,
+            type: 'POST',
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                Accept: 'application/json'
+            }
+        }).done(async function (data) {
             if (data.success) {
                 await mostrarAlertaInformativa('Actualizado', data.message, 'success');
                 $('#modalEditarOrden').modal('hide');
@@ -357,9 +505,12 @@ $(document).ready(function () {
             } else {
                 await mostrarAlertaInformativa('Error', data.message, 'error');
             }
-        } catch (error) {
+        }).fail(async function (xhr, estado, error) {
+            console.error('Error al actualizar la orden de producción:', error || estado);
             await mostrarAlertaInformativa('Error de red', 'No se pudo contactar con el servidor.', 'error');
-        }
+        }).always(function () {
+            $botonEnviar.prop('disabled', false);
+        });
     });
 
 
@@ -391,12 +542,12 @@ $(document).ready(function () {
         
         if (estadoActual === 'activos') {
             
-            tablaOrdenes.column(4).search('Inactiva').draw();
+            tablaOrdenes.column(4).search('^Inactiva$', true, false).draw();
             $(this).attr('data-vista', 'inactivos');$('#txtBotonEstado').text('Ver activas');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
         } else {
             
-            tablaOrdenes.column(4).search('').draw();
+            tablaOrdenes.column(4).search('^(?!Inactiva$).*$', true, false).draw();
             $(this).attr('data-vista', 'activos');$('#txtBotonEstado').text('Ver inactivas');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
         }
@@ -406,7 +557,7 @@ $(document).ready(function () {
         $('.check-estado-reporte').prop('checked', this.checked);
     });
 
-    $('.check-estado-reporte').on('change', function () {
+    $(document).on('change', '.check-estado-reporte', function () {
         $('#reporteSeleccionarTodos').prop(
             'checked',
             $('.check-estado-reporte').length === $('.check-estado-reporte:checked').length
@@ -429,6 +580,12 @@ $(document).ready(function () {
 
         if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
             mostrarAlertaInformativa('Rango de fechas inválido', 'La fecha inicial no puede ser posterior a la fecha final.', 'warning');
+            return;
+        }
+
+        const fechaMaxima = obtenerFechaMaximaAnioActual();
+        if (fechaDesde > fechaMaxima || fechaHasta > fechaMaxima) {
+            mostrarAlertaInformativa('Fecha fuera de rango', 'Las fechas del reporte no pueden exceder el año actual.', 'warning');
             return;
         }
 

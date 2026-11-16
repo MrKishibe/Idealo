@@ -73,6 +73,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['accion'] === 'datosVista') {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'consumos' => $model->obtenerConsumosMaterial(),
+                'estados' => [
+                    'Planificado',
+                    'En Proceso',
+                    'Finalizado',
+                    'Inactiva',
+                    'en espera'
+                ]
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
     if (ob_get_length()) ob_clean();
     
@@ -210,52 +238,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['accion']) && $_GET['acc
     exit;
 }
 
-// Cargar datos para la vista siempre que se renderice la página
-$perdidas = $model->listarPerdidasMateriales();
-$consumos = $model->obtenerConsumosMaterial();
-$ordenesPorId = [];
-$materiasPrimasPorId = [];
-foreach ($consumos as $consumo) {
-    $idProduccion = (string) $consumo['id_produccion'];
-    if (!isset($ordenesPorId[$idProduccion])) {
-        $ordenesPorId[$idProduccion] = [
-            'id_produccion' => $consumo['id_produccion'],
-            'estado_de_produccion' => $consumo['estado_de_produccion'],
-            'descripcion_pedido' => $consumo['descripcion_pedido']
-        ];
-    }
-
-    $idMateriaPrima = (string) $consumo['id_materia_prima'];
-    if (!isset($materiasPrimasPorId[$idMateriaPrima])) {
-        $materiasPrimasPorId[$idMateriaPrima] = [
-            'id_materia_prima' => $consumo['id_materia_prima'],
-            'nombre_materia_prima' => $consumo['nombre_materia_prima'],
-            'unidad_de_medida' => $consumo['unidad_de_medida']
-        ];
-    }
-}
-$ordenes = array_values($ordenesPorId);
-$materiasPrimas = array_values($materiasPrimasPorId);
-$consumosJson = htmlspecialchars(
-    json_encode(
-        $consumos,
-        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_THROW_ON_ERROR
-    ),
-    ENT_QUOTES,
-    'UTF-8'
-);
-$estadosProduccion = [
-    'planificado' => 'Planificado',
-    'en proceso' => 'En Proceso',
-    'finalizado' => 'Finalizado',
-    'inactiva' => 'Inactiva',
-    'en espera' => 'en espera'
-];
-foreach ($consumos as $consumo) {
-    $estado = trim($consumo['estado_de_produccion'] ?? '');
-    if ($estado !== '') {
-        $estadosProduccion[strtolower($estado)] = $estado;
-    }
-}
 require_once $rutaVista;
 ?>

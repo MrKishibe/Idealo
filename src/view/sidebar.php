@@ -212,6 +212,12 @@ $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado');
                             <span>Gestionar Roles</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="index.php?controller=permisos&action=listar" class="menu-item">
+                            <img src="assets/Img/Iconos/shield-lock.svg" alt="Permisos por Rol" class="menu-icon">
+                            <span>Permisos por Rol</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             <?php endif; ?>

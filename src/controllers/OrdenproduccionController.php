@@ -108,6 +108,28 @@ if (isset($_GET["accion"]) && $_GET["accion"] === "listar") {
     exit;
 }
 
+if (isset($_GET["accion"]) && $_GET["accion"] === "datos_vista") {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'estados' => $estadosProduccion,
+                'detalles_pedido' => $model->obtenerPedidosParaProduccion(),
+                'empleados' => $model->obtenerEmpleadosActivos()
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
 if (isset($_GET["accion"]) && $_GET["accion"] === "obtener_empleados" && isset($_GET["id"])) {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -277,7 +299,4 @@ if (!file_exists($rutaVista)) {
     header("HTTP/1.1 404 Not Found");
     die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");
 }
-$detallesPedido = $model->obtenerPedidosParaProduccion();
-$empleados = $model->obtenerEmpleadosActivos();
-
 require_once $rutaVista;

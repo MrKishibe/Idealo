@@ -87,6 +87,36 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'listar') {
     exit;
 }
 
+if (isset($_GET['accion']) && $_GET['accion'] === 'datosVista') {
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'materias' => $model->obtenerMateriaPrima(),
+                'ordenes' => $model->obtenerOrdenesProduccion(),
+                'consumos' => $model->listarConsumosMateriales(),
+                'estados' => [
+                    'Planificado',
+                    'En Proceso',
+                    'Finalizado',
+                    'Inactiva',
+                    'en espera'
+                ]
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
 if (isset($_GET['accion']) && $_GET['accion'] === 'obtenerCostoMateriaPrima') {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -252,32 +282,6 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'reporte') {
 if (!file_exists($rutaVista)) {
     header('HTTP/1.1 404 Not Found');
     die('Error 404: No existe la vista requerida en: <strong>' . htmlspecialchars($rutaVista) . '</strong>');
-}
-
-$consumos = $model->listarConsumosMateriales();
-$ordenes = $model->obtenerOrdenesProduccion();
-$materias = $model->obtenerMateriaPrima();
-$materiasReporte = [];
-$estadosProduccionReporte = [
-    'planificado' => 'Planificado',
-    'en proceso' => 'En Proceso',
-    'finalizado' => 'Finalizado',
-    'inactiva' => 'Inactiva',
-    'en espera' => 'en espera'
-];
-foreach ($consumos as $consumo) {
-    $idMateria = (string) ($consumo['id_materia_prima'] ?? '');
-    if ($idMateria !== '') {
-        $materiasReporte[$idMateria] = [
-            'nombre' => $consumo['nombre_materia_prima'] ?? 'Materia prima',
-            'unidad' => $consumo['unidad_de_medida'] ?? ''
-        ];
-    }
-
-    $estado = trim($consumo['estado_de_produccion'] ?? '');
-    if ($estado !== '') {
-        $estadosProduccionReporte[strtolower($estado)] = $estado;
-    }
 }
 
 require_once $rutaVista;

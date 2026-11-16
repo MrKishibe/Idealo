@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">    
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
@@ -75,16 +77,8 @@
                                 <input class="form-check-input" type="checkbox" id="reporteSeleccionarTodos" checked>
                                 <label class="form-check-label fw-semibold" for="reporteSeleccionarTodos">Seleccionar todos</label>
                             </div>
-                            <div class="row">
-                                <?php $estadosProduccion = $estadosProduccion ?? []; ?>
-                                <?php foreach ($estadosProduccion as $indice => $estado): ?>
-                                    <div class="col-sm-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input check-estado-reporte" type="checkbox" name="estados[]" value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>" id="reporteEstado<?= $indice ?>" checked>
-                                            <label class="form-check-label" for="reporteEstado<?= $indice ?>"><?= htmlspecialchars(ucfirst($estado), ENT_QUOTES, 'UTF-8') ?></label>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                            <div class="row" id="reporteEstadosProduccion">
+                                <div class="col-12 text-muted small" id="mensajeEstadosReporte">Cargando estados...</div>
                             </div>
                         </fieldset>
                         <fieldset>
@@ -138,14 +132,7 @@
                                     <input type="search" class="form-control" id="buscar_detalle_pedido" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_detalle_pedido">
                                     <input type="hidden" name="id_detalle_pedido" id="id_detalle_pedido">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_detalle_pedido" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php if (!empty($detallesPedido)): ?>
-                                        <?php foreach ($detallesPedido as $detalle): ?>
-                                            <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>" <?= !empty($detalle['id_produccion']) ? 'disabled' : '' ?>>
-                                                <?= htmlspecialchars($detalle['descripcion']) ?><?= !empty($detalle['id_produccion']) ? ' (Ya tiene una orden de producción)' : '' ?>
-                                            </button>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay pedidos que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay pedidos que coincidan.</div>
                                     </div>
                                 </div>
                             </div>
@@ -161,19 +148,8 @@
                             
                             <div class="col-12">
                                 <label class="form-label">Asignar Trabajadores</label>
-                                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
-                                    <?php if (!empty($empleados)): ?>
-                                        <?php foreach ($empleados as $emp): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="empleados[]" value="<?= htmlspecialchars($emp['id_empleado']) ?>" id="emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
-                                                <label class="form-check-label" for="emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
-                                                    <?= htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']) ?> <span class="text-muted" style="font-size: 0.85em;">(<?= htmlspecialchars($emp['cargo']) ?>)</span>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>
-                                    <?php endif; ?>
+                                <div class="border rounded p-2" id="empleadosRegistrar" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <p class="text-muted mb-0 small">Cargando trabajadores...</p>
                                 </div>
                             </div>
                             
@@ -216,14 +192,7 @@
                                     <input type="search" class="form-control" id="buscar_edit_detalle_pedido" placeholder="Seleccione o escriba para buscar..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="opciones_edit_detalle_pedido">
                                     <input type="hidden" name="id_detalle_pedido" id="edit_id_detalle_pedido">
                                     <div class="dropdown-menu w-100 p-0" id="opciones_edit_detalle_pedido" role="listbox" style="max-height: 16rem; overflow-y: auto;">
-                                    <?php if (!empty($detallesPedido)): ?>
-                                        <?php foreach ($detallesPedido as $detalle): ?>
-                                            <button type="button" class="dropdown-item text-wrap" role="option" aria-selected="false" data-value="<?= htmlspecialchars($detalle['id_detalle_pedido']) ?>">
-                                                <?= htmlspecialchars($detalle['descripcion']) ?>
-                                            </button>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                        <div class="dropdown-item-text text-muted small" data-empty-message hidden>No hay pedidos que coincidan.</div>
+                                        <div class="dropdown-item-text text-muted small" data-empty-message>No hay pedidos que coincidan.</div>
                                     </div>
                                 </div>
                             </div>
@@ -238,19 +207,8 @@
 
                             <div class="col-12 mt-3">
                                 <label class="form-label">Modificar Trabajadores Asignados</label>
-                                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
-                                    <?php if (!empty($empleados)): ?>
-                                        <?php foreach ($empleados as $emp): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input check-edit-empleado" type="checkbox" name="empleados[]" value="<?= htmlspecialchars($emp['id_empleado']) ?>" id="edit_emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
-                                                <label class="form-check-label" for="edit_emp_<?= htmlspecialchars($emp['id_empleado']) ?>">
-                                                    <?= htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']) ?> <span class="text-muted" style="font-size: 0.85em;">(<?= htmlspecialchars($emp['cargo']) ?>)</span>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <p class="text-muted mb-0 small">No hay trabajadores registrados o activos.</p>
-                                    <?php endif; ?>
+                                <div class="border rounded p-2" id="empleadosEditar" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <p class="text-muted mb-0 small">Cargando trabajadores...</p>
                                 </div>
                             </div>
                              

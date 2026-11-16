@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { confirmActionAlert, statusAlert } from './helpers/alerts.js';
 import {
     validarCampo as validarCampoCompartido,
@@ -16,6 +17,7 @@ $(document).ready(function () {
     [$formRegistrarPerdida, $formEditarPerdida].forEach($form => $form.attr('novalidate', 'novalidate'));
     const mensajeSeleccionOrden = 'Selecciona una orden de producción.';
     const mensajeSeleccionMateriaPrima = 'Selecciona una materia prima.';
+    let consumosVista = [];
 
     function escaparHtml(valor) {
         return String(valor ?? '').replace(/[&<>"']/g, function (caracter) {
@@ -123,7 +125,11 @@ $(document).ready(function () {
                 }
             }
         ],
-        language: lenguajeDataTableEs,
+        processing: true,
+        language: {
+            ...lenguajeDataTableEs,
+            processing: crearMarkupSkeletonDataTable(8)
+        },
         pageLength: 10,
         responsive: true,
         ordering: true,
@@ -499,6 +505,89 @@ $(document).ready(function () {
         '#opciones_edit_materia_prima'
     );
 
+    function agregarOpcionCombobox($menu, valor, etiqueta) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'dropdown-item text-wrap';
+        boton.setAttribute('role', 'option');
+        boton.setAttribute('aria-selected', 'false');
+        boton.dataset.value = valor;
+        boton.textContent = etiqueta;
+        $menu.find('[data-empty-message]').before(boton);
+    }
+
+    function cargarDatosVista() {
+        $.ajax({
+            url: urlControlador,
+            type: 'GET',
+            data: { accion: 'datosVista' },
+            dataType: 'json'
+        }).done(function (respuesta) {
+            const datos = respuesta && respuesta.data;
+            if (!respuesta || !respuesta.success || !datos ||
+                !Array.isArray(datos.consumos) || !Array.isArray(datos.estados)) {
+                mostrarAlertaInformativa('Error', respuesta && respuesta.message || 'No se pudieron cargar las opciones de la vista.', 'error');
+                return;
+            }
+
+            consumosVista = datos.consumos;
+            const ordenes = new Map();
+            const materias = new Map();
+            const estados = new Map();
+            datos.estados.forEach(function (estado) {
+                estados.set(estado.toLocaleLowerCase(), estado);
+            });
+
+            consumosVista.forEach(function (consumo) {
+                const idProduccion = String(consumo.id_produccion || '');
+                if (idProduccion && !ordenes.has(idProduccion)) {
+                    ordenes.set(idProduccion, {
+                        descripcion: consumo.descripcion_pedido || '',
+                        estado: consumo.estado_de_produccion || ''
+                    });
+                }
+
+                const idMateria = String(consumo.id_materia_prima || '');
+                if (idMateria && !materias.has(idMateria)) {
+                    materias.set(idMateria, {
+                        nombre: consumo.nombre_materia_prima || 'Materia prima',
+                        unidad: consumo.unidad_de_medida || ''
+                    });
+                }
+
+                const estado = String(consumo.estado_de_produccion || '').trim();
+                if (estado) estados.set(estado.toLocaleLowerCase(), estado);
+            });
+
+            ordenes.forEach(function (orden, idProduccion) {
+                let etiqueta = `Orden #${idProduccion}`;
+                if (orden.descripcion) etiqueta += ` - ${orden.descripcion}`;
+                if (orden.estado) etiqueta += ` - ${orden.estado}`;
+                agregarOpcionCombobox($('#opciones_orden_produccion'), idProduccion, etiqueta);
+                agregarOpcionCombobox($('#opciones_edit_orden_produccion'), idProduccion, etiqueta);
+            });
+
+            materias.forEach(function (materia, idMateria) {
+                const etiqueta = materia.unidad ? `${materia.nombre} (${materia.unidad})` : materia.nombre;
+                agregarOpcionCombobox($('#opciones_materia_prima'), idMateria, etiqueta);
+                agregarOpcionCombobox($('#opciones_edit_materia_prima'), idMateria, etiqueta);
+            });
+
+            const $filtroEstado = $('#reporteEstadoProduccion');
+            estados.forEach(function (estado) {
+                const etiqueta = estado.toLocaleLowerCase() === 'en espera'
+                    ? 'Pendiente (En espera)'
+                    : estado;
+                $filtroEstado.append(new Option(etiqueta, estado));
+            });
+        }).fail(function (xhr, estado, error) {
+            console.error('Error al cargar las opciones de pérdidas de material:', error || estado);
+            mostrarAlertaInformativa('Error', 'No se pudieron cargar los datos para los formularios.', 'error');
+        });
+    }
+
+    cargarDatosVista();
+
     $('#modalRegistrarPerdida').on('show.bs.modal', function () {
         $fechaRegistro.val(obtenerFechaLocalISO());
         comboboxOrdenRegistro.reset();
@@ -521,8 +610,7 @@ $(document).ready(function () {
 
         if (!idProduccion || !idMateriaPrima) return;
 
-        const consumos = JSON.parse($form.attr('data-consumos') || '[]');
-        const consumo = consumos.find(function (item) {
+        const consumo = consumosVista.find(function (item) {
             return String(item.id_produccion) === idProduccion
                 && String(item.id_materia_prima) === idMateriaPrima;
         });

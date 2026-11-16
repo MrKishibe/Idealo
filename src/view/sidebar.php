@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado'); 
 ?>
-<link rel="stylesheet" href="assets/libs/css/sidebar.css">
+<link rel="stylesheet" href="assets/libs/css/sidebar.css?v=<?= filemtime(__DIR__ . '/../../assets/libs/css/sidebar.css') ?>">
 <aside class="sidebar">
     <div class="sidebar-header">
         <i>
@@ -206,6 +206,12 @@ $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado');
                             <span>Gestionar Usuarios</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="index.php?controller=rol&action=listar" class="menu-item">
+                            <img src="assets/Img/Iconos/person-badge.svg" alt="Gestionar Roles" class="menu-icon">
+                            <span>Gestionar Roles</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             <?php endif; ?>
@@ -226,6 +232,37 @@ $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado');
         </ul>
     </nav>
 </aside>
+
+<?php
+// Bloque de usuario (foto + nombre). Se coloca en la esquina superior derecha
+// del contenido mediante el script de más abajo.
+$chipNombre = $_SESSION['nombre_usuario'] ?? 'Usuario';
+$chipFoto   = 'assets/Img/Iconos/person-fill.svg';
+$chipFotoReal = false;
+
+if (!empty($_SESSION['usuario']) && intval($_SESSION['usuario']) > 0) {
+    try {
+        require_once __DIR__ . '/../models/UsuarioModel.php';
+        $modeloUsuarioChip = new \Idealo\Models\UsuarioModel();
+        $rutaChip = $modeloUsuarioChip->obtenerImagen(intval($_SESSION['usuario']));
+
+        if (!empty($rutaChip) && is_file(__DIR__ . '/../../' . ltrim($rutaChip, '/'))) {
+            $chipFoto = $rutaChip;
+            $chipFotoReal = true;
+        }
+    } catch (\Throwable $e) {
+        error_log('sidebar chip: ' . $e->getMessage());
+    }
+}
+?>
+<?php if (!empty($_SESSION['usuario'])): ?>
+<a href="index.php?controller=auth&action=logout" id="userChip" class="user-chip" hidden
+    title="Cerrar sesión" aria-label="Cerrar sesión">
+    <span class="user-chip-name"><?php echo htmlspecialchars($chipNombre); ?></span>
+    <img src="<?php echo htmlspecialchars($chipFoto); ?>" alt="Foto de perfil"
+        class="user-chip-avatar<?php echo $chipFotoReal ? '' : ' es-icono'; ?>">
+</a>
+<?php endif; ?>
 
 <script>
     window.toggleMenu = function(menuId) {
@@ -250,4 +287,24 @@ $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado');
             arrow.classList.toggle('rotated');
         }
     };
+
+    // Coloca el bloque de usuario en una franja propia en la parte superior
+    // del contenido, alineado a la derecha (independiente de los botones).
+    document.addEventListener('DOMContentLoaded', function () {
+        const chip = document.getElementById('userChip');
+        if (!chip) return;
+
+        const main = document.querySelector('main.main-content');
+        if (main) {
+            const barra = document.createElement('div');
+            barra.className = 'barra-usuario';
+            barra.appendChild(chip);
+            main.insertBefore(barra, main.firstElementChild);
+        } else {
+            chip.classList.add('user-chip-flotante');
+            document.body.appendChild(chip);
+        }
+
+        chip.hidden = false;
+    });
 </script>

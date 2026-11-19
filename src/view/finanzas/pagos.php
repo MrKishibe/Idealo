@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
@@ -299,6 +301,6 @@ function establecerFechaActualRegistro() {
         }
     }
 </script>
-<script type="module" src="assets/js/finanzas.js"></script>
+<script type="module" src="assets/js/pagos.js"></script>
 </body>
 </html>

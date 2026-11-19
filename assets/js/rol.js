@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { validarCampo } from './helpers/expresiones.js';
 import { limpiarValidaciones } from './helpers/validaciones.js';
@@ -228,7 +229,11 @@ $(function () {
             { data: null, orderable: false, render: acciones }
         ],
         columnDefs: [{ targets: 0, type: 'num' }],
-        language: lenguajeDataTableEs,
+        processing: true,
+        language: {
+            ...lenguajeDataTableEs,
+            processing: crearMarkupSkeletonDataTable($('#tablaRoles thead th').length)
+        },
         pageLength: 10,
         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         order: [[0, 'desc']]

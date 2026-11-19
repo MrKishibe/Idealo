@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
@@ -62,6 +64,7 @@
                             </tr>
                         </thead>
                         <tbody id="tbodyClientes">
+                            <!-- Contenido cargado dinámicamente vía AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -141,7 +144,7 @@
     </div>
 
     <!-- ================================================================
-         MODAL PARA EDITAR CLIENTE
+         MODAL PARA EDITAR CLIENTE (ACTIVO - SIN ESTADO)
          ================================================================= -->
     <div class="modal fade modal-idealo" id="modalEditarCliente" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -157,6 +160,7 @@
                     <input type="hidden" name="action" value="editar">
                     <input type="hidden" name="accion" value="editar">
                     <input type="hidden" name="id_cliente" id="edit_id_cliente">
+                    <input type="hidden" name="status_cliente" value="activo">
 
                     <div class="modal-body">
                         <div class="row g-3">
@@ -198,14 +202,6 @@
                                 <label class="form-label" for="edit_correo">Correo</label>
                                 <input type="email" class="form-control" name="correo" id="edit_correo">
                             </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label" for="edit_status_cliente">Estatus del Cliente</label>
-                                <select class="form-select" name="status_cliente" id="edit_status_cliente" required>
-                                    <option value="activo">Activo</option>
-                                    <option value="inactivo">Inactivo</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
 
@@ -218,13 +214,91 @@
         </div>
     </div>
 
+    <!-- ================================================================
+         MODAL PARA EDITAR CLIENTE INHABILITADO (CON ESTADO)
+         ================================================================= -->
+    <div class="modal fade modal-idealo" id="modalEditarClienteInactivo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i>Editar Cliente Inhabilitado
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="formEditarClienteInactivo" class="needs-validation" novalidate>
+                    <input type="hidden" name="action" value="editar">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="id_cliente" id="edit_inactivo_id_cliente">
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="edit_inactivo_tipo_de_documento">Tipo de Documento</label>
+                                <select class="form-select" name="tipo_de_documento" id="edit_inactivo_tipo_de_documento" required>
+                                    <option value="natural">Natural</option>
+                                    <option value="extranjero">Extranjero</option>
+                                    <option value="juridico">Jurídico</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="edit_inactivo_numero_de_documento">Número de Documento</label>
+                                <input type="text" class="form-control" name="numero_de_documento" id="edit_inactivo_numero_de_documento" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="edit_inactivo_telefono">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" id="edit_inactivo_telefono">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_inactivo_nombre_razon_social">Nombre / Razón Social</label>
+                                <input type="text" class="form-control" name="nombre_razon_social" id="edit_inactivo_nombre_razon_social" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_inactivo_apellido">Apellido</label>
+                                <input type="text" class="form-control" name="apellido" id="edit_inactivo_apellido">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="edit_inactivo_direccion">Dirección</label>
+                                <textarea class="form-control" name="direccion" id="edit_inactivo_direccion" rows="2"></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_inactivo_correo">Correo</label>
+                                <input type="email" class="form-control" name="correo" id="edit_inactivo_correo">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_inactivo_status_cliente">Estado del Cliente</label>
+                                <select class="form-select" name="status_cliente" id="edit_inactivo_status_cliente" required>
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light" style="border-radius: var(--radius-md);" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success" style="border-radius: var(--radius-md); padding: 10px 20px; font-weight: 600;" id="btnGuardarEdicionInactivo">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts Locales -->
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
     <script src="assets/libs/bootstrap.bundle.min.js"></script>
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-   <script type="importmap">
+    <script type="importmap">
         {
             "imports": {
                 "jquery": "./assets/js/helpers/jquery-bridge.js",

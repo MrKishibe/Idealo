@@ -7,48 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Gestión de Pedidos</title>
 
-    <!-- Hojas de estilo locales según tu estructura exacta de carpetas -->
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 
-    <!-- Select2 + tema Bootstrap 5 (buscador en los selects) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
-
-    <!-- Ajustes finos para que Select2 herede el look de IDEALO -->
-    <style>
-        .select2-container--bootstrap-5 .select2-selection {
-            border-radius: var(--radius-md);
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single {
-            min-height: calc(1.5em + 0.75rem + 2px);
-            display: flex;
-            align-items: center;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            line-height: 1.5;
-        }
-
-        .select2-container {
-            width: 100% !important;
-        }
-
-        .select2-dropdown {
-            z-index: 1060;
-        }
-
-        .select2-search--dropdown .select2-search__field {
-            border-radius: var(--radius-md);
-        }
-    </style>
 </head>
 
 <body>
 
+<!--El Sidebar -->
 <?php include 'src/view/sidebar.php'; ?>
 
 <main class="main-content">
@@ -59,33 +29,15 @@
                 <p>Administra los pedidos registrados en el sistema.</p>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <!-- Botón Único para abrir el Modal de Reportes con Filtros Avanzados -->
-                <button type="button"
-                        id="btnGenerarReporte"
-                        class="btn btn-outline-danger px-3 py-2"
-                        style="border-radius: var(--radius-md); font-weight: 600;"
-                        data-bs-toggle="modal"
-                        data-bs-target="#modalReportePedido">
-                    <i class="bi bi-file-earmark-pdf-fill me-1"></i>
-                    Generar Reporte
+                <button type="button" id="btnGenerarReporte" class="btn btn-outline-danger px-3 py-2" style="border-radius: var(--radius-md); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalReportePedido">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Reporte
                 </button>
-
-                <button type="button"
-                        id="btnAlternarEstado"
-                        class="btn btn-outline-secondary px-3 py-2"
-                        style="border-radius: var(--radius-md); font-weight: 600;"
-                        data-vista="activos">
+                <button type="button" id="btnAlternarEstado" class="btn btn-outline-secondary px-3 py-2" style="border-radius: var(--radius-md); font-weight: 600;" data-vista="activos">
                     <i class="bi bi-eye-slash-fill" id="iconoEstado"></i>
                     <span id="txtBotonEstado">Ver inhabilitados</span>
                 </button>
-
-                <button type="button"
-                        id="btnNuevoPedido"
-                        class="btn-idealo-success"
-                        data-bs-toggle="modal"
-                        data-bs-target="#modalPedido">
-                    <i class="bi bi-cart-plus-fill"></i>
-                    Registrar Pedido
+                <button type="button" id="btnNuevoPedido" class="btn-idealo-success" data-bs-toggle="modal" data-bs-target="#modalPedido">
+                    <i class="bi bi-cart-plus-fill"></i> Registrar Pedido
                 </button>
             </div>
         </header>
@@ -123,50 +75,32 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form id="formPedido" action="/idealo/index.php?url=pedido/listarpedido" method="POST" class="needs-validation" novalidate>
+            <form id="formPedido" class="needs-validation" novalidate>
                 <input type="hidden" name="tipo_accion" value="pedido">
                 <input type="hidden" name="accion" id="accionPedido" value="guardar">
                 <input type="hidden" name="id_pedido" id="idPedido" value="">
 
                 <div class="modal-body">
-                    <div class="pedido-seccion">
-                        <i class="bi bi-receipt"></i> Datos del pedido
-                    </div>
+                    <div class="pedido-seccion"><i class="bi bi-receipt"></i> Datos del pedido</div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="idCliente" class="form-label">Cliente</label>
-                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
                             <select name="id_cliente" id="idCliente" class="form-select">
-                                <option value="">Seleccione un cliente</option>
-                                <?php if (!empty($clientes)): ?>
-                                    <?php foreach ($clientes as $cliente): ?>
-                                        <option value="<?= (int) $cliente['id_cliente'] ?>">
-                                            <?= htmlspecialchars($cliente['nombre_razon_social'] . ' ' . ($cliente['apellido'] ?? '') . ' - ' . $cliente['numero_de_documento']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <option value="">Cargando clientes...</option>
                             </select>
-                            <div class="invalid-feedback d-block text-danger small" id="errorCliente" style="display:none !important;"></div>
                         </div>
 
                         <div class="col-md-6">
                             <label for="idTipoPedido" class="form-label">Tipo de pedido</label>
                             <select name="id_tipo_pedido" id="idTipoPedido" class="form-select" required>
-                                <option value="">Seleccione un tipo</option>
-                                <?php if (!empty($tiposPedido)): ?>
-                                    <?php foreach ($tiposPedido as $tipo): ?>
-                                        <option value="<?= (int) $tipo['id_tipo_pedido'] ?>">
-                                            <?= htmlspecialchars($tipo['nombre_tipo_pedido']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <option value="">Cargando tipos...</option>
                             </select>
                             <div class="invalid-feedback">Seleccione un tipo de pedido.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label for="fechaCreacion" class="form-label">Fecha de creación</label>
-                            <input type="date" name="fecha_creacion" id="fechaCreacion" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                            <input type="date" name="fecha_creacion" id="fechaCreacion" class="form-control" required>
                         </div>
 
                         <div class="col-md-6">
@@ -185,38 +119,24 @@
                         </div>
                     </div>
 
-                    <div class="pedido-seccion">
-                        <i class="bi bi-box-seam-fill"></i> Producto y servicio
-                    </div>
+                    <div class="pedido-seccion"><i class="bi bi-box-seam-fill"></i> Producto y servicio</div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="idProducto" class="form-label">Producto</label>
-                            <!-- Sin required: se valida por JS -->
                             <select name="id_producto" id="idProducto" class="form-select">
-                                <option value="">Seleccione un producto</option>
-                                <?php if (!empty($productos)): ?>
-                                    <?php foreach ($productos as $producto): ?>
-                                        <option value="<?= (int) $producto['id_producto'] ?>">
-                                            <?= htmlspecialchars($producto['nombre_producto'] . ' - ' . ($producto['tipo_de_producto'] ?? 'Sin tipo')) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <option value="">Cargando productos...</option>
                             </select>
                         </div>
 
-                        <!-- Selector independiente para Color -->
                         <div class="col-md-3">
                             <label for="filtroColor" class="form-label">Color</label>
-                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
                             <select id="filtroColor" class="form-select" disabled>
                                 <option value="">Seleccione primero un producto</option>
                             </select>
                         </div>
 
-                        <!-- Selector independiente para Talla (Característica) -->
                         <div class="col-md-3">
                             <label for="idProductoCaracteristica" class="form-label">Talla</label>
-                            <!-- Sin required: Select2 oculta el select y rompe la validación nativa -->
                             <select name="id_producto_caracteristica" id="idProductoCaracteristica" class="form-select" disabled>
                                 <option value="">Seleccione primero un color</option>
                             </select>
@@ -226,14 +146,7 @@
                         <div class="col-md-6">
                             <label for="idServicio" class="form-label">Servicio</label>
                             <select name="id_servicio" id="idServicio" class="form-select" required>
-                                <option value="">Seleccione un servicio</option>
-                                <?php if (!empty($servicios)): ?>
-                                    <?php foreach ($servicios as $servicio): ?>
-                                        <option value="<?= (int) $servicio['id_servicio'] ?>">
-                                            <?= htmlspecialchars($servicio['nombre_servicio']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <option value="">Cargando servicios...</option>
                             </select>
                             <div class="invalid-feedback">Seleccione un servicio.</div>
                         </div>
@@ -282,18 +195,8 @@
                 </div>
 
                 <div class="modal-footer border-0 pt-0 px-4 pb-4">
-                    <!-- Este botón es el único que debe limpiar el formulario -->
-                    <button
-                        type="button"
-                        class="btn btn-light btnCancelarPedido"
-                        data-bs-dismiss="modal">
-                        Cancelar
-                    </button>
-
-                    <button
-                        type="submit"
-                        class="btn-idealo-success"
-                        id="btnGuardarPedido">
+                    <button type="button" class="btn btn-light btnCancelarPedido" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-idealo-success" id="btnGuardarPedido">
                         <i class="bi bi-check-circle-fill"></i> Guardar pedido
                     </button>
                 </div>
@@ -307,17 +210,14 @@
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="tituloDetallePedido">
-                    <i class="bi bi-eye-fill me-2"></i>Detalle del pedido
-                </h5>
+                <h5 class="modal-title" id="tituloDetallePedido"><i class="bi bi-eye-fill me-2"></i>Detalle del pedido</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="detalle-bloque">
-                            <h6 class="text-primary"><i class="bi bi-receipt me-2"></i>Pedido</h6>
-                            <hr>
+                            <h6 class="text-primary"><i class="bi bi-receipt me-2"></i>Pedido</h6><hr>
                             <p><strong>ID:</strong> <span id="detalleIdPedido">-</span></p>
                             <p><strong>Fecha creación:</strong> <span id="detalleFechaCreacion">-</span></p>
                             <p><strong>Fecha entrega:</strong> <span id="detalleFechaEntrega">-</span></p>
@@ -327,11 +227,9 @@
                             <p class="mb-0"><strong>Descuento general:</strong> <span id="detalleDescuentoGeneral">-</span></p>
                         </div>
                     </div>
-
                     <div class="col-md-6">
                         <div class="detalle-bloque">
-                            <h6 class="text-success"><i class="bi bi-person-fill me-2"></i>Cliente</h6>
-                            <hr>
+                            <h6 class="text-success"><i class="bi bi-person-fill me-2"></i>Cliente</h6><hr>
                             <p><strong>Cliente:</strong> <span id="detalleCliente">-</span></p>
                             <p><strong>Documento:</strong> <span id="detalleDocumento">-</span></p>
                             <p><strong>Correo:</strong> <span id="detalleCorreo">-</span></p>
@@ -339,11 +237,9 @@
                             <p class="mb-0"><strong>Dirección:</strong> <span id="detalleDireccion">-</span></p>
                         </div>
                     </div>
-
                     <div class="col-12">
                         <div class="detalle-bloque">
-                            <h6 class="text-warning"><i class="bi bi-box-seam-fill me-2"></i>Producto y servicio</h6>
-                            <hr>
+                            <h6 class="text-warning"><i class="bi bi-box-seam-fill me-2"></i>Producto y servicio</h6><hr>
                             <div class="row g-3">
                                 <div class="col-md-4"><strong>Producto</strong><p id="detalleProducto">-</p></div>
                                 <div class="col-md-4"><strong>Tipo</strong><p id="detalleTipoProducto">-</p></div>
@@ -360,7 +256,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="col-12">
                         <div class="alert alert-success d-flex justify-content-between align-items-center mb-0">
                             <strong>Total del pedido</strong>
@@ -382,8 +277,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="tituloModalReporte">
-                    <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i>
-                    Generar Reporte PDF de Pedidos
+                    <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i> Generar Reporte PDF de Pedidos
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -395,10 +289,8 @@
                             <i class="bi bi-check2-all text-primary me-1"></i> Reportar Todos los registros (Ignorar filtros y reportar todo lo visible)
                         </label>
                     </div>
-
                     <hr class="text-muted">
                     <p class="text-muted small mb-3">Marque las opciones que desea filtrar. Los campos sin marcar se ignorarán automáticamente.</p>
-
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="reporteFechaInicio" class="form-label small fw-bold">Fecha Inicio</label>
@@ -408,59 +300,32 @@
                             <label for="reporteFechaFin" class="form-label small fw-bold">Fecha Fin</label>
                             <input type="date" name="fecha_fin" id="reporteFechaFin" class="form-control form-control-sm campo-filtro">
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Tipos de Pedido</label>
-                            <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
-                                <?php if (!empty($tiposPedido)): ?>
-                                    <?php foreach ($tiposPedido as $tp): ?>
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-filtro" type="checkbox" name="id_tipo_pedido[]" value="<?= (int) $tp['id_tipo_pedido'] ?>" id="tp_<?= $tp['id_tipo_pedido'] ?>">
-                                            <label class="form-check-label small" for="tp_<?= $tp['id_tipo_pedido'] ?>">
-                                                <?= htmlspecialchars($tp['nombre_tipo_pedido']) ?>
-                                            </label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                            <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" id="reporteTiposPedidoContainer" style="max-height: 110px; overflow-y: auto;">
+                                <!-- Cargado dinámicamente vía AJAX -->
                             </div>
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Servicios</label>
-                            <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
-                                <?php if (!empty($servicios)): ?>
-                                    <?php foreach ($servicios as $serv): ?>
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-filtro" type="checkbox" name="id_servicio[]" value="<?= (int) $serv['id_servicio'] ?>" id="serv_<?= $serv['id_servicio'] ?>">
-                                            <label class="form-check-label small" for="serv_<?= $serv['id_servicio'] ?>">
-                                                <?= htmlspecialchars($serv['nombre_servicio']) ?>
-                                            </label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                            <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" id="reporteServiciosContainer" style="max-height: 110px; overflow-y: auto;">
+                                <!-- Cargado dinámicamente vía AJAX -->
                             </div>
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Estados del Pedido</label>
                             <div class="p-2 border rounded bg-white campo-filtro contenedor-chk" style="max-height: 110px; overflow-y: auto;">
-                                <?php 
-                                $estados = ['pendiente' => 'Pendiente', 'en proceso' => 'En proceso', 'realizado' => 'Realizado', 'entregado' => 'Entregado', 'inhabilitado' => 'Inhabilitado'];
-                                foreach ($estados as $val => $label): 
-                                ?>
-                                    <div class="form-check">
-                                        <input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="<?= $val ?>" id="est_<?= $val ?>">
-                                        <label class="form-check-label small" for="est_<?= $val ?>"><?= $label ?></label>
-                                    </div>
-                                <?php endforeach; ?>
+                                <div class="form-check"><input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="pendiente" id="est_pendiente"><label class="form-check-label small" for="est_pendiente">Pendiente</label></div>
+                                <div class="form-check"><input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="en proceso" id="est_en_proceso"><label class="form-check-label small" for="est_en_proceso">En proceso</label></div>
+                                <div class="form-check"><input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="realizado" id="est_realizado"><label class="form-check-label small" for="est_realizado">Realizado</label></div>
+                                <div class="form-check"><input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="entregado" id="est_entregado"><label class="form-check-label small" for="est_entregado">Entregado</label></div>
+                                <div class="form-check"><input class="form-check-input chk-filtro" type="checkbox" name="estado[]" value="inhabilitado" id="est_inhabilitado"><label class="form-check-label small" for="est_inhabilitado">Inhabilitado</label></div>
                             </div>
                         </div>
-
                         <div class="col-md-6">
                             <label for="reporteCantidad" class="form-label small fw-bold">Cantidad exacta</label>
                             <input type="number" name="cantidad" id="reporteCantidad" class="form-control form-control-sm campo-filtro" min="1" placeholder="Ej. 2">
                         </div>
-
                         <div class="col-md-6">
                             <label for="reporteOperadorMonto" class="form-label small fw-bold">Criterio de Monto Total</label>
                             <select name="operador_monto" id="reporteOperadorMonto" class="form-select form-select-sm campo-filtro">
@@ -470,12 +335,10 @@
                                 <option value="igual">Igual a (=)</option>
                             </select>
                         </div>
-
                         <div class="col-md-6">
                             <label for="reporteMonto" class="form-label small fw-bold">Valor del Monto ($)</label>
                             <input type="number" name="monto" id="reporteMonto" class="form-control form-control-sm campo-filtro" step="0.01" min="0" placeholder="0.00">
                         </div>
-
                         <input type="hidden" name="ids_filtrados" id="reporteIdsFiltrados" value="">
                     </div>
                 </div>
@@ -490,16 +353,11 @@
     </div>
 </div>
 
-<!-- Scripts -->
 <script src="assets/libs/jquery-4.0.0.min.js"></script>
 <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/libs/jquery.dataTables.min.js"></script>
 <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 <script src="assets/libs/sweetalert2.all.min.js"></script>
-
-<!-- Select2 (4.1.0 o superior: es la línea compatible con jQuery 4) -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/i18n/es.js"></script>
 
 <script type="importmap">
     {

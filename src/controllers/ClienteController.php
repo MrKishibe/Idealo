@@ -12,6 +12,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
         try {
+            // Validar duplicado por tipo + documento antes de guardar
+            $numDoc = trim($_POST["numero_de_documento"] ?? '');
+            $tipoDoc = trim($_POST["tipo_de_documento"] ?? '');
+            $correo = trim($_POST["correo"] ?? '');
+
+            if (method_exists($model, 'existeDocumentoPorTipo') && $model->existeDocumentoPorTipo($numDoc, $tipoDoc)) {
+                throw new \Exception('El número de documento ya está registrado para este tipo de documento.');
+            }
+
+            if (!empty($correo) && method_exists($model, 'existeCorreo') && $model->existeCorreo($correo)) {
+                throw new \Exception('El correo electrónico ya se encuentra registrado por otro cliente.');
+            }
+
             $model->guardar($_POST);
             echo json_encode([
                 'success' => true, 
@@ -36,6 +49,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
         try {
+            $numDoc = trim($_POST["numero_de_documento"] ?? '');
+            $tipoDoc = trim($_POST["tipo_de_documento"] ?? '');
+            $correo = trim($_POST["correo"] ?? '');
+            $idCliente = (int)($_POST["id_cliente"] ?? 0);
+
+            if (method_exists($model, 'existeDocumentoPorTipo') && $model->existeDocumentoPorTipo($numDoc, $tipoDoc, $idCliente)) {
+                throw new \Exception('El número de documento ya está registrado para este tipo de documento.');
+            }
+
+            if (!empty($correo) && method_exists($model, 'existeCorreo') && $model->existeCorreo($correo, $idCliente)) {
+                throw new \Exception('El correo electrónico ya se encuentra registrado por otro cliente.');
+            }
+
             $model->editar($_POST);
             echo json_encode([
                 'success' => true, 
@@ -55,26 +81,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         exit;
     }
 
-    // CASO C: Verificar documento (duplicado)
-    if (isset($_POST["numero_de_documento"])) {
+    // CASO C: Verificar documento y correo mediante AJAX en tiempo real
+    if (isset($_POST["numero_de_documento"]) || isset($_POST["correo"])) {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
         
-        $numDoc = trim($_POST["numero_de_documento"]);
-        $existe = $model->existeDocumento($numDoc);
+        $numDoc = trim($_POST["numero_de_documento"] ?? '');
+        $tipoDoc = trim($_POST["tipo_de_documento"] ?? '');
+        $correo = trim($_POST["correo"] ?? '');
+        $idClienteExcluir = isset($_POST["id_cliente"]) ? (int)$_POST["id_cliente"] : 0;
         
-        if ($existe) {
-            echo json_encode([
-                'duplicado' => true,
-                'id_cliente_duplicado' => $existe['id_cliente'],
-                'mensaje' => 'El número de documento ya está registrado.'
-            ], JSON_UNESCAPED_UNICODE);
-        } else {
-            echo json_encode([
-                'duplicado' => false,
-                'mensaje' => 'El número de documento es válido.'
-            ], JSON_UNESCAPED_UNICODE);
+        $duplicadoDoc = false;
+        $duplicadoCorreo = false;
+        $mensaje = '';
+
+        if ($numDoc !== '' && $tipoDoc !== '') {
+            $duplicadoDoc = method_exists($model, 'existeDocumentoPorTipo') 
+                ? $model->existeDocumentoPorTipo($numDoc, $tipoDoc, $idClienteExcluir) 
+                : false;
+            if ($duplicadoDoc) {
+                $mensaje = 'El número de documento ya está registrado bajo este mismo tipo.';
+            }
         }
+
+        if (!$duplicadoDoc && $correo !== '') {
+            $duplicadoCorreo = method_exists($model, 'existeCorreo') 
+                ? $model->existeCorreo($correo, $idClienteExcluir) 
+                : false;
+            if ($duplicadoCorreo) {
+                $mensaje = 'El correo electrónico ya está registrado.';
+            }
+        }
+        
+        echo json_encode([
+            'duplicado' => ($duplicadoDoc || $duplicadoCorreo),
+            'duplicado_documento' => $duplicadoDoc,
+            'duplicado_correo' => $duplicadoCorreo,
+            'mensaje' => $mensaje ?: 'Datos válidos.'
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
@@ -127,12 +171,6 @@ if (isset($_GET["ajax"]) && $_GET["ajax"] === "listar") {
     exit;
 }
 
-// Carga de la vista principal si no es una llamada asíncrona
+// Carga de la vista principal
 $rutaVista = __DIR__ . '/../view/cliente/listar.php';
-
-if (!file_exists($rutaVista)) {
-    header("HTTP/1.1 404 Not Found");
-    die("Error 404: No existe la vista requerida en: <strong>" . htmlspecialchars($rutaVista) . "</strong>");
-}
-
 require_once $rutaVista;

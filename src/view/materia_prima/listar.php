@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -54,26 +56,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($materiasPrimas as $mp): ?>
-                            <tr id="fila-<?php echo htmlspecialchars($mp['id_materia_prima']); ?>">
-                                <td class="fw-bold"><?php echo htmlspecialchars($mp['nombre_materia_prima']); ?></td>
-                                <td><?php echo htmlspecialchars($mp['nombre_de_material'] ?? 'Sin tipo'); ?></td>
-                                <td><?php echo number_format($mp['costo_unitario'], 2, '.', ','); ?></td>
-                                <td><?php echo number_format($mp['stock_actual'], 2, '.', ',') . ' ' . htmlspecialchars($mp['unidad_de_medida']); ?></td>
-                                <td><?php echo number_format($mp['stock_minimo'], 2, '.', ',') . ' ' . htmlspecialchars($mp['unidad_de_medida']); ?></td>
-                                <td><span class="badge <?php echo $mp['status_materia_prima'] === 'Activo' ? 'bg-success' : 'bg-danger'; ?>"><?php echo htmlspecialchars($mp['status_materia_prima']); ?></span></td>
-                                <td>
-                                    <div class="text-center">
-                                        <?php if ($mp['status_materia_prima'] === 'Activo'): ?>
-                                        <button class="btn btn-sm btn-outline-primary btnEditarActivo me-1" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" data-id-tipo="<?php echo $mp['id_tipo_materia_prima']; ?>" data-costo="<?php echo $mp['costo_unitario']; ?>" data-stock-actual="<?php echo $mp['stock_actual']; ?>" data-stock-minimo="<?php echo $mp['stock_minimo']; ?>" data-unidad="<?php echo htmlspecialchars($mp['unidad_de_medida']); ?>" title="Editar"><i class="bi bi-pencil-square"></i></button>
-                                        <button class="btn btn-sm btn-outline-danger btnCambiarEstado" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" title="Inhabilitar"><i class="bi bi-trash3-fill"></i></button>
-                                        <?php else: ?>
-                                        <button class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="<?php echo $mp['id_materia_prima']; ?>" data-nombre="<?php echo htmlspecialchars($mp['nombre_materia_prima']); ?>" data-id-tipo="<?php echo $mp['id_tipo_materia_prima']; ?>" data-costo="<?php echo $mp['costo_unitario']; ?>" data-stock-actual="<?php echo $mp['stock_actual']; ?>" data-stock-minimo="<?php echo $mp['stock_minimo']; ?>" data-unidad="<?php echo htmlspecialchars($mp['unidad_de_medida']); ?>" title="Editar / Reactivar"><i class="bi bi-pencil-square"></i></button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                            <!-- Contenido cargado dinámicamente vía AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -95,27 +78,22 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="nombre_materia_prima" maxlength="100" required>
-                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tipo</label>
                                 <select class="form-select" id="id_tipo_materia_prima" required><option value="">Cargando...</option></select>
-                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Costo Unit.</label>
                                 <input type="number" class="form-control" id="costo_unitario" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Actual</label>
-                                <input type="number" class="form-control" id="stock_actual" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="stock_actual" maxlength="9" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Mínimo</label>
-                                <input type="number" class="form-control" id="stock_minimo" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="stock_minimo" maxlength="9" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Unidad de Medida</label>
@@ -145,7 +123,6 @@
                                         <option value="galon">galón (gal)</option>
                                     </optgroup>
                                 </select>
-                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
                             </div>
                         </div>
                     </div>
@@ -173,27 +150,22 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="edit_activo_nombre" maxlength="100" required>
-                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tipo</label>
                                 <select class="form-select" id="edit_activo_id_tipo" required><option value="">Cargando...</option></select>
-                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Costo</label>
                                 <input type="number" class="form-control" id="edit_activo_costo" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Actual</label>
-                                <input type="number" class="form-control" id="edit_activo_stock_actual" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="edit_activo_stock_actual" maxlength="9" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Mínimo</label>
-                                <input type="number" class="form-control" id="edit_activo_stock_minimo" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="edit_activo_stock_minimo" maxlength="9" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Unidad de Medida</label>
@@ -223,7 +195,6 @@
                                         <option value="galon">galón (gal)</option>
                                     </optgroup>
                                 </select>
-                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
                             </div>
                         </div>
                     </div>
@@ -251,27 +222,22 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="edit_inactivo_nombre" maxlength="100" required>
-                                <div class="invalid-feedback">El nombre debe tener entre 3 y 100 caracteres.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tipo</label>
                                 <select class="form-select" id="edit_inactivo_id_tipo" required><option value="">Cargando...</option></select>
-                                <div class="invalid-feedback">Debe seleccionar un tipo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Costo</label>
                                 <input type="number" class="form-control" id="edit_inactivo_costo" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El costo debe ser mayor o igual a 0.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Actual</label>
-                                <input type="number" class="form-control" id="edit_inactivo_stock_actual" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="edit_inactivo_stock_actual" maxlength="9" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock Mínimo</label>
-                                <input type="number" class="form-control" id="edit_inactivo_stock_minimo" step="0.01" min="0" required>
-                                <div class="invalid-feedback">El stock debe ser mayor o igual a 0.</div>
+                                <input type="text" inputmode="numeric" class="form-control" id="edit_inactivo_stock_minimo" maxlength="9" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Unidad de Medida</label>
@@ -301,7 +267,6 @@
                                         <option value="galon">galón (gal)</option>
                                     </optgroup>
                                 </select>
-                                <div class="invalid-feedback">Debe seleccionar una unidad.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado</label>
@@ -309,7 +274,6 @@
                                     <option value="Activo">Activo</option>
                                     <option value="Inactivo">Inactivo</option>
                                 </select>
-                                <div class="invalid-feedback">Debe seleccionar un estado.</div>
                             </div>
                         </div>
                     </div>
@@ -380,7 +344,7 @@
                                         <option value="igual">=</option>
                                         <option value="menor"><</option>
                                     </select>
-                                    <input type="number" step="0.01" min="0" name="valor_stock_actual" id="valor_stock_actual_reporte" class="form-control" placeholder="Cant.">
+                                    <input type="text" inputmode="numeric" name="valor_stock_actual" id="valor_stock_actual_reporte" class="form-control" placeholder="Cant.">
                                 </div>
                             </div>
 
@@ -394,7 +358,7 @@
                                         <option value="igual">=</option>
                                         <option value="menor"><</option>
                                     </select>
-                                    <input type="number" step="0.01" min="0" name="valor_stock_minimo" id="valor_stock_minimo_reporte" class="form-control" placeholder="Cant.">
+                                    <input type="text" inputmode="numeric" name="valor_stock_minimo" id="valor_stock_minimo_reporte" class="form-control" placeholder="Cant.">
                                 </div>
                             </div>
                         </div>

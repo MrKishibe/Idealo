@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
@@ -48,7 +50,7 @@
                 </div>
             </header>
 
-            <!-- Tabla Principal -->
+            <!-- Tabla Principal (Los datos se cargan dinámicamente vía AJAX con DataTable) -->
             <div class="table-container p-3">
                 <div class="table-responsive">
                     <table class="custom-table" id="tablaServicios" style="width: 100%;">
@@ -60,44 +62,7 @@
                             </tr>
                         </thead>
                         <tbody id="tbodyServicios">
-                            <?php if (isset($servicios) && is_array($servicios)): ?>
-                                <?php foreach ($servicios as $servicio): ?>
-                                    <?php
-                                        $idServicio = $servicio['id_servicio'] ?? '';
-                                        $nombreServicio = $servicio['nombre_servicio'] ?? '';
-                                        $estadoServicio = $servicio['status_servicio'] ?? 'inactivo';
-                                        $esActivo = strtolower($estadoServicio) === 'activo';
-                                    ?>
-                                    <tr id="fila-<?php echo htmlspecialchars($idServicio, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <td class="fw-bold">
-                                            <?php echo htmlspecialchars($nombreServicio, ENT_QUOTES, 'UTF-8'); ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?php echo $esActivo ? 'bg-success' : 'bg-danger'; ?>">
-                                                <?php echo htmlspecialchars(ucfirst($estadoServicio), ENT_QUOTES, 'UTF-8'); ?>
-                                            </span>
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-primary me-1 btnEditarServicio" 
-                                                    data-id="<?php echo htmlspecialchars($idServicio, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                    data-nombre="<?php echo htmlspecialchars($nombreServicio, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                    data-estado="<?php echo htmlspecialchars($estadoServicio, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    title="Editar Servicio">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button type="button" 
-                                                    class="btn btn-sm <?php echo $esActivo ? 'btn-outline-danger' : 'btn-outline-success'; ?> btnCambiarEstado" 
-                                                    data-id="<?php echo htmlspecialchars($idServicio, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                    data-nombre="<?php echo htmlspecialchars($nombreServicio, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                    data-estado="<?php echo $esActivo ? 'inactivo' : 'activo'; ?>" 
-                                                    title="<?php echo $esActivo ? 'Inhabilitar' : 'Reactivar'; ?> Servicio">
-                                                <i class="bi <?php echo $esActivo ? 'bi-trash3-fill' : 'bi-check-circle-fill'; ?>"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <!-- Contenido poblado dinámicamente por JavaScript / DataTables -->
                         </tbody>
                     </table>
                 </div>
@@ -208,14 +173,14 @@
     <script src="assets/libs/jquery.dataTables.min.js"></script>
     <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
-     <script type="importmap">
+    <script type="importmap">
     {
         "imports": {
             "jquery": "./assets/js/helpers/jquery-bridge.js",
             "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
         }
     }
-</script>
+    </script>
     <script type="module" src="assets/js/servicio.js"></script>
 
 </body>

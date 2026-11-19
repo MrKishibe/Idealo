@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo, validarLongitud } from './helpers/expresiones.js';
 import { limpiarValidaciones, configurarValidacionEnVivo, soloNumerosTeclado, soloLetrasTeclado } from './helpers/validaciones.js';
@@ -606,7 +607,11 @@ $(function () {
                 }
             }
         ],
-        language: lenguajeDataTableEs,
+        processing: true,
+        language: {
+            ...lenguajeDataTableEs,
+            processing: crearMarkupSkeletonDataTable($('#tablaEmpleados thead th').length)
+        },
         pageLength: 10,
         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         responsive: true,

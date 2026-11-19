@@ -117,10 +117,29 @@ $crearDatosPedido = static function () use (
 
 /*
 |--------------------------------------------------------------------------
+| AJAX: Obtener catálogos generales para llenar los selects por JS
+|--------------------------------------------------------------------------
+*/
+if (($_GET['accion'] ?? '') === 'obtener_catalogos') {
+    try {
+        $responderJson([
+            'success' => true,
+            'data' => [
+                'clientes'    => $model->obtenerClientes(),
+                'tiposPedido' => $model->obtenerTiposPedido(),
+                'productos'   => $model->obtenerProductosActivos(),
+                'servicios'   => $model->obtenerServicios()
+            ]
+        ]);
+    } catch (Throwable $e) {
+        $responderError($e, 'obtener_catalogos');
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | AJAX: Buscar clientes (autocompletado Select2)
 |--------------------------------------------------------------------------
-| Se apoya en obtenerClientes() y filtra en PHP, así no hay que tocar el
-| modelo. Si algún día la tabla crece demasiado, muévelo a SQL.
 */
 if (($_GET['accion'] ?? '') === 'buscar_clientes') {
     try {
@@ -360,7 +379,6 @@ if (($_GET['accion'] ?? '') === 'generarreportepdf') {
                     ],
                 ], $index % 2 !== 0);
             }
-
         }
 
         $pdf->Ln(2);
@@ -425,13 +443,4 @@ if (!file_exists($rutaVista)) {
     die('No existe la vista de gestión de pedidos.');
 }
 
-try {
-    $clientes = $model->obtenerClientes();
-    $tiposPedido = $model->obtenerTiposPedido();
-    $productos = $model->obtenerProductosActivos();
-    $servicios = $model->obtenerServicios();
-    require_once $rutaVista;
-} catch (Throwable $e) {
-    http_response_code(500);
-    die('Error al cargar el módulo de pedidos: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
-}
+require_once $rutaVista;

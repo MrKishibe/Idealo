@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { soloLetrasTeclado, soloNumerosTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
@@ -21,7 +22,7 @@ $(document).ready(function () {
         const $form = $(formSelector);
         $form[0].reset();
         $form.find('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-        $form.find('.invalid-feedback, .valid-feedback, .feedback-validación').remove();
+        $form.find('.invalid-feedback, .valid-feedback, .feedback-validacion, .feedback-validación').remove();
     }
 
     // ==========================================
@@ -63,7 +64,11 @@ $(document).ready(function () {
         const estadoFiltro = verEliminados ? 'Inactivo' : 'Activo';
 
         tablaDataTable = $('#tablaMateriaPrima').DataTable({
-            language: lenguajeDataTableEs,
+            processing: true,
+            language: {
+                ...lenguajeDataTableEs,
+                processing: crearMarkupSkeletonDataTable($('#tablaMateriaPrima thead th').length)
+            },
             pageLength: 10,
             responsive: true,
             ordering: true,
@@ -108,14 +113,14 @@ $(document).ready(function () {
                     data: 'stock_actual',
                     type: 'num',
                     render: function (data, type, row) {
-                        return `${data} ${escaparHTML(row.unidad_de_medida)}`;
+                        return `${parseInt(data || 0, 10)} ${escaparHTML(row.unidad_de_medida)}`;
                     }
                 },
                 {
                     data: 'stock_minimo',
                     type: 'num',
                     render: function (data, type, row) {
-                        return `${data} ${escaparHTML(row.unidad_de_medida)}`;
+                        return `${parseInt(data || 0, 10)} ${escaparHTML(row.unidad_de_medida)}`;
                     }
                 },
                 {
@@ -136,8 +141,8 @@ $(document).ready(function () {
                         const nombre = escaparHTML(data.nombre_materia_prima);
                         const tipo = data.id_tipo_materia_prima;
                         const costo = data.costo_unitario;
-                        const stockActual = data.stock_actual;
-                        const stockMinimo = data.stock_minimo;
+                        const stockActual = parseInt(data.stock_actual || 0, 10);
+                        const stockMinimo = parseInt(data.stock_minimo || 0, 10);
                         const unidad = escaparHTML(data.unidad_de_medida);
                         const estado = data.status_materia_prima;
 
@@ -208,6 +213,7 @@ $(document).ready(function () {
     });
 
     $('#modalRegistrarMateriaPrima').on('show.bs.modal', async function () {
+        limpiarFormularioModal('#formMateriaPrima');
         if ($('#id_tipo_materia_prima option').length <= 1) {
             await llenarSelectTipos();
         }
@@ -232,10 +238,46 @@ $(document).ready(function () {
 
     // Restricciones de teclado modulares
     $(document).on('keydown', '#nombre_materia_prima, #edit_activo_nombre, #edit_inactivo_nombre', soloLetrasTeclado);
-    $(document).on('keydown', '#costo_unitario, #stock_actual, #stock_minimo, #edit_activo_costo, #edit_activo_stock_actual, #edit_activo_stock_minimo, #edit_inactivo_costo, #edit_inactivo_stock_actual, #edit_inactivo_stock_minimo', soloNumerosTeclado);
+    $(document).on('keydown', '#costo_unitario, #edit_activo_costo, #edit_inactivo_costo', soloNumerosTeclado);
 
-    // Limpieza explícita al hacer clic específicamente en los botones con la clase o texto de cancelar
-    $(document).on('click', '.btn-cancelar-modal, button:contains("Cancelar")', function (e) {
+    // Bloqueo estricto de solo números enteros en Stock (teclado y pegado)
+    const selectoresStockEntero = '#stock_actual, #stock_minimo, #edit_activo_stock_actual, #edit_activo_stock_minimo, #edit_inactivo_stock_actual, #edit_inactivo_stock_minimo, #valor_stock_actual_reporte, #valor_stock_minimo_reporte';
+
+    $(document).on('keydown', selectoresStockEntero, function (e) {
+        const teclasPermitidas = [8, 9, 13, 27, 35, 36, 37, 38, 39, 40, 46];
+        if (teclasPermitidas.includes(e.keyCode) || ((e.ctrlKey || e.metaKey) && [65, 67, 86, 88].includes(e.keyCode))) {
+            return;
+        }
+        if (!/^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+        }
+    });
+
+    $(document).on('input paste', selectoresStockEntero, function () {
+        const valLimpio = $(this).val().replace(/[^0-9]/g, '');
+        if ($(this).val() !== valLimpio) {
+            $(this).val(valLimpio);
+        }
+    });
+
+    // Validador dedicado para Stock Entero sin duplicar mensajes en pantalla
+    function validarStockEntero($input, mensajeError) {
+        const valor = $input.val().trim();
+        $input.siblings('.invalid-feedback, .valid-feedback, .feedback-validacion').remove();
+
+        if (!/^\d+$/.test(valor)) {
+            $input.removeClass('is-valid').addClass('is-invalid');
+            $('<div class="invalid-feedback d-block"></div>').text(mensajeError).insertAfter($input);
+            return false;
+        }
+
+        $input.removeClass('is-invalid').addClass('is-valid');
+        $('<div class="valid-feedback d-block">Campo válido</div>').insertAfter($input);
+        return true;
+    }
+
+    // Limpieza explícita al hacer clic en cancelar o cerrar
+    $(document).on('click', '.btn-cancelar-modal, button:contains("Cancelar")', function () {
         const $modal = $(this).closest('.modal');
         const formId = $modal.find('form').attr('id');
         if (formId) {
@@ -255,30 +297,35 @@ $(document).ready(function () {
         const inputStockMinimo = $('#stock_minimo');
         const selectUnidad = $('#unidad_de_medida');
 
-        let vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'El nombre debe tener entre 3 y 100 caracteres.');
+        // Limpiar feedbacks estáticos previos antes de validar
+        $('#formMateriaPrima').find('.invalid-feedback, .valid-feedback').remove();
 
+        const vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'El nombre debe tener entre 3 y 100 caracteres.');
+
+        let vTipo = true;
         if (selectTipo.val() === '') {
-            selectTipo.addClass('is-invalid');
-            await errorAlert('Error', 'Seleccione un tipo de materia prima.');
-            return;
+            selectTipo.removeClass('is-valid').addClass('is-invalid');
+            $('<div class="invalid-feedback d-block">Seleccione un tipo de materia prima.</div>').insertAfter(selectTipo);
+            vTipo = false;
         } else {
             selectTipo.removeClass('is-invalid').addClass('is-valid');
         }
 
-        let vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'El costo debe ser un valor numérico válido.');
-        let vStockAct = validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'El stock actual debe ser un valor numérico válido.');
-        let vStockMin = validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'El stock mínimo debe ser un valor numérico válido.');
+        const vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'El costo debe ser mayor o igual a 0.');
+        const vStockAct = validarStockEntero(inputStockActual, 'El stock actual debe ser un número entero mayor o igual a 0.');
+        const vStockMin = validarStockEntero(inputStockMinimo, 'El stock mínimo debe ser un número entero mayor o igual a 0.');
 
-        if (!vNom || !vCosto || !vStockAct || !vStockMin) {
-            return;
-        }
-
+        let vUnidad = true;
         if (selectUnidad.val() === '') {
-            selectUnidad.addClass('is-invalid');
-            await errorAlert('Error', 'Seleccione una unidad de medida.');
-            return;
+            selectUnidad.removeClass('is-valid').addClass('is-invalid');
+            $('<div class="invalid-feedback d-block">Seleccione una unidad de medida.</div>').insertAfter(selectUnidad);
+            vUnidad = false;
         } else {
             selectUnidad.removeClass('is-invalid').addClass('is-valid');
+        }
+
+        if (!vNom || !vTipo || !vCosto || !vStockAct || !vStockMin || !vUnidad) {
+            return;
         }
 
         try {
@@ -289,8 +336,8 @@ $(document).ready(function () {
                     nombre: inputNombre.val().trim(),
                     id_tipo_materia_prima: selectTipo.val(),
                     costo_unitario: inputCosto.val().trim(),
-                    stock_actual: inputStockActual.val().trim(),
-                    stock_minimo: inputStockMinimo.val().trim(),
+                    stock_actual: parseInt(inputStockActual.val().trim(), 10),
+                    stock_minimo: parseInt(inputStockMinimo.val().trim(), 10),
                     unidad_de_medida: selectUnidad.val()
                 },
                 dataType: 'json'
@@ -310,60 +357,66 @@ $(document).ready(function () {
     });
 
     $('body').on('click', '.btnEditarActivo', async function () {
+        limpiarFormularioModal('#formEditarActivo');
         $('#edit_activo_id').val($(this).data('id'));
         $('#edit_activo_nombre').val($(this).data('nombre'));
         $('#edit_activo_costo').val($(this).data('costo'));
-        $('#edit_activo_stock_actual').val($(this).data('stock-actual'));
-        $('#edit_activo_stock_minimo').val($(this).data('stock-minimo'));
+        $('#edit_activo_stock_actual').val(parseInt($(this).data('stock-actual'), 10));
+        $('#edit_activo_stock_minimo').val(parseInt($(this).data('stock-minimo'), 10));
         $('#edit_activo_unidad').val($(this).data('unidad'));
 
         await llenarSelectTipos();
         $('#edit_activo_id_tipo').val($(this).data('id-tipo'));
-        new bootstrap.Modal(document.getElementById('modalEditarActivo')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarActivo')).show();
     });
 
     $('body').on('click', '.btnEditarInactivo', async function () {
+        limpiarFormularioModal('#formEditarInactivo');
         $('#edit_inactivo_id').val($(this).data('id'));
         $('#edit_inactivo_nombre').val($(this).data('nombre'));
         $('#edit_inactivo_costo').val($(this).data('costo'));
-        $('#edit_inactivo_stock_actual').val($(this).data('stock-actual'));
-        $('#edit_inactivo_stock_minimo').val($(this).data('stock-minimo'));
+        $('#edit_inactivo_stock_actual').val(parseInt($(this).data('stock-actual'), 10));
+        $('#edit_inactivo_stock_minimo').val(parseInt($(this).data('stock-minimo'), 10));
         $('#edit_inactivo_unidad').val($(this).data('unidad'));
         $('#edit_inactivo_estado').val($(this).data('estado') || 'Inactivo');
 
         await llenarSelectTipos();
         $('#edit_inactivo_id_tipo').val($(this).data('id-tipo'));
-        new bootstrap.Modal(document.getElementById('modalEditarInactivo')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarInactivo')).show();
     });
 
     // ==========================================
     // 3. AJAX PARA EDITAR (POST)
     // ==========================================
     async function enviarEdicion(id, inputNombre, selectTipo, inputCosto, inputStockActual, inputStockMinimo, selectUnidad, estadoModal, selectorModalForm, selectorModalId) {
-        let vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'Nombre inválido.');
+        $(selectorModalForm).find('.invalid-feedback, .valid-feedback').remove();
 
+        const vNom = validarCampoNombrePatron(inputNombre, 'nombre', 'El nombre debe tener entre 3 y 100 caracteres.');
+
+        let vTipo = true;
         if (selectTipo.val() === '') {
-            selectTipo.addClass('is-invalid');
-            await errorAlert('Error', 'Seleccione un tipo.');
-            return;
+            selectTipo.removeClass('is-valid').addClass('is-invalid');
+            $('<div class="invalid-feedback d-block">Seleccione un tipo.</div>').insertAfter(selectTipo);
+            vTipo = false;
         } else {
             selectTipo.removeClass('is-invalid').addClass('is-valid');
         }
 
-        let vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'Costo inválido.');
-        let vStockAct = validarCampoNombrePatron(inputStockActual, 'numeroNoNegativo', 'Stock actual inválido.');
-        let vStockMin = validarCampoNombrePatron(inputStockMinimo, 'numeroNoNegativo', 'Stock mínimo inválido.');
+        const vCosto = validarCampoNombrePatron(inputCosto, 'numeroNoNegativo', 'Costo inválido.');
+        const vStockAct = validarStockEntero(inputStockActual, 'El stock actual debe ser un número entero mayor o igual a 0.');
+        const vStockMin = validarStockEntero(inputStockMinimo, 'El stock mínimo debe ser un número entero mayor o igual a 0.');
 
-        if (!vNom || !vCosto || !vStockAct || !vStockMin) {
-            return;
-        }
-
+        let vUnidad = true;
         if (selectUnidad.val() === '') {
-            selectUnidad.addClass('is-invalid');
-            await errorAlert('Error', 'Seleccione una unidad.');
-            return;
+            selectUnidad.removeClass('is-valid').addClass('is-invalid');
+            $('<div class="invalid-feedback d-block">Seleccione una unidad.</div>').insertAfter(selectUnidad);
+            vUnidad = false;
         } else {
             selectUnidad.removeClass('is-invalid').addClass('is-valid');
+        }
+
+        if (!vNom || !vTipo || !vCosto || !vStockAct || !vStockMin || !vUnidad) {
+            return;
         }
 
         try {
@@ -376,8 +429,8 @@ $(document).ready(function () {
                     nombre: inputNombre.val().trim(),
                     id_tipo_materia_prima: selectTipo.val(),
                     costo_unitario: inputCosto.val().trim(),
-                    stock_actual: inputStockActual.val().trim(),
-                    stock_minimo: inputStockMinimo.val().trim(),
+                    stock_actual: parseInt(inputStockActual.val().trim(), 10),
+                    stock_minimo: parseInt(inputStockMinimo.val().trim(), 10),
                     unidad_de_medida: selectUnidad.val()
                 },
                 dataType: 'json'
@@ -470,7 +523,7 @@ $(document).ready(function () {
             const parametros = new URLSearchParams(new FormData(formReporteMateria));
             parametros.set('accion', 'generar_reporte');
 
-            const estadoReporteSelect = $('#estado_reporte').val();
+            const estadoReporteSelect = $('#estadoReporteSelect').val();
 
             if (tablaDataTable && estadoReporteSelect === 'Activo') {
                 const datosFiltrados = tablaDataTable.rows({ search: 'applied' }).data().toArray();

@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { soloLetrasTeclado, validarCampoNombrePatron } from './helpers/validaciones.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 
@@ -8,7 +9,6 @@ $(document).ready(function () {
     let verEliminados = false;
 
     const urlModulo = 'index.php?controller=tipoPedido&action=listar';
-
 
     function inicializarDataTable() {
         if ($.fn.DataTable.isDataTable('#tablaTipoPedido')) {
@@ -37,14 +37,14 @@ $(document).ready(function () {
             columns: [
                 {
                     data: 'nombre_tipo_pedido',
-                    type: 'string', // Orden alfabético activo por nombre
+                    type: 'string',
                     render: function (data) {
                         return `<span class="fw-bold">${escaparHTML(data)}</span>`;
                     }
                 },
                 {
                     data: 'status_tipo_servicio',
-                    type: 'string', // Orden activo por estado
+                    type: 'string',
                     render: function (data) {
                         return data === 'Activo'
                             ? '<span class="badge bg-success">Activo</span>'
@@ -53,7 +53,9 @@ $(document).ready(function () {
                 },
                 {
                     data: null,
-                    orderable: false, // Acciones sin ordenamiento
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
                     render: function (data) {
                         const id = escaparHTML(data.id_tipo_pedido);
                         const nombre = escaparHTML(data.nombre_tipo_pedido);
@@ -76,21 +78,23 @@ $(document).ready(function () {
                                 </button>
                             `;
                         }
-                        return `<div class="text-center">${acciones}</div>`;
+                        return `<div>${acciones}</div>`;
                     }
                 }
             ],
-            language: lenguajeDataTableEs,
+            processing: true,
+            language: {
+                ...lenguajeDataTableEs,
+                processing: crearMarkupSkeletonDataTable($('#tablaTipoPedido thead th').length)
+            },
             pageLength: 10,
             responsive: true,
-            ordering: true, // Habilitar ordenamiento
-            order: [[0, 'asc']], // Orden inicial por la primera columna 
-            // Barra de búsqueda alineada a la DERECHA
+            ordering: true,
+            order: [[0, 'asc']],
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
         });
     }
 
-    // Función auxiliar para recargar la tabla mediante el Ajax de DataTables
     function recargarTablaPedidos() {
         if (tablaDataTable) {
             tablaDataTable.ajax.reload(null, false);
@@ -111,19 +115,20 @@ $(document).ready(function () {
             if (respuesta.success) {
                 await successAlert('¡Completado!', respuesta.message);
 
-                // Limpiar formulario y cerrar modal de forma asíncrona
                 if (formSelector && $(formSelector).length) {
                     $(formSelector)[0].reset();
                 }
+
                 const $modal = $(modalSelector);
                 $modal.find('input, select, textarea').val('').removeClass('is-valid is-invalid');
                 $modal.find('.feedback-validacion, .invalid-feedback, .valid-feedback').remove();
                 
-                const modalElement = document.querySelector(modalSelector);
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) modalInstance.hide();
+                const modalElement = $modal[0];
+                if (modalElement) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) modalInstance.hide();
+                }
 
-                // Recargar datos en la tabla sin refrescar la página
                 recargarTablaPedidos();
             } else {
                 await errorAlert('Error de validación', respuesta.message);
@@ -201,7 +206,7 @@ $(document).ready(function () {
 
                 if (respuesta.success) {
                     await successAlert('Inhabilitado', respuesta.message);
-                    recargarTablaPedidos(); // Refresca la tabla mediante AJAX nativo
+                    recargarTablaPedidos();
                 } else {
                     await errorAlert('Error', respuesta.message);
                 }
@@ -219,13 +224,15 @@ $(document).ready(function () {
 
     $('#btnAlternarEstado').on('click', function () {
         verEliminados = !verEliminados;
+        const $btn = $(this);
+
         if (verEliminados) {
-            $(this).attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');
+            $btn.attr('data-vista', 'eliminados').removeClass('btn-outline-secondary').addClass('btn-secondary');
             $('#txtBotonEstado').text('Ver Activos');
             $('#iconoEstado').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
             $('#tituloVista').text('Tipos de Pedido Inhabilitados');
         } else {
-            $(this).attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');
+            $btn.attr('data-vista', 'activos').removeClass('btn-secondary').addClass('btn-outline-secondary');
             $('#txtBotonEstado').text('Ver inhabilitados');
             $('#iconoEstado').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
             $('#tituloVista').text('Tipo de Pedido');
@@ -236,16 +243,16 @@ $(document).ready(function () {
     $(document).on('click', '.btnEditarActivo', function () {
         $('#edit_activo_id').val($(this).data('id'));
         $('#edit_activo_nombre').val($(this).data('nombre')).removeClass('is-invalid is-valid');
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarActivo')).show();
+        bootstrap.Modal.getOrCreateInstance($('#modalEditarActivo')[0]).show();
     });
 
     $(document).on('click', '.btnEditarInactivo', function () {
         $('#edit_id_pedido').val($(this).data('id'));
         $('#edit_nombre_pedido').val($(this).data('nombre')).removeClass('is-invalid is-valid');
         $('#edit_status_pedido').val($(this).data('estado') || 'Inactivo');
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarInactivo')).show();
+        bootstrap.Modal.getOrCreateInstance($('#modalEditarInactivo')[0]).show();
     });
 
-    // Carga inicial
+    // Carga inicial de la tabla
     inicializarDataTable();
 });

@@ -3,6 +3,7 @@ namespace Idealo\Models;
 
 use Idealo\Config\Database;
 use PDO;
+use PDOException;
 use Exception;
 
 class ControlPagosModel extends Database
@@ -20,7 +21,11 @@ class ControlPagosModel extends Database
 
     protected function getDb(): PDO
     {
-        return self::connect();
+        try {
+            return self::connect();
+        } catch (PDOException $e) {
+            throw new Exception("Error de conexión a la base de datos: " . $e->getMessage());
+        }
     }
 
     private function mapearAtributos(array $datos): void
@@ -46,15 +51,19 @@ class ControlPagosModel extends Database
 
     private function esMetodoEfectivo(int $idMetodo): bool
     {
-        $sql = "SELECT nombre_metodo_de_pago FROM metodo_de_pago WHERE id_metodo_de_pago = :id";
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute([':id' => $idMetodo]);
-        $metodo = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($metodo) {
-            $nombre = strtolower(trim($metodo['nombre_metodo_de_pago']));
-            return str_contains($nombre, 'efectivo');
+        try {
+            $sql = "SELECT nombre_metodo_de_pago FROM metodo_de_pago WHERE id_metodo_de_pago = :id";
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute([':id' => $idMetodo]);
+            $metodo = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($metodo) {
+                $nombre = strtolower(trim($metodo['nombre_metodo_de_pago']));
+                return str_contains($nombre, 'efectivo');
+            }
+            return false;
+        } catch (PDOException $e) {
+            throw new Exception("Error al verificar el método de pago: " . $e->getMessage());
         }
-        return false;
     }
 
     private function validar(bool $esEdicion = false): void
@@ -95,34 +104,38 @@ class ControlPagosModel extends Database
 
     private function dbValidarSumaPagos(int $idPedido, float $montoNuevo, ?int $idPagoActual = null): void
     {
-        $sqlPedido = "SELECT monto_total FROM pedido WHERE id_pedido = :id_pedido";
-        $stmt = $this->getDb()->prepare($sqlPedido);
-        $stmt->execute([':id_pedido' => $idPedido]);
-        $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $sqlPedido = "SELECT monto_total FROM pedido WHERE id_pedido = :id_pedido";
+            $stmt = $this->getDb()->prepare($sqlPedido);
+            $stmt->execute([':id_pedido' => $idPedido]);
+            $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$pedido) {
-            throw new Exception("El pedido seleccionado no existe.");
-        }
-        $montoTotalPedido = (float)$pedido['monto_total'];
+            if (!$pedido) {
+                throw new Exception("El pedido seleccionado no existe.");
+            }
+            $montoTotalPedido = (float)$pedido['monto_total'];
 
-        if ($idPagoActual === null) {
-            $sqlSuma = "SELECT SUM(monto_abonado) as total_abonado FROM pago WHERE id_pedido = :id_pedido AND status_pago != 'inhabilitado'";
-            $params = [':id_pedido' => $idPedido];
-        } else {
-            $sqlSuma = "SELECT SUM(monto_abonado) as total_abonado FROM pago WHERE id_pedido = :id_pedido AND id_pago != :id_pago AND status_pago != 'inhabilitado'";
-            $params = [':id_pedido' => $idPedido, ':id_pago' => $idPagoActual];
-        }
+            if ($idPagoActual === null) {
+                $sqlSuma = "SELECT SUM(monto_abonado) as total_abonado FROM pago WHERE id_pedido = :id_pedido AND status_pago != 'inhabilitado'";
+                $params = [':id_pedido' => $idPedido];
+            } else {
+                $sqlSuma = "SELECT SUM(monto_abonado) as total_abonado FROM pago WHERE id_pedido = :id_pedido AND id_pago != :id_pago AND status_pago != 'inhabilitado'";
+                $params = [':id_pedido' => $idPedido, ':id_pago' => $idPagoActual];
+            }
 
-        $stmtSuma = $this->getDb()->prepare($sqlSuma);
-        $stmtSuma->execute($params);
-        $resultado = $stmtSuma->fetch(PDO::FETCH_ASSOC);
-        $totalAbonadoPrevio = (float)($resultado['total_abonado'] ?? 0);
+            $stmtSuma = $this->getDb()->prepare($sqlSuma);
+            $stmtSuma->execute($params);
+            $resultado = $stmtSuma->fetch(PDO::FETCH_ASSOC);
+            $totalAbonadoPrevio = (float)($resultado['total_abonado'] ?? 0);
 
-        $sumaTotal = $totalAbonadoPrevio + $montoNuevo;
+            $sumaTotal = $totalAbonadoPrevio + $montoNuevo;
 
-        if ($sumaTotal > $montoTotalPedido) {
-            $disponible = max(0, $montoTotalPedido - $totalAbonadoPrevio);
-            throw new Exception("El monto abonado ($" . number_format($montoNuevo, 2) . ") excede el total del pedido. Saldo disponible para abonar: $" . number_format($disponible, 2));
+            if ($sumaTotal > $montoTotalPedido) {
+                $disponible = max(0, $montoTotalPedido - $totalAbonadoPrevio);
+                throw new Exception("El monto abonado ($" . number_format($montoNuevo, 2) . ") excede el total del pedido. Saldo disponible para abonar: $" . number_format($disponible, 2));
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Error al validar la suma de pagos: " . $e->getMessage());
         }
     }
 
@@ -132,16 +145,24 @@ class ControlPagosModel extends Database
 
     public function guardarPago(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(false);
-        return $this->dbGuardarPago();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(false);
+            return $this->dbGuardarPago();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
     
     public function editarPago(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(true);
-        return $this->dbEditarPago();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(true);
+            return $this->dbEditarPago();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
     
     public function cambiarEstadoPago(int $id_pago, string $nuevoEstado): bool
@@ -154,99 +175,132 @@ class ControlPagosModel extends Database
         return $this->cambiarEstadoPago($id, $estado);
     }
 
- private function dbListarPagos(): array
+    private function dbListarPagos(): array
     {
-        $sql = "SELECT cp.id_pago, cp.monto_abonado AS monto_pago, cp.referencia, cp.fecha_pago, 
-                       cp.status_pago AS estado, cp.comprobante_de_pago, cp.id_pedido, cp.id_metodo_de_pago, 
-                       mp.nombre_metodo_de_pago AS nombre_metodo, 
-                       c.nombre_razon_social, c.apellido, 
-                       p.descripcion AS descripcion_pedido
-                FROM pago cp 
-                LEFT JOIN metodo_de_pago mp ON cp.id_metodo_de_pago = mp.id_metodo_de_pago 
-                LEFT JOIN pedido p ON cp.id_pedido = p.id_pedido 
-                LEFT JOIN cliente c ON p.id_cliente = c.id_cliente
-                ORDER BY cp.id_pago DESC";
-        return $this->dbEjecutarConsultaLectura($sql);
+        try {
+            $sql = "SELECT cp.id_pago, cp.monto_abonado AS monto_pago, cp.referencia, cp.fecha_pago, 
+                           cp.status_pago AS estado, cp.comprobante_de_pago, cp.id_pedido, cp.id_metodo_de_pago, 
+                           mp.nombre_metodo_de_pago AS nombre_metodo, 
+                           c.nombre_razon_social, c.apellido, 
+                           p.descripcion AS descripcion_pedido
+                    FROM pago cp 
+                    LEFT JOIN metodo_de_pago mp ON cp.id_metodo_de_pago = mp.id_metodo_de_pago 
+                    LEFT JOIN pedido p ON cp.id_pedido = p.id_pedido 
+                    LEFT JOIN cliente c ON p.id_cliente = c.id_cliente
+                    ORDER BY cp.id_pago DESC";
+            return $this->dbEjecutarConsultaLectura($sql);
+        } catch (PDOException $e) {
+            throw new Exception("Error al listar los pagos: " . $e->getMessage());
+        }
     }
+
     private function dbObtenerMetodosPago(): array
     {
-        $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago AS nombre_metodo 
-                FROM metodo_de_pago 
-                WHERE status_metodo_de_pago = 'activo'";
-        return $this->dbEjecutarConsultaLectura($sql);
+        try {
+            $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago AS nombre_metodo 
+                    FROM metodo_de_pago 
+                    WHERE status_metodo_de_pago = 'activo'";
+            return $this->dbEjecutarConsultaLectura($sql);
+        } catch (PDOException $e) {
+            throw new Exception("Error al obtener métodos de pago: " . $e->getMessage());
+        }
     }
     
     private function dbObtenerPedidosActivos(): array
     {
-        $sql = "SELECT p.id_pedido, p.monto_total, p.descripcion AS descripcion_pedido, c.nombre_razon_social, c.apellido 
-                FROM pedido p 
-                INNER JOIN cliente c ON p.id_cliente = c.id_cliente";
-        return $this->dbEjecutarConsultaLectura($sql);
+        try {
+            $sql = "SELECT p.id_pedido, p.monto_total, p.descripcion AS descripcion_pedido, c.nombre_razon_social, c.apellido 
+                    FROM pedido p 
+                    INNER JOIN cliente c ON p.id_cliente = c.id_cliente";
+            return $this->dbEjecutarConsultaLectura($sql);
+        } catch (PDOException $e) {
+            throw new Exception("Error al obtener pedidos activos: " . $e->getMessage());
+        }
     }
 
     private function dbGuardarPago(): bool
     {
-        $sql = "INSERT INTO pago (id_pedido, monto_abonado, id_metodo_de_pago, referencia, fecha_pago, comprobante_de_pago, status_pago) 
-                VALUES (:id_pedido, :monto_abonado, :id_metodo_de_pago, :referencia, :fecha_pago, :comprobante_de_pago, 'procesado')";
-        
-        $parametros = [
-            ':id_pedido'          => $this->id_pedido, 
-            ':monto_abonado'      => $this->monto_pago, 
-            ':id_metodo_de_pago'  => $this->id_metodo_de_pago, 
-            ':referencia'         => $this->referencia, 
-            ':fecha_pago'         => $this->fecha_pago,
-            ':comprobante_de_pago'=> $this->comprobante_de_pago
-        ];
+        try {
+            $sql = "INSERT INTO pago (id_pedido, monto_abonado, id_metodo_de_pago, referencia, fecha_pago, comprobante_de_pago, status_pago) 
+                    VALUES (:id_pedido, :monto_abonado, :id_metodo_de_pago, :referencia, :fecha_pago, :comprobante_de_pago, 'procesado')";
+            
+            $parametros = [
+                ':id_pedido'          => $this->id_pedido, 
+                ':monto_abonado'      => $this->monto_pago, 
+                ':id_metodo_de_pago'  => $this->id_metodo_de_pago, 
+                ':referencia'         => $this->referencia, 
+                ':fecha_pago'         => $this->fecha_pago,
+                ':comprobante_de_pago'=> $this->comprobante_de_pago
+            ];
 
-        return $this->dbEjecutarEscritura($sql, $parametros);
+            return $this->dbEjecutarEscritura($sql, $parametros);
+        } catch (PDOException $e) {
+            throw new Exception("Error al guardar el pago: " . $e->getMessage());
+        }
     }
     
     private function dbEditarPago(): bool
     {
-        $actualizarComprobante = ($this->comprobante_de_pago !== null && $this->comprobante_de_pago !== '');
-        
-        $sql = "UPDATE pago SET 
-                    id_pedido = :id_pedido, 
-                    monto_abonado = :monto_abonado, 
-                    id_metodo_de_pago = :id_metodo_de_pago, 
-                    referencia = :referencia, 
-                    fecha_pago = :fecha_pago,
-                    status_pago = :status_pago"
-                . ($actualizarComprobante ? ", comprobante_de_pago = :comprobante_de_pago " : " ") .
-                "WHERE id_pago = :id_pago";
+        try {
+            $actualizarComprobante = ($this->comprobante_de_pago !== null && $this->comprobante_de_pago !== '');
+            
+            $sql = "UPDATE pago SET 
+                        id_pedido = :id_pedido, 
+                        monto_abonado = :monto_abonado, 
+                        id_metodo_de_pago = :id_metodo_de_pago, 
+                        referencia = :referencia, 
+                        fecha_pago = :fecha_pago,
+                        status_pago = :status_pago"
+                    . ($actualizarComprobante ? ", comprobante_de_pago = :comprobante_de_pago " : " ") .
+                    "WHERE id_pago = :id_pago";
 
-        $parametros = [
-            ':id_pedido'        => $this->id_pedido, 
-            ':monto_abonado'    => $this->monto_pago, 
-            ':id_metodo_de_pago'=> $this->id_metodo_de_pago, 
-            ':referencia'       => $this->referencia, 
-            ':fecha_pago'       => $this->fecha_pago, 
-            ':status_pago'      => $this->status_pago,
-            ':id_pago'          => $this->id_pago
-        ];
+            $parametros = [
+                ':id_pedido'        => $this->id_pedido, 
+                ':monto_abonado'    => $this->monto_pago, 
+                ':id_metodo_de_pago'=> $this->id_metodo_de_pago, 
+                ':referencia'       => $this->referencia, 
+                ':fecha_pago'       => $this->fecha_pago, 
+                ':status_pago'      => $this->status_pago,
+                ':id_pago'          => $this->id_pago
+            ];
 
-        if ($actualizarComprobante) {
-            $parametros[':comprobante_de_pago'] = $this->comprobante_de_pago;
+            if ($actualizarComprobante) {
+                $parametros[':comprobante_de_pago'] = $this->comprobante_de_pago;
+            }
+
+            return $this->dbEjecutarEscritura($sql, $parametros);
+        } catch (PDOException $e) {
+            throw new Exception("Error al editar el pago: " . $e->getMessage());
         }
-
-        return $this->dbEjecutarEscritura($sql, $parametros);
     }
     
     private function dbCambiarEstadoPago(int $id_pago, string $nuevoEstado): bool
     {
-        $sql = "UPDATE pago SET status_pago = :estado WHERE id_pago = :id";
-        return $this->dbEjecutarEscritura($sql, [':estado' => $nuevoEstado, ':id' => $id_pago]);
+        try {
+            $sql = "UPDATE pago SET status_pago = :estado WHERE id_pago = :id";
+            return $this->dbEjecutarEscritura($sql, [':estado' => $nuevoEstado, ':id' => $id_pago]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al cambiar estado del pago: " . $e->getMessage());
+        }
     }
 
     private function dbEjecutarConsultaLectura(string $sql): array
     {
-        $stmt = $this->getDb()->prepare($sql); 
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->getDb()->prepare($sql); 
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Error en lectura: " . $e->getMessage());
+        }
     }
 
     private function dbEjecutarEscritura(string $sql, array $parametros = []): bool
     {
-        return $this->getDb()->prepare($sql)->execute($parametros);
+        try {
+            return $this->getDb()->prepare($sql)->execute($parametros);
+        } catch (PDOException $e) {
+            throw new Exception("Error en escritura: " . $e->getMessage());
+        }
     }
 }

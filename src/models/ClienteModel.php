@@ -73,17 +73,12 @@ class ClienteModel extends Database
             throw new Exception("[Validación] El número de documento '{$this->numero_de_documento}' no tiene un formato válido.");
         }
 
-        // Validación de duplicados llamando al método privado de persistencia
-        $clienteExistente = $this->dbExisteDocumento($this->numero_de_documento);
+        $idExcluir = $esEdicion ? $this->id_cliente : 0;
+
+        // Validación de duplicados combinando Tipo + Número de Documento (excluyendo el actual si es edición)
+        $clienteExistente = $this->dbExisteDocumentoPorTipo($this->numero_de_documento, $this->tipo_de_documento, $idExcluir);
         if ($clienteExistente) {
-            $idExistente = $clienteExistente['id_cliente'] ?? null;
-            if (!$esEdicion) {
-                throw new Exception("[Validación] El número de documento '{$this->numero_de_documento}' ya se encuentra registrado.");
-            } else {
-                if ($idExistente !== null && intval($idExistente) !== $this->id_cliente) {
-                    throw new Exception("[Validación] La cédula '{$this->numero_de_documento}' ya pertenece a otro cliente.");
-                }
-            }
+            throw new Exception("[Validación] Ya existe un cliente registrado con el número '{$this->numero_de_documento}' para este tipo de documento.");
         }
 
         if (empty($this->nombre_razon_social)) {
@@ -110,6 +105,12 @@ class ClienteModel extends Database
         }
         if (!preg_match(self::REGEX_CORREO, $this->correo)) {
             throw new Exception("[Validación] El correo '{$this->correo}' tiene un formato incorrecto.");
+        }
+
+        // Validación de correo único (excluyendo el actual si es edición)
+        $correoExistente = $this->dbExisteCorreo($this->correo, $idExcluir);
+        if ($correoExistente) {
+            throw new Exception("[Validación] El correo electrónico '{$this->correo}' ya pertenece a otro cliente.");
         }
 
         if (empty($this->telefono)) {
@@ -165,6 +166,16 @@ class ClienteModel extends Database
     public function existeDocumento(string $numDoc)
     {
         return $this->dbExisteDocumento($numDoc);
+    }
+
+    public function existeDocumentoPorTipo(string $numDoc, string $tipoDoc, int $idExcluir = 0)
+    {
+        return $this->dbExisteDocumentoPorTipo($numDoc, $tipoDoc, $idExcluir);
+    }
+
+    public function existeCorreo(string $correo, int $idExcluir = 0)
+    {
+        return $this->dbExisteCorreo($correo, $idExcluir);
     }
 
     // =========================================================================
@@ -229,6 +240,31 @@ class ClienteModel extends Database
         $sql = "SELECT id_cliente, numero_de_documento FROM cliente WHERE numero_de_documento = :num_doc LIMIT 1";
         $stmt = $this->getDb()->prepare($sql);
         $stmt->execute([':num_doc' => trim($numDoc)]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function dbExisteDocumentoPorTipo(string $numDoc, string $tipoDoc, int $idExcluir = 0)
+    {
+        $sql = "SELECT id_cliente, numero_de_documento, tipo_de_documento FROM cliente 
+                WHERE numero_de_documento = :num_doc AND tipo_de_documento = :tipo_doc AND id_cliente != :id_excluir LIMIT 1";
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute([
+            ':num_doc'    => trim($numDoc),
+            ':tipo_doc'   => trim($tipoDoc),
+            ':id_excluir' => $idExcluir
+        ]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function dbExisteCorreo(string $correo, int $idExcluir = 0)
+    {
+        $sql = "SELECT id_cliente, correo FROM cliente 
+                WHERE correo = :correo AND id_cliente != :id_excluir LIMIT 1";
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute([
+            ':correo'     => trim($correo),
+            ':id_excluir' => $idExcluir
+        ]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

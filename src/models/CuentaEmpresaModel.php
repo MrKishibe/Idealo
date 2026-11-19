@@ -3,6 +3,7 @@ namespace Idealo\Models;
 
 use Idealo\Config\Database;
 use PDO;
+use PDOException;
 use Exception;
 
 class CuentaEmpresaModel extends Database
@@ -10,7 +11,6 @@ class CuentaEmpresaModel extends Database
     private const REGEX_TITULAR = '/^[a-zA-ZñÑáéíóúÁÉÍÓÚ0-9\s\.\-]{3,60}$/';
     private const REGEX_IDENTIFICADOR = '/^[0-9]{20}$/';
 
-    // Atributos internos que representan el estado de la cuenta
     private ?int $id_cuenta = null;
     private ?int $id_metodo_de_pago = null;
     private string $tipo_cuenta = '';
@@ -18,19 +18,17 @@ class CuentaEmpresaModel extends Database
     private string $identificador = '';
     private string $status_cuenta_empresa = 'activo';
 
-    public function __construct()
-    {
-        // Hereda conexión de Database
-    }
+    public function __construct() {}
 
     protected function getDb(): PDO
     {
-        return self::connect();
+        try {
+            return self::connect();
+        } catch (PDOException $e) {
+            throw new Exception("Error de conexión: " . $e->getMessage());
+        }
     }
 
-    /**
-     * Mapea un array asociativo de datos hacia los atributos privados de la clase
-     */
     private function mapearAtributos(array $datos): void
     {
         $this->id_cuenta = isset($datos['id_cuenta']) ? (int)$datos['id_cuenta'] : null;
@@ -41,9 +39,6 @@ class CuentaEmpresaModel extends Database
         $this->status_cuenta_empresa = trim($datos['status_cuenta_empresa'] ?? 'activo');
     }
 
-    /**
-     * Valida los datos cargados actualmente en los atributos del objeto
-     */
     private function validar(bool $esEdicion = false): void
     {
         if ($esEdicion && empty($this->id_cuenta)) {
@@ -71,10 +66,6 @@ class CuentaEmpresaModel extends Database
         }
     }
 
-    // =========================================================================
-    // MÉTODOS PÚBLICOS (FACHADA / ENTRADA DE FLUJO)
-    // =========================================================================
-
     public function listarCuentas(): array
     {
         return $this->dbListarCuentas();
@@ -87,16 +78,24 @@ class CuentaEmpresaModel extends Database
     
     public function guardarCuenta(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(false);
-        return $this->dbGuardarCuenta();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(false);
+            return $this->dbGuardarCuenta();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
     
     public function editarCuenta(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(true);
-        return $this->dbEditarCuenta();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(true);
+            return $this->dbEditarCuenta();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
     
     public function actualizarEstado(int $id, string $estado): bool
@@ -109,75 +108,95 @@ class CuentaEmpresaModel extends Database
         return $this->dbExisteCuenta($identificador, $id_excluir);
     }
 
-    // =========================================================================
-    // MÉTODOS PRIVADOS DE PERSISTENCIA (SÓLO ESTOS TOCAN LA BASE DE DATOS)
-    // =========================================================================
-
     private function dbListarCuentas(): array
     {
-        $sql = "SELECT c.id_cuenta, c.id_metodo_de_pago, c.tipo_cuenta, c.titular, c.identificador, c.status_cuenta_empresa AS estado, mp.nombre_metodo_de_pago AS nombre_metodo 
-                FROM cuenta_empresa c 
-                LEFT JOIN metodo_de_pago mp ON c.id_metodo_de_pago = mp.id_metodo_de_pago 
-                ORDER BY c.id_cuenta DESC";
-        $stmt = $this->getDb()->prepare($sql); 
-        $stmt->execute(); 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $sql = "SELECT c.id_cuenta, c.id_metodo_de_pago, c.tipo_cuenta, c.titular, c.identificador, c.status_cuenta_empresa AS estado, mp.nombre_metodo_de_pago AS nombre_metodo 
+                    FROM cuenta_empresa c 
+                    LEFT JOIN metodo_de_pago mp ON c.id_metodo_de_pago = mp.id_metodo_de_pago 
+                    ORDER BY c.id_cuenta DESC";
+            $stmt = $this->getDb()->prepare($sql); 
+            $stmt->execute(); 
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Error al listar cuentas: " . $e->getMessage());
+        }
     }
     
     private function dbObtenerMetodosPago(): array
     {
-        $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago AS nombre_metodo 
-                FROM metodo_de_pago WHERE status_metodo_de_pago = 'activo'";
-        $stmt = $this->getDb()->prepare($sql); 
-        $stmt->execute(); 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago AS nombre_metodo 
+                    FROM metodo_de_pago WHERE status_metodo_de_pago = 'activo'";
+            $stmt = $this->getDb()->prepare($sql); 
+            $stmt->execute(); 
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Error al obtener métodos: " . $e->getMessage());
+        }
     }
     
     private function dbGuardarCuenta(): bool
     {
-        $sql = "INSERT INTO cuenta_empresa (id_metodo_de_pago, tipo_cuenta, titular, identificador, status_cuenta_empresa) 
-                VALUES (:metodo, :tipo, :titular, :identificador, 'activo')";
-        return $this->getDb()->prepare($sql)->execute([
-            ':metodo'        => $this->id_metodo_de_pago, 
-            ':tipo'          => $this->tipo_cuenta, 
-            ':titular'       => $this->titular, 
-            ':identificador' => $this->identificador
-        ]);
+        try {
+            $sql = "INSERT INTO cuenta_empresa (id_metodo_de_pago, tipo_cuenta, titular, identificador, status_cuenta_empresa) 
+                    VALUES (:metodo, :tipo, :titular, :identificador, 'activo')";
+            return $this->getDb()->prepare($sql)->execute([
+                ':metodo'        => $this->id_metodo_de_pago, 
+                ':tipo'          => $this->tipo_cuenta, 
+                ':titular'       => $this->titular, 
+                ':identificador' => $this->identificador
+            ]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al guardar cuenta: " . $e->getMessage());
+        }
     }
     
     private function dbEditarCuenta(): bool
     {
-        $sql = "UPDATE cuenta_empresa 
-                SET id_metodo_de_pago = :metodo, tipo_cuenta = :tipo, titular = :titular, identificador = :identificador, status_cuenta_empresa = :status 
-                WHERE id_cuenta = :id";
-        return $this->getDb()->prepare($sql)->execute([
-            ':metodo'        => $this->id_metodo_de_pago, 
-            ':tipo'          => $this->tipo_cuenta, 
-            ':titular'       => $this->titular, 
-            ':identificador' => $this->identificador,
-            ':status'        => $this->status_cuenta_empresa,
-            ':id'            => $this->id_cuenta
-        ]);
+        try {
+            $sql = "UPDATE cuenta_empresa 
+                    SET id_metodo_de_pago = :metodo, tipo_cuenta = :tipo, titular = :titular, identificador = :identificador, status_cuenta_empresa = :status 
+                    WHERE id_cuenta = :id";
+            return $this->getDb()->prepare($sql)->execute([
+                ':metodo'        => $this->id_metodo_de_pago, 
+                ':tipo'          => $this->tipo_cuenta, 
+                ':titular'       => $this->titular, 
+                ':identificador' => $this->identificador,
+                ':status'        => $this->status_cuenta_empresa,
+                ':id'            => $this->id_cuenta
+            ]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al editar cuenta: " . $e->getMessage());
+        }
     }
     
     private function dbActualizarEstado(int $id, string $estado): bool
     {
-        $sql = "UPDATE cuenta_empresa SET status_cuenta_empresa = :estado WHERE id_cuenta = :id";
-        return $this->getDb()->prepare($sql)->execute([':estado' => $estado, ':id' => $id]);
+        try {
+            $sql = "UPDATE cuenta_empresa SET status_cuenta_empresa = :estado WHERE id_cuenta = :id";
+            return $this->getDb()->prepare($sql)->execute([':estado' => $estado, ':id' => $id]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al actualizar estado: " . $e->getMessage());
+        }
     }
 
     private function dbExisteCuenta(string $identificador, ?int $id_excluir = null): bool
     {
-        $sql = "SELECT id_cuenta FROM cuenta_empresa WHERE identificador = :identificador";
-        $params = [':identificador' => $identificador];
-        
-        if ($id_excluir) {
-            $sql .= " AND id_cuenta != :id";
-            $params[':id'] = $id_excluir;
+        try {
+            $sql = "SELECT id_cuenta FROM cuenta_empresa WHERE identificador = :identificador";
+            $params = [':identificador' => $identificador];
+            
+            if ($id_excluir) {
+                $sql .= " AND id_cuenta != :id";
+                $params[':id'] = $id_excluir;
+            }
+            
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Error al verificar existencia de cuenta: " . $e->getMessage());
         }
-        
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->rowCount() > 0;
     }
 }

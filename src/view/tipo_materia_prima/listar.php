@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -16,7 +18,7 @@
         <div class="view-container">
             <header class="page-header">
                 <div>
-                    <h1 id="tituloVista">Tipos de Materia Prima</h1>
+                    <h1 id="tituloVista">Tipo de Material</h1>
                     <p>Administra los tipos de materiales e insumos de tu negocio.</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
@@ -41,53 +43,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($materiales as $material): ?>
-                                <?php
-                                $id = $material['id_tipo_materia_prima'] ?? '';
-                                $nombre = $material['nombre_de_material'] ?? '';
-                                $descripcion = $material['descripcion'] ?? '';
-                                $estado = $material['status_tipo_materia'] ?? '';
-                                ?>
-                                <tr id="fila-<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8'); ?>">
-                                    <td class="fw-bold"><?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td><?php echo htmlspecialchars($descripcion !== '' ? $descripcion : 'Sin especificaciones', ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td>
-                                        <span class="badge <?php echo $estado === 'Activo' ? 'bg-success' : 'bg-danger'; ?>">
-                                            <?php echo htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="text-center">
-                                            <?php if ($estado === 'Activo'): ?>
-                                                <button type="button" class="btn btn-sm btn-outline-primary btnEditarActivo me-1"
-                                                    data-id="<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-nombre="<?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-estado="<?php echo htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    title="Editar">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger btnCambiarEstado"
-                                                    data-id="<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-nombre="<?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-estado="Inactivo"
-                                                    title="Inhabilitar">
-                                                    <i class="bi bi-trash3-fill"></i>
-                                                </button>
-                                            <?php else: ?>
-                                                <button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo"
-                                                    data-id="<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-nombre="<?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-estado="<?php echo htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    title="Editar o reactivar">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                            <!-- Contenido cargado dinámicamente vía AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -197,7 +153,7 @@
             "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
         }
     }
-</script>
+    </script>
     <script type="module" src="assets/js/tipomaterial.js"></script>
 </body>
 </html>

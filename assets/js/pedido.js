@@ -1,1262 +1,895 @@
 import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
+import { crearMarkupSkeletonDataTable } from './helpers/datatable-skeleton.js';
 import { successAlert, errorAlert, confirmDeleteAlert } from './helpers/alerts.js';
 import { abrirReporteEnPestana } from './helpers/report-viewer.js';
 import { soloNumerosTeclado } from './helpers/validaciones.js';
 
-document.addEventListener(
-    'DOMContentLoaded',
-    function () {
-        const BASE_URL = 'index.php?controller=pedido';
+$(document).ready(function () {
+    const BASE_URL = 'index.php?controller=pedido';
 
-        // true  -> el cliente se busca en el servidor (requiere accion=buscar_clientes)
-        // false -> el cliente se filtra sobre las opciones ya renderizadas por PHP
-        const CLIENTES_REMOTO = false;
+    const $form = $('#formPedido');
+    const $modalPedidoElement = $('#modalPedido');
+    const $modalDetalleElement = $('#modalDetallePedido');
+    const $modalReportePedidoElement = $('#modalReportePedido');
 
-        const form = document.getElementById('formPedido');
-        const modalPedidoElement = document.getElementById('modalPedido');
-        const modalDetalleElement = document.getElementById('modalDetallePedido');
-        const modalReportePedidoElement = document.getElementById('modalReportePedido');
+    const $idProducto = $('#idProducto');
+    const $idCliente = $('#idCliente');
+    const $filtroColor = $('#filtroColor');
+    const $idProductoCaracteristica = $('#idProductoCaracteristica');
+    const $estadoPedido = $('#estadoPedido');
+    const $btnNuevoPedido = $('#btnNuevoPedido');
+    const $btnAlternarEstado = $('#btnAlternarEstado');
+    const $btnGenerarReporte = $('#btnGenerarReporte');
+    const $formReportePedido = $('#formReportePedido');
 
-        const idProducto = document.getElementById('idProducto');
-        const idCliente = document.getElementById('idCliente');
-        const filtroColor = document.getElementById('filtroColor');
-        const idProductoCaracteristica = document.getElementById('idProductoCaracteristica');
-        const estadoPedido = document.getElementById('estadoPedido');
-        const btnNuevoPedido = document.getElementById('btnNuevoPedido');
-        const btnAlternarEstado = document.getElementById('btnAlternarEstado');
-        const btnGenerarReporte = document.getElementById('btnGenerarReporte');
-        const formReportePedido = document.getElementById('formReportePedido');
+    if (
+        !$form.length ||
+        !$modalPedidoElement.length ||
+        !$modalDetalleElement.length ||
+        !$idProducto.length ||
+        !$filtroColor.length ||
+        !$idProductoCaracteristica.length ||
+        !$estadoPedido.length
+    ) {
+        console.error('Faltan elementos HTML requeridos.');
+        return;
+    }
 
-        if (
-            !form ||
-            !modalPedidoElement ||
-            !modalDetalleElement ||
-            !idProducto ||
-            !filtroColor ||
-            !idProductoCaracteristica ||
-            !estadoPedido
-        ) {
-            console.error('Faltan elementos HTML requeridos.');
-            return;
-        }
+    const modalPedido = bootstrap.Modal.getOrCreateInstance($modalPedidoElement[0]);
+    const modalDetalle = bootstrap.Modal.getOrCreateInstance($modalDetalleElement[0]);
+    const modalReportePedido = $modalReportePedidoElement.length
+        ? bootstrap.Modal.getOrCreateInstance($modalReportePedidoElement[0])
+        : null;
 
-        const modalPedido = bootstrap.Modal.getOrCreateInstance(modalPedidoElement);
-        const modalDetalle = bootstrap.Modal.getOrCreateInstance(modalDetalleElement);
-        const modalReportePedido = modalReportePedidoElement
-            ? bootstrap.Modal.getOrCreateInstance(modalReportePedidoElement)
-            : null;
+    let tablaPedidos = null;
+    let verInhabilitados = false;
+    let silenciarCambioProducto = false;
 
-        // jQuery donde vive Select2 (el global). Evita el problema de instancias duplicadas.
-        const $s = window.jQuery || $;
+    function escaparHtml(valor) {
+        return $('<div>').text(valor ?? '').html();
+    }
 
-        let tablaPedidos = null;
-        let verInhabilitados = false;
+    function obtenerFiltro() {
+        return verInhabilitados ? 'inhabilitados' : 'activos';
+    }
 
-        // Evita que cargar un producto por código dispare cargarColores() dos veces
-        let silenciarCambioProducto = false;
+    // ==========================================
+    // BUSCADOR NATIVO CON SCROLL Y MENSAJE DE "NO ENCONTRADO"
+    // ==========================================
+    function normalizarTexto(texto) {
+        return (texto || '')
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
 
-        function elemento(id) {
-            return document.getElementById(id);
-        }
+    function transformarSelectConBuscadorNativo($selectOriginal, placeholder = 'Escriba para filtrar...') {
+        if (!$selectOriginal.length) return;
 
-        function escaparHtml(valor) {
-            const div = document.createElement('div');
-            div.textContent = valor ?? '';
-            return div.innerHTML;
-        }
+        const idSelect = $selectOriginal.attr('id') || 'sel_' + Math.random().toString(36).substr(2, 9);
+        $(`#wrapper_${idSelect}`).remove();
 
-        function obtenerFiltro() {
-            return verInhabilitados ? 'inhabilitados' : 'activos';
-        }
+        $selectOriginal.hide();
 
-        // ==========================================
-        // SELECTS CON BÚSQUEDA (SELECT2) Y RESTRICCIÓN
-        // ==========================================
-        function normalizarTexto(texto) {
-            return (texto || '')
-                .toString()
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '');
-        }
+        const $wrapper = $(`<div id="wrapper_${idSelect}" class="position-relative mb-2"></div>`);
+        const $inputBusqueda = $(`<input type="text" class="form-control form-control-sm mb-1" placeholder="${placeholder}" autocomplete="off">`);
+        const $listaSugerencias = $(`<div class="list-group position-absolute w-100 shadow-sm bg-white border" style="max-height: 220px; overflow-y: auto; z-index: 1055; display: none;"></div>`);
 
-        function avisarSelect2Ausente() {
-            console.error(
-                'Select2 no está disponible. Verifica que select2.min.js se cargue después de jQuery y antes de este módulo.'
-            );
-        }
+        $wrapper.append($inputBusqueda).append($listaSugerencias);
+        $selectOriginal.after($wrapper);
 
-        function initSelectBusqueda(campo, opciones = {}) {
-            const $campo = $s(campo);
+        function actualizarSugerencias(filtro = '') {
+            $listaSugerencias.empty();
+            const terminoNorm = normalizarTexto(filtro);
+            const palabrasClave = terminoNorm.split(/\s+/).filter(Boolean);
 
-            if (!$campo.length) {
-                return $campo;
-            }
+            let opcionesVisibles = 0;
 
-            if (!$s.fn.select2) {
-                avisarSelect2Ausente();
-                return $campo;
-            }
+            $selectOriginal.find('option').each(function () {
+                const $opt = $(this);
+                const valorOpt = $opt.val();
+                const textoOpt = $opt.text();
 
-            if ($campo.hasClass('select2-hidden-accessible')) {
-                $campo.select2('destroy');
-            }
+                if (!valorOpt) return; // Omitir opción vacía/placeholder inicial
 
-            $campo.select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true,
-                language: 'es',
-                placeholder: opciones.placeholder || 'Escriba para buscar...',
-                dropdownParent: $s(opciones.dropdownParent || '#modalPedido'),
-                matcher: function (params, data) {
-                    const termino = normalizarTexto(params.term);
+                const textoNorm = normalizarTexto(textoOpt);
+                const coincide = palabrasClave.length === 0 || palabrasClave.every(palabra => textoNorm.includes(palabra));
 
-                    if (!termino) {
-                        return data;
+                if (coincide) {
+                    opcionesVisibles++;
+                    const $item = $(`<button type="button" class="list-group-item list-group-item-action py-2 px-2 small">${escaparHtml(textoOpt)}</button>`);
+                    
+                    if ($opt.is(':selected')) {
+                        $item.addClass('active text-white');
                     }
 
-                    if (normalizarTexto(data.text).indexOf(termino) > -1) {
-                        return data;
-                    }
-
-                    if (data.children) {
-                        const hijos = data.children.filter(function (hijo) {
-                            return normalizarTexto(hijo.text).indexOf(termino) > -1;
-                        });
-
-                        if (hijos.length) {
-                            return $s.extend({}, data, { children: hijos });
-                        }
-                    }
-
-                    return null;
-                },
-                ...(opciones.config || {})
-            });
-
-            // Restricción estricta para la barra de búsqueda de Select2:
-            // SOLO PERMITE LETRAS, NÚMEROS, % y /
-            setTimeout(() => {
-                const $searchField = $campo.data('select2')?.$dropdown?.find('.select2-search__field') || 
-                                     $s(opciones.dropdownParent || '#modalPedido').find('.select2-search__field');
-                
-                if ($searchField.length) {
-                    $searchField.off('keypress.validarBusqueda').on('keypress.validarBusqueda', function (e) {
-                        const charCode = e.which ? e.which : e.keyCode;
-                        const charStr = String.fromCharCode(charCode);
-                        // Acepta letras, números, %, /, espacios y teclas de control
-                        const regex = /^[a-zA-Z0-9%/\s\b]*$/;
-                        
-                        if (charCode === 0 || charCode === 8 || charCode === 13) {
-                            return true;
-                        }
-
-                        if (!regex.test(charStr)) {
-                            e.preventDefault();
-                        }
+                    $item.on('click', function (e) {
+                        e.preventDefault();
+                        $selectOriginal.val(valorOpt).trigger('change');
+                        $inputBusqueda.val(textoOpt);
+                        $listaSugerencias.hide();
                     });
 
-                    $searchField.off('paste.validarBusqueda').on('paste.validarBusqueda', function (e) {
-                        const pastedData = (e.originalEvent || e).clipboardData.getData('text');
-                        const regex = /^[a-zA-Z0-9%/\s]*$/;
-                        if (!regex.test(pastedData)) {
-                            e.preventDefault();
-                        }
-                    });
-                }
-            }, 100);
-
-            return $campo;
-        }
-
-        function refrescarSelectBusqueda(campo, opciones = {}) {
-            return initSelectBusqueda(campo, opciones);
-        }
-
-        function initSelectBusquedaRemota(campo, opciones = {}) {
-            const $campo = $s(campo);
-
-            if (!$campo.length) {
-                return $campo;
-            }
-
-            if (!$s.fn.select2) {
-                avisarSelect2Ausente();
-                return $campo;
-            }
-
-            if ($campo.hasClass('select2-hidden-accessible')) {
-                $campo.select2('destroy');
-            }
-
-            $campo.select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true,
-                minimumInputLength: 2,
-                language: 'es',
-                placeholder: 'Nombre, apellido o documento del cliente',
-                dropdownParent: $s(opciones.dropdownParent || '#modalPedido'),
-                ajax: {
-                    url: `${BASE_URL}&accion=buscar_clientes`,
-                    dataType: 'json',
-                    delay: 300,
-                    cache: true,
-                    data: function (params) {
-                        return {
-                            q: params.term || '',
-                            page: params.page || 1
-                        };
-                    },
-                    processResults: function (respuesta, params) {
-                        const datos = (respuesta && respuesta.data) || [];
-
-                        return {
-                            results: datos.map(function (cliente) {
-                                return {
-                                    id: cliente.id_cliente,
-                                    text: `${cliente.nombre_razon_social || ''} ${cliente.apellido || ''} — ${cliente.numero_de_documento || 's/d'}`
-                                };
-                            }),
-                            pagination: {
-                                more: Boolean(respuesta && respuesta.more)
-                            }
-                        };
-                    }
+                    $listaSugerencias.append($item);
                 }
             });
 
-            setTimeout(() => {
-                const $searchField = $campo.data('select2')?.$dropdown?.find('.select2-search__field') || 
-                                     $s(opciones.dropdownParent || '#modalPedido').find('.select2-search__field');
-                if ($searchField.length) {
-                    $searchField.off('keypress.validarBusquedaRemota').on('keypress.validarBusquedaRemota', function (e) {
-                        const charCode = e.which ? e.which : e.keyCode;
-                        const charStr = String.fromCharCode(charCode);
-                        const regex = /^[a-zA-Z0-9%/\s\b]*$/;
-                        if (charCode === 0 || charCode === 8 || charCode === 13) return true;
-                        if (!regex.test(charStr)) e.preventDefault();
-                    });
-                }
-            }, 100);
-
-            return $campo;
-        }
-
-        function initSelectCliente() {
-            if (!idCliente) {
-                return $s([]);
+            // Si no hay coincidencias, mostrar mensaje informativo de valor no existente
+            if (opcionesVisibles === 0) {
+                $listaSugerencias.append(`<div class="list-group-item py-2 px-2 small text-muted text-center fst-italic">No se encontró ningún registro que coincida.</div>`);
             }
 
-            if (CLIENTES_REMOTO) {
-                return initSelectBusquedaRemota(idCliente);
-            }
-
-            return initSelectBusqueda(idCliente, {
-                placeholder: 'Buscar cliente por nombre o documento...'
-            });
+            $listaSugerencias.show();
         }
 
-        function actualizarTotal() {
-            const cantidad = Number(elemento('cantidad')?.value) || 0;
-            const manoObra = Number(elemento('costoManoObra')?.value) || 0;
-            const materiales = Number(elemento('costoMateriales')?.value) || 0;
-            const descuentoProducto = Number(elemento('descuentoProducto')?.value) || 0;
-            const descuentoGeneral = Number(elemento('descuentoDivisa')?.value) || 0;
+        // Al hacer clic o enfocar, despliega inmediatamente todas las opciones con scroll
+        $inputBusqueda.on('focus click', function () {
+            actualizarSugerencias($(this).val());
+        });
 
-            let total =
-                ((manoObra + materiales) * cantidad) -
-                descuentoProducto -
-                descuentoGeneral;
+        // Filtrar en tiempo real mientras se escribe
+        $inputBusqueda.on('input', function () {
+            actualizarSugerencias($(this).val());
+        });
 
-            if (total < 0) {
-                total = 0;
-            }
-
-            const totalVisual = elemento('totalVisual');
-            if (totalVisual) {
-                totalVisual.textContent = total.toFixed(2);
-            }
-        }
-
-        function resetColores() {
-            filtroColor.innerHTML = `
-                <option value="">
-                    Seleccione primero un producto
-                </option>
-            `;
-            filtroColor.disabled = true;
-
-            refrescarSelectBusqueda(filtroColor, {
-                placeholder: 'Seleccione primero un producto'
-            });
-        }
-
-        function resetTallas() {
-            idProductoCaracteristica.innerHTML = `
-                <option value="">
-                    Seleccione primero un color
-                </option>
-            `;
-            idProductoCaracteristica.disabled = true;
-
-            refrescarSelectBusqueda(idProductoCaracteristica, {
-                placeholder: 'Seleccione primero un color'
-            });
-        }
-
-        // ==========================================
-        // RESTRICCIÓN DE SOLO NÚMEROS (INPUTS PEDIDO)
-        // ==========================================
-        const idsNumericos = [
-            'cantidad',
-            'costoManoObra',
-            'costoMateriales',
-            'descuentoProducto',
-            'descuentoDivisa'
-        ];
-
-        idsNumericos.forEach(function (id) {
-            const campo = elemento(id);
-            if (campo) {
-                $s(campo).on('keydown', soloNumerosTeclado);
-                campo.addEventListener('input', actualizarTotal);
+        // Sincronizar cambios externos del select
+        $selectOriginal.on('change', function () {
+            const textoSeleccionado = $(this).find('option:selected').text();
+            if (!$(this).val()) {
+                $inputBusqueda.val('');
+            } else {
+                $inputBusqueda.val(textoSeleccionado);
             }
         });
 
-        // ==========================================
-        // RESTRICCIÓN DE SOLO NÚMEROS (MODAL REPORTE)
-        // ==========================================
-        const reporteCantidad = elemento('reporteCantidad');
-        const reporteMonto = elemento('reporteMonto');
+        // Ocultar al hacer clic fuera del componente
+        $(document).on('click.cierreBuscador_' + idSelect, function (e) {
+            if (!$(e.target).closest($wrapper).length) {
+                $listaSugerencias.hide();
+            }
+        });
+    }
 
-        if (reporteCantidad) {
-            $s(reporteCantidad).on('keydown', soloNumerosTeclado);
+    function actualizarTotal() {
+        const cantidad = Number($('#cantidad').val()) || 0;
+        const manoObra = Number(($('#costoManoObra').val() || '').replace(',', '.')) || 0;
+        const materiales = Number(($('#costoMateriales').val() || '').replace(',', '.')) || 0;
+        const descuentoProductoUnitario = Number(($('#descuentoProducto').val() || '').replace(',', '.')) || 0;
+        const descuentoGeneral = Number(($('#descuentoDivisa').val() || '').replace(',', '.')) || 0;
+
+        const costoUnitarioNeto = (manoObra + materiales) - descuentoProductoUnitario;
+        let total = (costoUnitarioNeto * cantidad) - descuentoGeneral;
+        
+        if (total < 0) total = 0;
+
+        $('#totalVisual').text(total.toFixed(2));
+    }
+
+    function resetColores() {
+        $filtroColor.html('<option value="">Seleccione primero un producto</option>').prop('disabled', true);
+        $filtroColor.trigger('change');
+    }
+
+    function resetTallas() {
+        $idProductoCaracteristica.html('<option value="">Seleccione primero un color</option>').prop('disabled', true);
+        $idProductoCaracteristica.trigger('change');
+    }
+
+    // ==========================================
+    // AJAX: CARGAR CATÁLOGOS INICIALES
+    // ==========================================
+    async function cargarCatalogos() {
+        try {
+            const respuesta = await $.ajax({
+                url: `${BASE_URL}&accion=obtener_catalogos`,
+                type: 'GET',
+                dataType: 'json'
+            });
+
+            if (!respuesta.success) {
+                throw new Error(respuesta.message || 'Error al cargar los catálogos.');
+            }
+
+            const { clientes, tiposPedido, productos, servicios } = respuesta.data;
+
+            if ($idCliente.length) {
+                $idCliente.html('<option value="">Seleccione un cliente</option>');
+                clientes.forEach(c => {
+                    $idCliente.append(new Option(`${c.nombre_razon_social || ''} ${c.apellido || ''} - ${c.numero_de_documento || 's/d'}`, c.id_cliente));
+                });
+                transformarSelectConBuscadorNativo($idCliente, 'Buscar cliente por nombre o documento...');
+            }
+
+            const $selTipoPedido = $('#idTipoPedido');
+            if ($selTipoPedido.length) {
+                $selTipoPedido.html('<option value="">Seleccione un tipo</option>');
+                tiposPedido.forEach(tp => {
+                    $selTipoPedido.append(new Option(tp.nombre_tipo_pedido, tp.id_tipo_pedido));
+                });
+            }
+
+            if ($idProducto.length) {
+                $idProducto.html('<option value="">Seleccione un producto</option>');
+                productos.forEach(p => {
+                    $idProducto.append(new Option(`${p.nombre_producto} - ${p.tipo_de_producto || 'Sin tipo'}`, p.id_producto));
+                });
+                transformarSelectConBuscadorNativo($idProducto, 'Buscar producto por nombre...');
+            }
+
+            const $selServicio = $('#idServicio');
+            if ($selServicio.length) {
+                $selServicio.html('<option value="">Seleccione un servicio</option>');
+                servicios.forEach(s => {
+                    $selServicio.append(new Option(s.nombre_servicio, s.id_servicio));
+                });
+            }
+
+            const $containerTiposReporte = $('#reporteTiposPedidoContainer');
+            if ($containerTiposReporte.length) {
+                let htmlTipos = '';
+                tiposPedido.forEach(tp => {
+                    htmlTipos += `
+                        <div class="form-check">
+                            <input class="form-check-input chk-filtro" type="checkbox" name="id_tipo_pedido[]" value="${tp.id_tipo_pedido}" id="tp_${tp.id_tipo_pedido}">
+                            <label class="form-check-label small" for="tp_${tp.id_tipo_pedido}">${escaparHtml(tp.nombre_tipo_pedido)}</label>
+                        </div>`;
+                });
+                $containerTiposReporte.html(htmlTipos);
+            }
+
+            const $containerServiciosReporte = $('#reporteServiciosContainer');
+            if ($containerServiciosReporte.length) {
+                let htmlServicios = '';
+                servicios.forEach(serv => {
+                    htmlServicios += `
+                        <div class="form-check">
+                            <input class="form-check-input chk-filtro" type="checkbox" name="id_servicio[]" value="${serv.id_servicio}" id="serv_${serv.id_servicio}">
+                            <label class="form-check-label small" for="serv_${serv.id_servicio}">${escaparHtml(serv.nombre_servicio)}</label>
+                        </div>`;
+                });
+                $containerServiciosReporte.html(htmlServicios);
+            }
+
+        } catch (error) {
+            console.error(error);
+            await errorAlert('Error', 'No se pudieron cargar los datos iniciales del sistema.');
         }
-        if (reporteMonto) {
-            $s(reporteMonto).on('keydown', soloNumerosTeclado);
+    }
+
+    // ==========================================
+    // RESTRICCIONES DE ENTRADA
+    // ==========================================
+    function numerosDecimalesTeclado(e) {
+        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+        if (!/^[0-9.,]$/.test(e.key)) e.preventDefault();
+    }
+
+    function alfanumericosTeclado(e) {
+        if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+        if (!/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ\s]$/.test(e.key)) e.preventDefault();
+    }
+
+    const $cantidad = $('#cantidad');
+    if ($cantidad.length) {
+        $cantidad.on('keydown', soloNumerosTeclado);
+        $cantidad.on('input', actualizarTotal);
+    }
+
+    const $metodoServicio = $('#metodoServicio');
+    if ($metodoServicio.length) {
+        $metodoServicio.on('keydown', alfanumericosTeclado);
+    }
+
+    const idsDecimales = ['costoManoObra', 'costoMateriales', 'descuentoProducto', 'descuentoDivisa'];
+    idsDecimales.forEach(id => {
+        const $campo = $(`#${id}`);
+        if ($campo.length) {
+            $campo.on('keydown', numerosDecimalesTeclado);
+            $campo.on('input', actualizarTotal);
         }
+    });
 
-        // ==========================================
-        // AJAX: CARGAR COLORES POR PRODUCTO
-        // ==========================================
-        async function cargarColores(productoId, colorSeleccionado = '', tallaSeleccionada = '') {
-            resetColores();
-            resetTallas();
+    const $reporteCantidad = $('#reporteCantidad');
+    const $reporteMonto = $('#reporteMonto');
+    if ($reporteCantidad.length) $reporteCantidad.on('keydown', soloNumerosTeclado);
+    if ($reporteMonto.length) $reporteMonto.on('keydown', numerosDecimalesTeclado);
 
-            if (!productoId) {
+    // ==========================================
+    // AJAX: CARGAR COLORES Y TALLAS
+    // ==========================================
+    async function cargarColores(productoId, colorSeleccionado = '', tallaSeleccionada = '') {
+        resetColores();
+        resetTallas();
+
+        if (!productoId) return;
+
+        $filtroColor.html('<option value="">Cargando colores...</option>');
+
+        try {
+            const respuesta = await $.ajax({
+                url: `${BASE_URL}&accion=colores_por_producto`,
+                type: 'GET',
+                data: { id_producto: productoId },
+                dataType: 'json'
+            });
+
+            if (!respuesta.success) throw new Error(respuesta.message || 'No se pudieron cargar los colores.');
+
+            $filtroColor.html('<option value="">Seleccione un color</option>');
+
+            if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
+                $filtroColor.html('<option value="">No hay colores activos</option>').prop('disabled', true);
                 return;
             }
 
-            filtroColor.innerHTML = `
-                <option value="">
-                    Cargando colores...
-                </option>
-            `;
-
-            refrescarSelectBusqueda(filtroColor, {
-                placeholder: 'Cargando colores...'
+            respuesta.data.forEach(item => {
+                const $option = $('<option>').val(item.color).text(item.color);
+                if (String(item.color) === String(colorSeleccionado)) $option.prop('selected', true);
+                $filtroColor.append($option);
             });
 
-            try {
-                const respuesta = await $s.ajax({
-                    url: `${BASE_URL}&accion=colores_por_producto`,
-                    type: 'GET',
-                    data: { id_producto: productoId },
-                    dataType: 'json'
-                });
+            $filtroColor.prop('disabled', false);
+            transformarSelectConBuscadorNativo($filtroColor, 'Buscar color...');
 
-                if (!respuesta.success) {
-                    throw new Error(respuesta.message || 'No se pudieron cargar los colores.');
-                }
-
-                filtroColor.innerHTML = `
-                    <option value="">
-                        Seleccione un color
-                    </option>
-                `;
-
-                if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
-                    filtroColor.innerHTML = `
-                        <option value="">
-                            No hay colores activos
-                        </option>
-                    `;
-                    filtroColor.disabled = true;
-
-                    refrescarSelectBusqueda(filtroColor, {
-                        placeholder: 'No hay colores activos'
-                    });
-                    return;
-                }
-
-                respuesta.data.forEach(function (item) {
-                    const option = document.createElement('option');
-                    option.value = item.color;
-                    option.textContent = item.color;
-
-                    if (String(option.value) === String(colorSeleccionado)) {
-                        option.selected = true;
-                    }
-
-                    filtroColor.appendChild(option);
-                });
-
-                filtroColor.disabled = false;
-
-                refrescarSelectBusqueda(filtroColor, {
-                    placeholder: 'Buscar color...'
-                });
-
-                if (colorSeleccionado) {
-                    await cargarTallas(productoId, colorSeleccionado, tallaSeleccionada);
-                }
-
-            } catch (error) {
-                console.error(error);
-                filtroColor.innerHTML = `
-                    <option value="">
-                        Error al cargar colores
-                    </option>
-                `;
-                filtroColor.disabled = true;
-
-                refrescarSelectBusqueda(filtroColor, {
-                    placeholder: 'Error al cargar colores'
-                });
-
-                await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
+            if (colorSeleccionado) {
+                await cargarTallas(productoId, colorSeleccionado, tallaSeleccionada);
             }
+        } catch (error) {
+            console.error(error);
+            $filtroColor.html('<option value="">Error al cargar colores</option>').prop('disabled', true);
+            await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
         }
+    }
 
-        // ==========================================
-        // AJAX: CARGAR TALLAS POR PRODUCTO Y COLOR
-        // ==========================================
-        async function cargarTallas(productoId, color, tallaSeleccionada = '') {
-            resetTallas();
+    async function cargarTallas(productoId, color, tallaSeleccionada = '') {
+        resetTallas();
 
-            if (!productoId || !color) {
+        if (!productoId || !color) return;
+
+        $idProductoCaracteristica.html('<option value="">Cargando tallas...</option>');
+
+        try {
+            const respuesta = await $.ajax({
+                url: `${BASE_URL}&accion=tallas_por_producto_y_color`,
+                type: 'GET',
+                data: { id_producto: productoId, color: color },
+                dataType: 'json'
+            });
+
+            if (!respuesta.success) throw new Error(respuesta.message || 'No se pudieron cargar las tallas.');
+
+            $idProductoCaracteristica.html('<option value="">Seleccione una talla</option>');
+
+            if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
+                $idProductoCaracteristica.html('<option value="">No hay tallas activas para este color</option>').prop('disabled', true);
                 return;
             }
 
-            idProductoCaracteristica.innerHTML = `
-                <option value="">
-                    Cargando tallas...
-                </option>
-            `;
-
-            refrescarSelectBusqueda(idProductoCaracteristica, {
-                placeholder: 'Cargando tallas...'
+            respuesta.data.forEach(item => {
+                const textoOpt = `Talla: ${item.talla || 'N/A'} | Material: ${item.detalle_material || 'N/A'} | Prenda: ${item.tipo_de_prenda || 'N/A'}`;
+                const $option = $('<option>').val(item.id_producto_caracteristica).text(textoOpt);
+                if (String(item.id_producto_caracteristica) === String(tallaSeleccionada)) $option.prop('selected', true);
+                $idProductoCaracteristica.append($option);
             });
 
-            try {
-                const respuesta = await $s.ajax({
-                    url: `${BASE_URL}&accion=tallas_por_producto_y_color`,
-                    type: 'GET',
-                    data: { id_producto: productoId, color: color },
-                    dataType: 'json'
-                });
-
-                if (!respuesta.success) {
-                    throw new Error(respuesta.message || 'No se pudieron cargar las tallas.');
-                }
-
-                idProductoCaracteristica.innerHTML = `
-                    <option value="">
-                        Seleccione una talla
-                    </option>
-                `;
-
-                if (!Array.isArray(respuesta.data) || respuesta.data.length === 0) {
-                    idProductoCaracteristica.innerHTML = `
-                        <option value="">
-                            No hay tallas activas para este color
-                        </option>
-                    `;
-                    idProductoCaracteristica.disabled = true;
-
-                    refrescarSelectBusqueda(idProductoCaracteristica, {
-                        placeholder: 'No hay tallas activas para este color'
-                    });
-                    return;
-                }
-
-                respuesta.data.forEach(function (item) {
-                    const option = document.createElement('option');
-                    option.value = item.id_producto_caracteristica;
-                    option.textContent = `Talla: ${item.talla || 'N/A'} | Material: ${item.detalle_material || 'N/A'} | Prenda: ${item.tipo_de_prenda || 'N/A'}`;
-
-                    if (String(option.value) === String(tallaSeleccionada)) {
-                        option.selected = true;
-                    }
-
-                    idProductoCaracteristica.appendChild(option);
-                });
-
-                idProductoCaracteristica.disabled = false;
-
-                refrescarSelectBusqueda(idProductoCaracteristica, {
-                    placeholder: 'Buscar talla, material o prenda...'
-                });
-
-            } catch (error) {
-                console.error(error);
-                idProductoCaracteristica.innerHTML = `
-                    <option value="">
-                        Error al cargar tallas
-                    </option>
-                `;
-                idProductoCaracteristica.disabled = true;
-
-                refrescarSelectBusqueda(idProductoCaracteristica, {
-                    placeholder: 'Error al cargar tallas'
-                });
-
-                await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
-            }
+            $idProductoCaracteristica.prop('disabled', false);
+            transformarSelectConBuscadorNativo($idProductoCaracteristica, 'Buscar talla, material o prenda...');
+        } catch (error) {
+            console.error(error);
+            $idProductoCaracteristica.html('<option value="">Error al cargar tallas</option>').prop('disabled', true);
+            await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
         }
+    }
 
-        function badgeEstado(estado) {
-            const valor = String(estado || '').toLowerCase();
-            let clase = 'bg-secondary';
+    function badgeEstado(estado) {
+        const valor = String(estado || '').toLowerCase();
+        let clase = 'bg-secondary';
+        if (valor === 'pendiente') clase = 'bg-warning text-dark';
+        if (valor === 'en proceso') clase = 'bg-info text-dark';
+        if (valor === 'realizado') clase = 'bg-primary';
+        if (valor === 'entregado') clase = 'bg-success';
+        if (valor === 'inhabilitado') clase = 'bg-danger';
 
-            if (valor === 'pendiente') {
-                clase = 'bg-warning text-dark';
-            }
-            if (valor === 'en proceso') {
-                clase = 'bg-info text-dark';
-            }
-            if (valor === 'realizado') {
-                clase = 'bg-primary';
-            }
-            if (valor === 'entregado') {
-                clase = 'bg-success';
-            }
-            if (valor === 'inhabilitado') {
-                clase = 'bg-danger';
-            }
+        return `<span class="badge ${clase}">${escaparHtml(estado)}</span>`;
+    }
 
-            return `
-                <span class="badge ${clase}">
-                    ${escaparHtml(estado)}
-                </span>
-            `;
-        }
+    function columnasDataTable() {
+        return [
+            {
+                data: 'id_pedido',
+                orderable: false,
+                searchable: false,
+                render: data => `<strong>#${data}</strong>`
+            },
+            {
+                data: 'fecha_creacion',
+                type: 'string',
+                render: function (data, type) {
+                    if (!data) return '-';
+                    if (type === 'sort' || type === 'type') return data;
+                    const partes = data.split(' ')[0].split('-');
+                    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : data;
+                }
+            },
+            {
+                data: null,
+                type: 'string',
+                render: data => escaparHtml(`${data.nombre_razon_social || ''} ${data.apellido || ''}`)
+            },
+            {
+                data: null,
+                type: 'string',
+                render: data => `
+                    <strong>${escaparHtml(data.nombre_producto || 'Sin producto')}</strong>
+                    <small class="d-block text-muted">
+                        ${escaparHtml(data.color || 'Sin color')} · Talla: ${escaparHtml(data.talla || 'N/A')}
+                    </small>`
+            },
+            {
+                data: 'nombre_servicio',
+                type: 'string',
+                render: data => escaparHtml(data || 'Sin servicio')
+            },
+            { data: 'cantidad', type: 'num' },
+            {
+                data: 'estado_pedido',
+                type: 'string',
+                render: data => badgeEstado(data)
+            },
+            {
+                data: 'monto_total',
+                type: 'num',
+                render: data => Number(data || 0).toFixed(2)
+            },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: function (data) {
+                    const estado = String(data.estado_pedido || '').toLowerCase();
+                    let html = `
+                        <button type="button" class="btn btn-sm btn-outline-info btnDetallePedido me-1" data-id="${data.id_pedido}" title="Ver detalle">
+                            <i class="bi bi-eye-fill"></i>
+                        </button>`;
 
-        function columnasDataTable() {
-            return [
-                {
-                    data: 'id_pedido',
-                    orderable: false,
-                    searchable: false,
-                    render: function (data) {
-                        return `<strong>#${data}</strong>`;
-                    }
-                },
-                {
-                    data: 'fecha_creacion',
-                    type: 'string',
-                    render: function (data, type) {
-                        if (!data) return '-';
-
-                        if (type === 'sort' || type === 'type') {
-                            return data;
-                        }
-
-                        const partes = data.split(' ')[0].split('-');
-
-                        if (partes.length === 3) {
-                            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-                        }
-
-                        return data;
-                    }
-                },
-                {
-                    data: null,
-                    type: 'string',
-                    render: function (data) {
-                        return escaparHtml(
-                            `${data.nombre_razon_social || ''} ${data.apellido || ''}`
-                        );
-                    }
-                },
-                {
-                    data: null,
-                    type: 'string',
-                    render: function (data) {
-                        return `
-                            <strong>
-                                ${escaparHtml(data.nombre_producto || 'Sin producto')}
-                            </strong>
-                            <small class="d-block text-muted">
-                                ${escaparHtml(data.color || 'Sin color')} · Talla: ${escaparHtml(data.talla || 'N/A')}
-                            </small>
-                        `;
-                    }
-                },
-                {
-                    data: 'nombre_servicio',
-                    type: 'string',
-                    render: function (data) {
-                        return escaparHtml(data || 'Sin servicio');
-                    }
-                },
-                {
-                    data: 'cantidad',
-                    type: 'num'
-                },
-                {
-                    data: 'estado_pedido',
-                    type: 'string',
-                    render: function (data) {
-                        return badgeEstado(data);
-                    }
-                },
-                {
-                    data: 'monto_total',
-                    type: 'num',
-                    render: function (data) {
-                        return Number(data || 0).toFixed(2);
-                    }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    className: 'text-center',
-                    render: function (data) {
-                        const estado = String(data.estado_pedido || '').toLowerCase();
-
-                        let html = `
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-info btnDetallePedido me-1"
-                                data-id="${data.id_pedido}"
-                                title="Ver detalle">
-                                <i class="bi bi-eye-fill"></i>
+                    if (estado === 'inhabilitado') {
+                        html += `
+                            <button type="button" class="btn btn-sm btn-outline-warning btnEditarPedido" data-id="${data.id_pedido}" title="Editar o reactivar">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>`;
+                    } else {
+                        html += `
+                            <button type="button" class="btn btn-sm btn-outline-primary btnEditarPedido me-1" data-id="${data.id_pedido}" title="Editar pedido">
+                                <i class="bi bi-pencil-square"></i>
                             </button>
-                        `;
-
-                        if (estado === 'inhabilitado') {
-                            html += `
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-warning btnEditarPedido"
-                                    data-id="${data.id_pedido}"
-                                    title="Editar o reactivar">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
-                            `;
-                        } else {
-                            html += `
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary btnEditarPedido me-1"
-                                    data-id="${data.id_pedido}"
-                                    title="Editar pedido">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-danger btnInhabilitarPedido"
-                                    data-id="${data.id_pedido}"
-                                    title="Inhabilitar pedido">
-                                    <i class="bi bi-trash3-fill"></i>
-                                </button>
-                            `;
-                        }
-
-                        return html;
+                            <button type="button" class="btn btn-sm btn-outline-danger btnInhabilitarPedido" data-id="${data.id_pedido}" title="Inhabilitar pedido">
+                                <i class="bi bi-trash3-fill"></i>
+                            </button>`;
                     }
+                    return html;
                 }
-            ];
+            }
+        ];
+    }
+
+    function crearDataTable() {
+        if ($.fn.DataTable.isDataTable('#tablaPedidos')) {
+            $('#tablaPedidos').DataTable().destroy();
         }
 
-        function crearDataTable() {
-            if ($s.fn.DataTable.isDataTable('#tablaPedidos')) {
-                $s('#tablaPedidos').DataTable().destroy();
-            }
-
-            tablaPedidos = $s('#tablaPedidos').DataTable({
-                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                ajax: {
-                    url: `${BASE_URL}&accion=listar&filtro=${obtenerFiltro()}`,
-                    type: 'GET',
-                    dataType: 'json',
-                    dataSrc: function (json) {
-                        if (!json.success) {
-                            errorAlert(
-                                'Error',
-                                json.message || 'No se pudieron cargar los registros.'
-                            );
-                            return [];
-                        }
-
-                        return json.data || [];
-                    },
-                    error: function (xhr) {
-                        console.error(xhr.responseText);
-                        errorAlert(
-                            'Error de carga',
-                            'No se pudo conectar con el controlador de pedidos.'
-                        );
+        tablaPedidos = $('#tablaPedidos').DataTable({
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+            ajax: {
+                url: `${BASE_URL}&accion=listar&filtro=${obtenerFiltro()}`,
+                type: 'GET',
+                dataType: 'json',
+                dataSrc: function (json) {
+                    if (!json.success) {
+                        errorAlert('Error', json.message || 'No se pudieron cargar los registros.');
+                        return [];
                     }
+                    return json.data || [];
                 },
-                processing: true,
-                responsive: true,
-                pageLength: 10,
-                order: [[1, 'desc']],
-                language: lenguajeDataTableEs,
-                columns: columnasDataTable()
+                error: function (xhr) {
+                    console.error(xhr.responseText);
+                    errorAlert('Error de carga', 'No se pudo conectar con el controlador de pedidos.');
+                }
+            },
+            processing: true,
+            responsive: true,
+            pageLength: 10,
+            order: [[1, 'desc']],
+            language: {
+                ...lenguajeDataTableEs,
+                processing: crearMarkupSkeletonDataTable($('#tablaPedidos thead th').length)
+            },
+            columns: columnasDataTable()
+        });
+    }
+
+    function actualizarVista() {
+        const $titulo = $('#tituloVista');
+        const $icono = $('#iconoEstado');
+        const $texto = $('#txtBotonEstado');
+
+        if (verInhabilitados) {
+            if ($titulo.length) $titulo.text('Pedidos Inhabilitados');
+            if ($texto.length) $texto.text('Ver activos');
+            if ($icono.length) $icono.removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
+        } else {
+            if ($titulo.length) $titulo.text('Gestión de Pedidos');
+            if ($texto.length) $texto.text('Ver inhabilitados');
+            if ($icono.length) $icono.removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
+        }
+    }
+
+    function limpiarFormulario() {
+        silenciarCambioProducto = true;
+
+        $form[0].reset();
+        $form.removeClass('was-validated');
+
+        $('#accionPedido').val('guardar');
+        $('#idPedido').val('');
+        $('#fechaCreacion').val(new Date().toISOString().split('T')[0]);
+
+        if ($idCliente.length) {
+            $idCliente.val('').trigger('change');
+        }
+
+        $idProducto.val('').trigger('change');
+
+        resetColores();
+        resetTallas();
+
+        $estadoPedido.html(`
+            <option value="pendiente">Pendiente</option>
+            <option value="en proceso">En proceso</option>
+            <option value="realizado">Realizado</option>
+            <option value="entregado">Entregado</option>
+        `).val('pendiente').prop('disabled', true);
+
+        $('#tituloModalPedido').html('<i class="bi bi-cart-plus-fill me-2"></i>Registrar Pedido');
+        $('#btnGuardarPedido').html('<i class="bi bi-check-circle-fill"></i> Guardar pedido');
+
+        actualizarTotal();
+        silenciarCambioProducto = false;
+    }
+
+    async function validarFormulario() {
+        $form.addClass('was-validated');
+
+        if (!$form[0].checkValidity()) {
+            await errorAlert('Formulario incompleto', 'Complete los campos obligatorios.');
+            return false;
+        }
+
+        if ($idCliente.length && !$idCliente.val()) {
+            await errorAlert('Cliente requerido', 'Seleccione un cliente.');
+            return false;
+        }
+
+        if (!$idProducto.val()) {
+            await errorAlert('Producto requerido', 'Seleccione un producto.');
+            return false;
+        }
+
+        const fechaCreacion = $('#fechaCreacion').val();
+        const fechaEntrega = $('#fechaEntrega').val();
+
+        if (fechaEntrega && fechaEntrega < fechaCreacion) {
+            await errorAlert('Fecha inválida', 'La fecha de entrega no puede ser anterior a la fecha de creación.');
+            return false;
+        }
+
+        if (!$filtroColor.val()) {
+            await errorAlert('Color requerido', 'Seleccione un color.');
+            return false;
+        }
+
+        if (!$idProductoCaracteristica.val()) {
+            await errorAlert('Talla requerida', 'Seleccione una talla válida.');
+            return false;
+        }
+
+        return true;
+    }
+
+    async function enviarFormulario() {
+        if (!(await validarFormulario())) return;
+
+        const $boton = $('#btnGuardarPedido');
+        const textoOriginal = $boton.html();
+
+        $boton.prop('disabled', true).text('Procesando...');
+
+        const accion = $('#accionPedido').val();
+        if (accion === 'guardar') {
+            $estadoPedido.prop('disabled', false).val('pendiente');
+        }
+
+        try {
+            const resultado = await $.ajax({
+                url: `${BASE_URL}&accion=${accion}`,
+                type: 'POST',
+                data: new FormData($form[0]),
+                processData: false,
+                contentType: false,
+                dataType: 'json'
             });
-        }
 
-        function actualizarVista() {
-            const titulo = elemento('tituloVista');
-            const icono = elemento('iconoEstado');
-            const texto = elemento('txtBotonEstado');
+            if (!resultado.success) throw new Error(resultado.message || 'No se pudo guardar el pedido.');
 
-            if (verInhabilitados) {
-                if (titulo) titulo.textContent = 'Pedidos Inhabilitados';
-                if (texto) texto.textContent = 'Ver activos';
-
-                if (icono) {
-                    icono.classList.remove('bi-eye-slash-fill');
-                    icono.classList.add('bi-eye-fill');
-                }
-            } else {
-                if (titulo) titulo.textContent = 'Gestión de Pedidos';
-                if (texto) texto.textContent = 'Ver inhabilitados';
-
-                if (icono) {
-                    icono.classList.remove('bi-eye-fill');
-                    icono.classList.add('bi-eye-slash-fill');
-                }
+            await successAlert('Operación exitosa', resultado.message);
+            modalPedido.hide();
+            limpiarFormulario();
+            tablaPedidos.ajax.reload(null, false);
+        } catch (error) {
+            await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
+        } finally {
+            $boton.prop('disabled', false).html(textoOriginal);
+            if ($('#accionPedido').val() === 'guardar') {
+                $estadoPedido.prop('disabled', true);
             }
         }
+    }
 
-        function limpiarFormulario() {
+    async function editarPedido(idPedido) {
+        try {
+            const resultado = await $.ajax({
+                url: `${BASE_URL}&accion=obtener`,
+                type: 'GET',
+                data: { id: idPedido },
+                dataType: 'json'
+            });
+
+            if (!resultado.success) throw new Error(resultado.message || 'No se pudo obtener el pedido.');
+
+            const pedido = resultado.data;
+            const detalle = pedido.detalle || {};
+
+            $('#accionPedido').val('editar');
+            $('#idPedido').val(pedido.id_pedido);
+            $('#idTipoPedido').val(pedido.id_tipo_pedido);
+            $('#fechaCreacion').val(pedido.fecha_creacion);
+            $('#fechaEntrega').val(pedido.fecha_entrega || '');
+            $('#descripcion').val(pedido.descripcion || '');
+            $('#descuentoDivisa').val(pedido.descuento_divisa || 0);
+
+            if ($idCliente.length) {
+                $idCliente.val(pedido.id_cliente || '').trigger('change');
+            }
+
             silenciarCambioProducto = true;
+            $idProducto.val(detalle.id_producto || '').trigger('change');
+            silenciarCambioProducto = false;
 
-            form.reset();
-            form.classList.remove('was-validated');
+            await cargarColores(detalle.id_producto || '', detalle.color || '', detalle.id_producto_caracteristica || '');
 
-            elemento('accionPedido').value = 'guardar';
-            elemento('idPedido').value = '';
+            $('#idServicio').val(detalle.id_servicio || '');
+            $('#cantidad').val(detalle.cantidad || 1);
+            $('#costoManoObra').val(detalle.costo_mano_de_obra || 0);
+            $('#costoMateriales').val(detalle.costo_materiales || 0);
+            $('#descuentoProducto').val(detalle.descuento_producto || 0);
+            $('#metodoServicio').val(detalle.metodo_servicio || '');
 
-            elemento('fechaCreacion').value =
-                new Date().toISOString().split('T')[0];
-
-            if (idCliente) {
-                if ($s.fn.select2) {
-                    $s(idCliente).val(null).trigger('change');
-                } else {
-                    idCliente.value = '';
-                }
-            }
-
-            if ($s.fn.select2) {
-                $s(idProducto).val(null).trigger('change');
-            } else {
-                idProducto.value = '';
-            }
-
-            resetColores();
-            resetTallas();
-
-            estadoPedido.innerHTML = `
+            $estadoPedido.prop('disabled', false).html(`
                 <option value="pendiente">Pendiente</option>
                 <option value="en proceso">En proceso</option>
                 <option value="realizado">Realizado</option>
                 <option value="entregado">Entregado</option>
-            `;
-            estadoPedido.value = 'pendiente';
-            estadoPedido.disabled = true;
+                <option value="inhabilitado">Inhabilitado</option>
+            `).val(pedido.estado_pedido || 'pendiente');
 
-            elemento('tituloModalPedido').innerHTML =
-                '<i class="bi bi-cart-plus-fill me-2"></i>Registrar Pedido';
-
-            elemento('btnGuardarPedido').innerHTML =
-                '<i class="bi bi-check-circle-fill"></i> Guardar pedido';
+            $('#tituloModalPedido').html('<i class="bi bi-pencil-square me-2"></i>Editar Pedido');
+            $('#btnGuardarPedido').html('<i class="bi bi-save-fill"></i> Guardar cambios');
 
             actualizarTotal();
-
-            silenciarCambioProducto = false;
+            modalPedido.show();
+        } catch (error) {
+            await errorAlert('Error', error.message || 'No se pudo conectar con el servidor.');
         }
+    }
 
-        async function validarFormulario() {
-            form.classList.add('was-validated');
+    async function detallePedido(idPedido) {
+        try {
+            const resultado = await $.ajax({
+                url: `${BASE_URL}&accion=obtener`,
+                type: 'GET',
+                data: { id: idPedido },
+                dataType: 'json'
+            });
 
-            if (!form.checkValidity()) {
-                await errorAlert('Formulario incompleto', 'Complete los campos obligatorios.');
-                return false;
-            }
+            if (!resultado.success) throw new Error(resultado.message || 'No se pudo obtener el detalle.');
 
-            if (idCliente && !idCliente.value) {
-                await errorAlert('Cliente requerido', 'Seleccione un cliente.');
-                return false;
-            }
+            const pedido = resultado.data;
+            const detalle = pedido.detalle || {};
 
-            if (!idProducto.value) {
-                await errorAlert('Producto requerido', 'Seleccione un producto.');
-                return false;
-            }
+            $('#detalleIdPedido').text('#' + pedido.id_pedido);
+            $('#detalleFechaCreacion').text(pedido.fecha_creacion || '-');
+            $('#detalleFechaEntrega').text(pedido.fecha_entrega || '-');
+            $('#detalleTipoPedido').text(pedido.nombre_tipo_pedido || '-');
+            $('#detalleEstadoPedido').text(pedido.estado_pedido || '-');
+            $('#detalleDescripcion').text(pedido.descripcion || 'Sin descripción');
+            $('#detalleDescuentoGeneral').text(Number(pedido.descuento_divisa || 0).toFixed(2));
 
-            const fechaCreacion = elemento('fechaCreacion').value;
-            const fechaEntrega = elemento('fechaEntrega').value;
+            $('#detalleCliente').text(`${pedido.nombre_razon_social || ''} ${pedido.apellido || ''}`);
+            $('#detalleDocumento').text(pedido.numero_de_documento || '-');
+            $('#detalleCorreo').text(pedido.correo || '-');
+            $('#detalleTelefono').text(pedido.telefono || '-');
+            $('#detalleDireccion').text(pedido.direccion || '-');
 
-            if (fechaEntrega && fechaEntrega < fechaCreacion) {
-                await errorAlert(
-                    'Fecha inválida',
-                    'La fecha de entrega no puede ser anterior a la fecha de creación.'
-                );
-                return false;
-            }
+            $('#detalleProducto').text(detalle.nombre_producto || '-');
+            $('#detalleTipoProducto').text(detalle.tipo_de_producto || '-');
+            $('#detalleTalla').text(detalle.talla || '-');
+            $('#detalleMaterial').text(detalle.detalle_material || '-');
+            $('#detalleColor').text(detalle.color || '-');
+            $('#detalleTipoPrenda').text(detalle.tipo_de_prenda || '-');
+            $('#detalleServicio').text(detalle.nombre_servicio || '-');
+            $('#detalleCantidad').text(detalle.cantidad || '-');
+            $('#detalleMetodoServicio').text(detalle.metodo_servicio || '-');
+            $('#detalleManoObra').text(Number(detalle.costo_mano_de_obra || 0).toFixed(2));
+            $('#detalleCostoMateriales').text(Number(detalle.costo_materiales || 0).toFixed(2));
+            $('#detalleDescuentoProducto').text(Number(detalle.descuento_producto || 0).toFixed(2));
+            $('#detalleTotal').text(Number(pedido.monto_total || 0).toFixed(2));
 
-            if (!filtroColor.value) {
-                await errorAlert('Color requerido', 'Seleccione un color.');
-                return false;
-            }
-
-            if (!idProductoCaracteristica.value) {
-                await errorAlert(
-                    'Talla requerida',
-                    'Seleccione una talla válida.'
-                );
-                return false;
-            }
-
-            return true;
+            modalDetalle.show();
+        } catch (error) {
+            await errorAlert('Error', error.message || 'No se pudo conectar con el servidor.');
         }
+    }
 
-        // ==========================================
-        // AJAX: GUARDAR / EDITAR
-        // ==========================================
-        async function enviarFormulario() {
-            if (!(await validarFormulario())) {
-                return;
-            }
-
-            const boton = elemento('btnGuardarPedido');
-            const textoOriginal = boton.innerHTML;
-
-            boton.disabled = true;
-            boton.textContent = 'Procesando...';
-
-            const accion = elemento('accionPedido').value;
-
-            if (accion === 'guardar') {
-                estadoPedido.disabled = false;
-                estadoPedido.value = 'pendiente';
-            }
-
+    async function inhabilitarPedido(idPedido) {
+        confirmDeleteAlert(async () => {
             try {
-                const resultado = await $s.ajax({
-                    url: `${BASE_URL}&accion=${accion}`,
+                const formData = new FormData();
+                formData.append('accion', 'inhabilitar');
+                formData.append('id_pedido', idPedido);
+
+                const resultado = await $.ajax({
+                    url: `${BASE_URL}&accion=inhabilitar`,
                     type: 'POST',
-                    data: new FormData(form),
+                    data: formData,
                     processData: false,
                     contentType: false,
                     dataType: 'json'
                 });
 
-                if (!resultado.success) {
-                    throw new Error(resultado.message || 'No se pudo guardar el pedido.');
-                }
+                if (!resultado.success) throw new Error(resultado.message || 'No se pudo inhabilitar el pedido.');
 
-                await successAlert('Operación exitosa', resultado.message);
-
-                modalPedido.hide();
-
-                // Se limpia únicamente después de guardar correctamente
-                limpiarFormulario();
-
+                await successAlert('Inhabilitado', resultado.message);
                 tablaPedidos.ajax.reload(null, false);
-
             } catch (error) {
-                await errorAlert('Error', error.message || 'Error de comunicación con el servidor.');
-
-            } finally {
-                boton.disabled = false;
-                boton.innerHTML = textoOriginal;
-
-                if (elemento('accionPedido').value === 'guardar') {
-                    estadoPedido.disabled = true;
-                }
+                await errorAlert('Error', error.message || 'Error al procesar la inhabilitación.');
             }
-        }
+        });
+    }
 
-        // ==========================================
-        // AJAX: OBTENER DATOS DE EDICIÓN
-        // ==========================================
-        async function editarPedido(idPedido) {
-            try {
-                const resultado = await $s.ajax({
-                    url: `${BASE_URL}&accion=obtener`,
-                    type: 'GET',
-                    data: { id: idPedido },
-                    dataType: 'json'
-                });
+    // ==========================================
+    // EVENTOS CON JQUERY
+    // ==========================================
+    $idProducto.on('change', function () {
+        if (silenciarCambioProducto) return;
+        cargarColores(this.value);
+    });
 
-                if (!resultado.success) {
-                    throw new Error(resultado.message || 'No se pudo obtener el pedido.');
+    $filtroColor.on('change', function () {
+        cargarTallas($idProducto.val(), this.value);
+    });
+
+    $form.on('submit', function (event) {
+        event.preventDefault();
+        enviarFormulario();
+    });
+
+    $btnNuevoPedido.on('click', function () {
+        modalPedido.show();
+    });
+
+    $btnAlternarEstado.on('click', function () {
+        verInhabilitados = !verInhabilitados;
+        actualizarVista();
+        crearDataTable();
+    });
+
+    if ($btnGenerarReporte.length) {
+        $btnGenerarReporte.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (modalReportePedido) modalReportePedido.show();
+        });
+    }
+
+    const $chkTodo = $('#reporteTodo');
+    if ($chkTodo.length) {
+        $chkTodo.on('change', function () {
+            const $camposFiltro = $('.campo-filtro');
+            const isChecked = this.checked;
+
+            $camposFiltro.each(function () {
+                const $el = $(this);
+                $el.prop('disabled', isChecked);
+                if (isChecked) {
+                    $el.val('');
                 }
+            });
+        });
+    }
 
-                const pedido = resultado.data;
-                const detalle = pedido.detalle || {};
+    if ($formReportePedido.length) {
+        $formReportePedido.on('submit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-                elemento('accionPedido').value = 'editar';
-                elemento('idPedido').value = pedido.id_pedido;
-                elemento('idTipoPedido').value = pedido.id_tipo_pedido;
-                elemento('fechaCreacion').value = pedido.fecha_creacion;
-                elemento('fechaEntrega').value = pedido.fecha_entrega || '';
-                elemento('descripcion').value = pedido.descripcion || '';
-                elemento('descuentoDivisa').value = pedido.descuento_divisa || 0;
+            const parametros = new URLSearchParams();
+            const elementosForm = $formReportePedido[0].elements;
 
-                // ----- CLIENTE -----
-                if (idCliente) {
-                    if ($s.fn.select2) {
-                        const $cliente = $s(idCliente);
-                        const textoCliente =
-                            `${pedido.nombre_razon_social || ''} ${pedido.apellido || ''}`.trim();
-
-                        if (
-                            pedido.id_cliente &&
-                            !$cliente.find(`option[value="${pedido.id_cliente}"]`).length
-                        ) {
-                            $cliente.append(
-                                new Option(textoCliente || 'Cliente', pedido.id_cliente, true, true)
-                            );
-                        }
-
-                        $cliente.val(pedido.id_cliente || null).trigger('change');
+            for (let el of elementosForm) {
+                if (el.name) {
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        if (el.checked) parametros.append(el.name, el.value);
+                    } else if (el.tagName === 'SELECT' && el.multiple) {
+                        $(el).find('option:selected').each(function () {
+                            parametros.append(el.name, this.value);
+                        });
                     } else {
-                        idCliente.value = pedido.id_cliente || '';
+                        parametros.append(el.name, el.value);
                     }
                 }
-
-                // ----- PRODUCTO -----
-                silenciarCambioProducto = true;
-
-                if ($s.fn.select2) {
-                    const $producto = $s(idProducto);
-
-                    if (
-                        detalle.id_producto &&
-                        !$producto.find(`option[value="${detalle.id_producto}"]`).length
-                    ) {
-                        $producto.append(
-                            new Option(detalle.nombre_producto || 'Producto', detalle.id_producto, true, true)
-                        );
-                    }
-
-                    $producto.val(detalle.id_producto || null).trigger('change');
-                } else {
-                    idProducto.value = detalle.id_producto || '';
-                }
-
-                silenciarCambioProducto = false;
-
-                await cargarColores(
-                    detalle.id_producto || '',
-                    detalle.color || '',
-                    detalle.id_producto_caracteristica || ''
-                );
-
-                elemento('idServicio').value = detalle.id_servicio || '';
-                elemento('cantidad').value = detalle.cantidad || 1;
-                elemento('costoManoObra').value = detalle.costo_mano_de_obra || 0;
-                elemento('costoMateriales').value = detalle.costo_materiales || 0;
-                elemento('descuentoProducto').value = detalle.descuento_producto || 0;
-                elemento('metodoServicio').value = detalle.metodo_servicio || '';
-
-                estadoPedido.disabled = false;
-                estadoPedido.innerHTML = `
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en proceso">En proceso</option>
-                    <option value="realizado">Realizado</option>
-                    <option value="entregado">Entregado</option>
-                    <option value="inhabilitado">Inhabilitado</option>
-                `;
-                estadoPedido.value = pedido.estado_pedido || 'pendiente';
-
-                elemento('tituloModalPedido').innerHTML =
-                    '<i class="bi bi-pencil-square me-2"></i>Editar Pedido';
-
-                elemento('btnGuardarPedido').innerHTML =
-                    '<i class="bi bi-save-fill"></i> Guardar cambios';
-
-                actualizarTotal();
-                modalPedido.show();
-
-            } catch (error) {
-                await errorAlert('Error', error.message || 'No se pudo conectar con el servidor.');
             }
-        }
 
-        // ==========================================
-        // AJAX: OBTENER DETALLE
-        // ==========================================
-        async function detallePedido(idPedido) {
-            try {
-                const resultado = await $s.ajax({
-                    url: `${BASE_URL}&accion=obtener`,
-                    type: 'GET',
-                    data: { id: idPedido },
-                    dataType: 'json'
-                });
+            parametros.set('accion', 'generarreportepdf');
+            parametros.set('filtro', obtenerFiltro());
 
-                if (!resultado.success) {
-                    throw new Error(resultado.message || 'No se pudo obtener el detalle.');
-                }
-
-                const pedido = resultado.data;
-                const detalle = pedido.detalle || {};
-
-                elemento('detalleIdPedido').textContent = '#' + pedido.id_pedido;
-                elemento('detalleFechaCreacion').textContent = pedido.fecha_creacion || '-';
-                elemento('detalleFechaEntrega').textContent = pedido.fecha_entrega || '-';
-                elemento('detalleTipoPedido').textContent = pedido.nombre_tipo_pedido || '-';
-                elemento('detalleEstadoPedido').textContent = pedido.estado_pedido || '-';
-                elemento('detalleDescripcion').textContent = pedido.descripcion || 'Sin descripción';
-                elemento('detalleDescuentoGeneral').textContent =
-                    Number(pedido.descuento_divisa || 0).toFixed(2);
-
-                elemento('detalleCliente').textContent =
-                    `${pedido.nombre_razon_social || ''} ${pedido.apellido || ''}`;
-                elemento('detalleDocumento').textContent = pedido.numero_de_documento || '-';
-                elemento('detalleCorreo').textContent = pedido.correo || '-';
-                elemento('detalleTelefono').textContent = pedido.telefono || '-';
-                elemento('detalleDireccion').textContent = pedido.direccion || '-';
-
-                elemento('detalleProducto').textContent = detalle.nombre_producto || '-';
-                elemento('detalleTipoProducto').textContent = detalle.tipo_de_producto || '-';
-                elemento('detalleTalla').textContent = detalle.talla || '-';
-                elemento('detalleMaterial').textContent = detalle.detalle_material || '-';
-                elemento('detalleColor').textContent = detalle.color || '-';
-                elemento('detalleTipoPrenda').textContent = detalle.tipo_de_prenda || '-';
-                elemento('detalleServicio').textContent = detalle.nombre_servicio || '-';
-                elemento('detalleCantidad').textContent = detalle.cantidad || '-';
-                elemento('detalleMetodoServicio').textContent = detalle.metodo_servicio || '-';
-                elemento('detalleManoObra').textContent =
-                    Number(detalle.costo_mano_de_obra || 0).toFixed(2);
-                elemento('detalleCostoMateriales').textContent =
-                    Number(detalle.costo_materiales || 0).toFixed(2);
-                elemento('detalleDescuentoProducto').textContent =
-                    Number(detalle.descuento_producto || 0).toFixed(2);
-                elemento('detalleTotal').textContent =
-                    Number(pedido.monto_total || 0).toFixed(2);
-
-                modalDetalle.show();
-
-            } catch (error) {
-                await errorAlert('Error', error.message || 'No se pudo conectar con el servidor.');
+            if (tablaPedidos) {
+                const datosFiltrados = tablaPedidos.rows({ search: 'applied' }).data().toArray();
+                const ids = datosFiltrados.map(pedido => pedido.id_pedido);
+                parametros.set('ids_filtrados', JSON.stringify(ids));
             }
-        }
 
-        // ==========================================
-        // AJAX: INHABILITAR
-        // ==========================================
-        async function inhabilitarPedido(idPedido) {
-            confirmDeleteAlert(async () => {
-                try {
-                    const formData = new FormData();
-                    formData.append('accion', 'inhabilitar');
-                    formData.append('id_pedido', idPedido);
+            const urlReporte = `${BASE_URL}&${parametros.toString()}`;
+            const pestanaReporte = abrirReporteEnPestana(urlReporte);
 
-                    const resultado = await $s.ajax({
-                        url: `${BASE_URL}&accion=inhabilitar`,
-                        type: 'POST',
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        dataType: 'json'
-                    });
-
-                    if (!resultado.success) {
-                        throw new Error(
-                            resultado.message || 'No se pudo inhabilitar el pedido.'
-                        );
-                    }
-
-                    await successAlert('Inhabilitado', resultado.message);
-                    tablaPedidos.ajax.reload(null, false);
-
-                } catch (error) {
-                    await errorAlert('Error', error.message || 'Error al procesar la inhabilitación.');
-                }
-            });
-        }
-
-        // ==========================================
-        // EVENTOS DE SELECTS
-        // ==========================================
-        $s(idProducto).on('change', function () {
-            if (silenciarCambioProducto) {
+            if (!pestanaReporte) {
+                errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
                 return;
             }
 
-            cargarColores(this.value);
+            if (modalReportePedido) modalReportePedido.hide();
         });
+    }
 
-        $s(filtroColor).on('change', function () {
-            cargarTallas(idProducto.value, this.value);
+    const $btnCancelarPedido = $modalPedidoElement.find('.btnCancelarPedido');
+    if ($btnCancelarPedido.length) {
+        $btnCancelarPedido.on('click', function () {
+            limpiarFormulario();
         });
+    }
 
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-            enviarFormulario();
-        });
+    $(document).on('click', '.btnDetallePedido', function () {
+        detallePedido($(this).data('id'));
+    });
 
-        // ==========================================
-        // BOTÓN REGISTRAR PEDIDO:
-        // SOLO ABRE EL MODAL, NO LIMPIA LOS DATOS
-        // ==========================================
-        btnNuevoPedido.addEventListener('click', function () {
-            modalPedido.show();
-        });
+    $(document).on('click', '.btnEditarPedido', function () {
+        editarPedido($(this).data('id'));
+    });
 
-        btnAlternarEstado.addEventListener('click', function () {
-            verInhabilitados = !verInhabilitados;
-            actualizarVista();
-            crearDataTable();
-        });
+    $(document).on('click', '.btnInhabilitarPedido', function () {
+        inhabilitarPedido($(this).data('id'));
+    });
 
-        // ==========================================
-        // EVENTOS DE REPORTE
-        // ==========================================
-        if (btnGenerarReporte) {
-            btnGenerarReporte.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (modalReportePedido) {
-                    modalReportePedido.show();
-                }
-            });
-        }
-
-        const chkTodo = document.getElementById('reporteTodo');
-
-        if (chkTodo) {
-            chkTodo.addEventListener('change', function () {
-                const camposFiltro = document.querySelectorAll('.campo-filtro');
-
-                camposFiltro.forEach(campo => {
-                    campo.disabled = this.checked;
-
-                    if (this.checked) {
-                        if (campo.tagName === 'SELECT') {
-                            Array.from(campo.options).forEach(opt => opt.selected = false);
-                        } else {
-                            campo.value = '';
-                        }
-                    }
-                });
-            });
-        }
-
-        if (formReportePedido) {
-            formReportePedido.addEventListener('submit', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const parametros = new URLSearchParams();
-                const elementosForm = formReportePedido.elements;
-
-                for (let el of elementosForm) {
-                    if (el.name) {
-                        if (el.type === 'checkbox' || el.type === 'radio') {
-                            if (el.checked) {
-                                parametros.append(el.name, el.value);
-                            }
-                        } else if (el.tagName === 'SELECT' && el.multiple) {
-                            Array.from(el.selectedOptions).forEach(opt => {
-                                parametros.append(el.name, opt.value);
-                            });
-                        } else {
-                            parametros.append(el.name, el.value);
-                        }
-                    }
-                }
-
-                parametros.set('accion', 'generarreportepdf');
-                parametros.set('filtro', obtenerFiltro());
-
-                if (tablaPedidos) {
-                    const datosFiltrados = tablaPedidos.rows({ search: 'applied' }).data().toArray();
-                    const ids = datosFiltrados.map(pedido => pedido.id_pedido);
-                    parametros.set('ids_filtrados', JSON.stringify(ids));
-                }
-
-                const urlReporte = `${BASE_URL}&${parametros.toString()}`;
-                const pestanaReporte = abrirReporteEnPestana(urlReporte);
-
-                if (!pestanaReporte) {
-                    errorAlert('Ventana bloqueada', 'Permite las ventanas emergentes para abrir el reporte.');
-                    return;
-                }
-
-                if (modalReportePedido) {
-                    modalReportePedido.hide();
-                }
-            });
-        }
-
-        // ==========================================
-        // BOTÓN CANCELAR: ÚNICO BOTÓN QUE LIMPIA
-        // ==========================================
-        const btnCancelarPedido = modalPedidoElement.querySelector('.btnCancelarPedido');
-
-        if (btnCancelarPedido) {
-            btnCancelarPedido.addEventListener('click', function () {
-                limpiarFormulario();
-            });
-        }
-
-        // ==========================================
-        // EVENTOS DE CLIC EN BOTONES DE LA TABLA
-        // ==========================================
-        document.addEventListener('click', function (event) {
-            const botonDetalle = event.target.closest('.btnDetallePedido');
-
-            if (botonDetalle) {
-                detallePedido(botonDetalle.dataset.id);
-                return;
-            }
-
-            const botonEditar = event.target.closest('.btnEditarPedido');
-
-            if (botonEditar) {
-                editarPedido(botonEditar.dataset.id);
-                return;
-            }
-
-            const botonInhabilitar = event.target.closest('.btnInhabilitarPedido');
-
-            if (botonInhabilitar) {
-                inhabilitarPedido(botonInhabilitar.dataset.id);
-            }
-        });
-
-        // ==========================================
-        // INICIALIZACIÓN DE SELECTS CON BÚSQUEDA
-        // ==========================================
-        initSelectCliente();
-
-        initSelectBusqueda(idProducto, {
-            placeholder: 'Buscar producto por nombre...'
-        });
-
+    // ==========================================
+    // INICIALIZACIÓN GENERAL ASÍNCRONA
+    // ==========================================
+    (async function init() {
+        await cargarCatalogos();
         resetColores();
         resetTallas();
-
-        // Inicialización: limpia una sola vez al cargar la página
         limpiarFormulario();
         actualizarVista();
         crearDataTable();
-    }
-);
+    })();
+});

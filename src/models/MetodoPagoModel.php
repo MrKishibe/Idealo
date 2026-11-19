@@ -3,28 +3,26 @@ namespace Idealo\Models;
 
 use Idealo\Config\Database;
 use PDO;
+use PDOException;
 use Exception;
 
 class MetodoPagoModel extends Database
 {
-    // Atributos internos que representan el estado del método de pago
     private ?int $id_metodo_de_pago = null;
     private string $nombre_metodo_de_pago = '';
     private string $status_metodo_de_pago = 'activo';
 
-    public function __construct()
-    {
-        // Hereda conexión de Database
-    }
+    public function __construct() {}
 
     protected function getDb(): PDO
     {
-        return self::connect();
+        try {
+            return self::connect();
+        } catch (PDOException $e) {
+            throw new Exception("Error de conexión: " . $e->getMessage());
+        }
     }
 
-    /**
-     * Mapea un array asociativo de datos hacia los atributos privados de la clase
-     */
     private function mapearAtributos(array $datos): void
     {
         $this->id_metodo_de_pago = isset($datos['id_metodo_de_pago']) ? (int)$datos['id_metodo_de_pago'] : null;
@@ -32,9 +30,6 @@ class MetodoPagoModel extends Database
         $this->status_metodo_de_pago = trim($datos['status_metodo_de_pago'] ?? 'activo');
     }
 
-    /**
-     * Valida los datos cargados actualmente en los atributos del objeto
-     */
     private function validar(bool $esEdicion = false): void
     {
         if ($esEdicion && empty($this->id_metodo_de_pago)) {
@@ -57,10 +52,6 @@ class MetodoPagoModel extends Database
         }
     }
 
-    // =========================================================================
-    // MÉTODOS PÚBLICOS (FACHADA / ENTRADA DE FLUJO)
-    // =========================================================================
-
     public function listarMetodos(): array
     {
         return $this->dbListarMetodos();
@@ -68,16 +59,24 @@ class MetodoPagoModel extends Database
 
     public function guardarMetodo(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(false);
-        return $this->dbGuardarMetodo();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(false);
+            return $this->dbGuardarMetodo();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
 
     public function editarMetodo(array $datos): bool
     {
-        $this->mapearAtributos($datos);
-        $this->validar(true);
-        return $this->dbEditarMetodo();
+        try {
+            $this->mapearAtributos($datos);
+            $this->validar(true);
+            return $this->dbEditarMetodo();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
 
     public function actualizarEstado(int $id, string $estado): bool
@@ -85,37 +84,49 @@ class MetodoPagoModel extends Database
         return $this->dbActualizarEstado($id, $estado);
     }
 
-    // =========================================================================
-    // MÉTODOS PRIVADOS DE PERSISTENCIA (SÓLO ESTOS TOCAN LA BASE DE DATOS)
-    // =========================================================================
-
     private function dbListarMetodos(): array
     {
-        $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago, status_metodo_de_pago AS estado FROM metodo_de_pago ORDER BY id_metodo_de_pago DESC";
-        $stmt = $this->getDb()->prepare($sql); 
-        $stmt->execute(); 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $sql = "SELECT id_metodo_de_pago, nombre_metodo_de_pago, status_metodo_de_pago AS estado FROM metodo_de_pago ORDER BY id_metodo_de_pago DESC";
+            $stmt = $this->getDb()->prepare($sql); 
+            $stmt->execute(); 
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Error al listar métodos: " . $e->getMessage());
+        }
     }
 
     private function dbGuardarMetodo(): bool
     {
-        $sql = "INSERT INTO metodo_de_pago (nombre_metodo_de_pago, status_metodo_de_pago) VALUES (:nombre, 'activo')";
-        return $this->getDb()->prepare($sql)->execute([':nombre' => $this->nombre_metodo_de_pago]);
+        try {
+            $sql = "INSERT INTO metodo_de_pago (nombre_metodo_de_pago, status_metodo_de_pago) VALUES (:nombre, 'activo')";
+            return $this->getDb()->prepare($sql)->execute([':nombre' => $this->nombre_metodo_de_pago]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al guardar método: " . $e->getMessage());
+        }
     }
 
     private function dbEditarMetodo(): bool
     {
-        $sql = "UPDATE metodo_de_pago SET nombre_metodo_de_pago = :nombre, status_metodo_de_pago = :estado WHERE id_metodo_de_pago = :id";
-        return $this->getDb()->prepare($sql)->execute([
-            ':nombre' => $this->nombre_metodo_de_pago, 
-            ':estado' => $this->status_metodo_de_pago, 
-            ':id'     => $this->id_metodo_de_pago
-        ]);
+        try {
+            $sql = "UPDATE metodo_de_pago SET nombre_metodo_de_pago = :nombre, status_metodo_de_pago = :estado WHERE id_metodo_de_pago = :id";
+            return $this->getDb()->prepare($sql)->execute([
+                ':nombre' => $this->nombre_metodo_de_pago, 
+                ':estado' => $this->status_metodo_de_pago, 
+                ':id'     => $this->id_metodo_de_pago
+            ]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al editar método: " . $e->getMessage());
+        }
     }
 
     private function dbActualizarEstado(int $id, string $estado): bool
     {
-        $sql = "UPDATE metodo_de_pago SET status_metodo_de_pago = :estado WHERE id_metodo_de_pago = :id";
-        return $this->getDb()->prepare($sql)->execute([':estado' => $estado, ':id' => $id]);
+        try {
+            $sql = "UPDATE metodo_de_pago SET status_metodo_de_pago = :estado WHERE id_metodo_de_pago = :id";
+            return $this->getDb()->prepare($sql)->execute([':estado' => $estado, ':id' => $id]);
+        } catch (PDOException $e) {
+            throw new Exception("Error al actualizar estado: " . $e->getMessage());
+        }
     }
 }

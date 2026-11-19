@@ -6,7 +6,13 @@ if (session_status() === PHP_SESSION_NONE) {
 $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado'); 
 ?>
 <link rel="stylesheet" href="assets/libs/css/sidebar.css?v=<?= filemtime(__DIR__ . '/../../assets/libs/css/sidebar.css') ?>">
-<aside class="sidebar">
+<button type="button" class="sidebar-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="app-sidebar">
+    <span class="sidebar-toggle-bar"></span>
+    <span class="sidebar-toggle-bar"></span>
+    <span class="sidebar-toggle-bar"></span>
+</button>
+<div class="sidebar-backdrop" aria-hidden="true"></div>
+<aside class="sidebar" id="app-sidebar">
     <div class="sidebar-header">
         <i>
             <img src="assets/Img/Iconos/Idealo_logo1.svg" alt="Logo Idealo" class="logo-img">
@@ -230,7 +236,7 @@ $rolActual = strtolower($_SESSION["nombre_rol"] ?? 'invitado');
             </li>
 
             <li class="logout-section">
-                <a href="index.php?controller=auth&action=logout" class="menu-item">
+                <a href="index.php?controller=auth&action=logout" id="logoutLink" class="menu-item">
                     <img src="assets/Img/Iconos/box-arrow-left.svg" alt="Cerrar Sesión" class="menu-icon">
                     <span>Cerrar Sesión</span>
                 </a>
@@ -293,6 +299,59 @@ if (!empty($_SESSION['usuario']) && intval($_SESSION['usuario']) > 0) {
             arrow.classList.toggle('rotated');
         }
     };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggle = document.querySelector('.sidebar-toggle');
+        const backdrop = document.querySelector('.sidebar-backdrop');
+        const sidebar = document.getElementById('app-sidebar');
+        const logoutLink = document.getElementById('logoutLink');
+
+        if (!toggle || !backdrop || !sidebar) return;
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-label', 'Abrir menú');
+        }
+
+        toggle.addEventListener('click', function () {
+            const isOpen = document.body.classList.toggle('sidebar-open');
+            toggle.setAttribute('aria-expanded', String(isOpen));
+            toggle.setAttribute('aria-label', isOpen ? 'Cerrar menú' : 'Abrir menú');
+        });
+
+        backdrop.addEventListener('click', closeSidebar);
+        sidebar.addEventListener('click', function (event) {
+            if (event.target.closest('a')) closeSidebar();
+        });
+        if (logoutLink) {
+            logoutLink.addEventListener('click', function (event) {
+                event.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirmar cierre de sesión',
+                    text: '¿Estás seguro de que deseas salir del sistema?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, cerrar sesión',
+                    cancelButtonText: 'Cancelar',
+                    focusCancel: true,
+                    reverseButtons: true
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        window.location.href = logoutLink.href;
+                    }
+                });
+            });
+        }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+                closeSidebar();
+                toggle.focus();
+            }
+        });
+    });
 
     // Coloca el bloque de usuario en una franja propia en la parte superior
     // del contenido, alineado a la derecha (independiente de los botones).

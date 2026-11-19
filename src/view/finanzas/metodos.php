@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -126,6 +128,6 @@
         }
     }
 </script>
-<script type="module" src="assets/js/finanzas.js"></script>
+<script type="module" src="assets/js/metodos.js"></script>
 </body>
 </html>

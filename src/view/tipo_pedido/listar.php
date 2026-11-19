@@ -12,12 +12,14 @@
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 
 <body>
 
-    <?php include __DIR__ . '/../sidebar.php'; ?>
+    <?php include __DIR__ . '/../sidebar.php'; ?>[cite: 10]
 
     <main class="main-content">
         <div class="view-container">
@@ -60,57 +62,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (is_array($pedidos)): ?>
-                                <?php foreach ($pedidos as $pedido): ?>
-                                    <?php
-                                        $idPedido = $pedido['id_tipo_pedido'] ?? '';
-                                        $nombrePedido = $pedido['nombre_tipo_pedido'] ?? '';
-                                        $estadoPedido = $pedido['status_tipo_servicio'] ?? 'Inactivo';
-                                    ?>
-                                    <tr id="fila-<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <td class="fw-bold">
-                                            <?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?php echo $estadoPedido === 'Activo' ? 'bg-success' : 'bg-danger'; ?>">
-                                                <?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="text-center">
-                                                <?php if ($estadoPedido === 'Activo'): ?>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-primary btnEditarActivo me-1" 
-                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-estado="<?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>"
-                                                            title="Editar Tipo de Pedido">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-danger btnCambiarEstado" 
-                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-estado="Inactivo" 
-                                                            title="Inhabilitar Tipo de Pedido">
-                                                        <i class="bi bi-trash3-fill"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-warning btnEditarInactivo" 
-                                                            data-id="<?php echo htmlspecialchars($idPedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-nombre="<?php echo htmlspecialchars($nombrePedido, ENT_QUOTES, 'UTF-8'); ?>" 
-                                                            data-estado="<?php echo htmlspecialchars($estadoPedido, ENT_QUOTES, 'UTF-8'); ?>"
-                                                            title="Editar / Reactivar">
-                                                        <i class="bi bi-pencil-square"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <!-- Contenido cargado dinámicamente vía AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -265,7 +217,7 @@
             "sweetalert2": "./assets/js/helpers/sweetalert2-bridge.js"
         }
     }
-</script>
+    </script>
     <script type="module" src="assets/js/tipopedido.js"></script>
 
 </body>

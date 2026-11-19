@@ -6,10 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Idéalo - Iniciar Sesión</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <!-- CSS de SweetAlert2 (Opcional, pero recomendado para prevenir destellos) -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
     <style>
         :root {
             --azul-opaco: #1e293b;
@@ -90,10 +88,10 @@
             gap: 10px;
         }
 
-        .login-header h2::before {
-            content: '\e465';
-            font-family: 'bootstrap-icons';
-            color: var(--success-color);
+        .login-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
             animation: pulseIcon 2s infinite;
         }
 
@@ -204,7 +202,7 @@
 
     <div class="login-container">
         <div class="login-header">
-            <h2>Idéalo</h2>
+            <h2><img src="assets/Img/Iconos/Idealo_logo1.svg" alt="" class="login-logo">Idéalo</h2>
             <p>Gestión de Taller de Sublimación</p>
         </div>
 
@@ -260,8 +258,8 @@
 
     
     <script src="assets/libs/jquery-4.0.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/libs/css/bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/libs/sweetalert2.all.min.js"></script>
     
  
     <script src="assets/js/login.js"></script>

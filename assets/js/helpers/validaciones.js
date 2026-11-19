@@ -14,6 +14,51 @@ export function limpiarValidaciones(contenedor) {
     const $c = $(contenedor);
     $c.find(".is-valid, .is-invalid").removeClass("is-valid is-invalid");
     $c.find(".feedback-validacion, .feedback-validación").remove();
+    $c.find("[data-tocado]").removeAttr("data-tocado");
+    $c.removeClass("is-valid is-invalid").removeAttr("data-tocado");
+}
+
+/**
+ * Configura la validación en tiempo real de los formularios de un módulo.
+ *
+ * - Al salir del campo (blur) se valida siempre, aunque esté vacío.
+ * - Mientras se escribe o se cambia una selección se valida si el campo ya
+ *   tiene un valor, ya fue tocado o tiene un estado is-valid / is-invalid.
+ * - Se omiten campos ocultos, deshabilitados, de solo lectura, de archivo y
+ *   las casillas agrupadas (name="...[]"), que se validan por separado.
+ *
+ * @param {string} contenedores Selector de los modales que contienen los formularios.
+ * @param {function} validar Función que recibe el jQuery del campo y devuelve boolean.
+ */
+export function configurarValidacionEnVivo(contenedores, validar) {
+    const $contenedores = $(contenedores);
+    const selector = "input, select, textarea";
+
+    function esOmitible($campo) {
+        return $campo.is(':disabled, [readonly], [type="hidden"], [type="file"]') ||
+            $campo.closest(".d-none").length > 0 ||
+            /\[\]$/.test($campo.attr("name") || "");
+    }
+
+    $contenedores.on("focusout", selector, function () {
+        const $campo = $(this);
+        if (esOmitible($campo)) return;
+
+        $campo.attr("data-tocado", "1");
+        validar($campo);
+    });
+
+    $contenedores.on("input change", selector, function () {
+        const $campo = $(this);
+        if (esOmitible($campo)) return;
+
+        const tieneValor = String($campo.val() ?? "").trim() !== "";
+        const yaValidado = $campo.attr("data-tocado") === "1" ||
+            $campo.hasClass("is-valid") || $campo.hasClass("is-invalid");
+
+        if (!tieneValor && !yaValidado) return;
+        validar($campo);
+    });
 }
 
 export function soloNumerosTeclado(e) {

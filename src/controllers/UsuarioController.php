@@ -9,6 +9,10 @@ require_once __DIR__ . '/../models/UsuarioModel.php';
 
 use Idealo\Models\UsuarioModel;
 
+function puedeEditarUsuarios(): bool
+{
+    return strtolower(trim($_SESSION['nombre_rol'] ?? '')) === 'superadministrador';
+}
 
 $action = $_GET['action'] ?? 'listar';
 
@@ -160,6 +164,14 @@ if ($action === 'guardar') {
 
 if ($action === 'editar') {
     header('Content-Type: application/json; charset=utf-8');
+
+    if (!puedeEditarUsuarios()) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Solo el superadministrador puede editar usuarios.'
+        ]);
+        exit();
+    }
 
     $fotoNueva = null;
 

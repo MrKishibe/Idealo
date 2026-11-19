@@ -262,8 +262,8 @@ if (!empty($_SESSION['usuario']) && intval($_SESSION['usuario']) > 0) {
 }
 ?>
 <?php if (!empty($_SESSION['usuario'])): ?>
-<a href="index.php?controller=auth&action=logout" id="userChip" class="user-chip" hidden
-    title="Cerrar sesión" aria-label="Cerrar sesión">
+<a href="index.php?controller=usuario&action=perfil" id="userChip" class="user-chip" hidden
+    title="Ver perfil" aria-label="Ver perfil">
     <span class="user-chip-name"><?php echo htmlspecialchars($chipNombre); ?></span>
     <img src="<?php echo htmlspecialchars($chipFoto); ?>" alt="Foto de perfil"
         class="user-chip-avatar<?php echo $chipFotoReal ? '' : ' es-icono'; ?>">

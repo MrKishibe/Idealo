@@ -2,7 +2,7 @@ import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo, validarLongitud } from './helpers/expresiones.js';
-import { limpiarValidaciones, soloNumerosTeclado, soloLetrasTeclado } from './helpers/validaciones.js';
+import { limpiarValidaciones, configurarValidacionEnVivo, soloNumerosTeclado, soloLetrasTeclado } from './helpers/validaciones.js';
 import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
 
 $(function () {
@@ -311,7 +311,7 @@ $(function () {
 
         if (idEmpleado) {
             datos.append('id_accion', idEmpleado);
-            datos.append('nuevo_estado', 'Activo');
+            datos.append('nuevo_estado', $('#edit_activo_status').val() || 'Activo');
         }
 
         if (fotosPendientes[config.claveFoto]) {
@@ -350,13 +350,21 @@ $(function () {
         await cambiarEstado(idEmpleado, nuevoEstado, 'modalEditarInactivo');
     }
 
-    // Validación en vivo y teclado
-    $('#modalRegistrarEmpleado, #modalEditarActivo').on('input change', 'input, select, textarea', function () {
-        const $campo = $(this);
+    // Validación en tiempo real (mientras se escribe y al salir del campo)
+    configurarValidacionEnVivo('#modalRegistrarEmpleado, #modalEditarActivo', function ($campo) {
+        const id = String($campo.attr('id') || '');
 
-        if ($campo.hasClass('is-valid') || $campo.hasClass('is-invalid')) {
-            validarRegla($campo);
+        if (reglaDe(id)) return validarRegla($campo);
+
+        if (id.endsWith('_id_usuario')) {
+            const prefijo = id.startsWith('edit_') ? 'edit_' : 'reg_';
+            return validarCampo($campo, {
+                requerido: $('#' + prefijo + 'es_usuario').prop('checked'),
+                mensajeVacio: 'Seleccione el usuario asociado.'
+            });
         }
+
+        return true;
     });
 
     $('#reg_nombres, #reg_apellidos, #edit_activo_nombres, #edit_activo_apellidos')
@@ -387,11 +395,15 @@ $(function () {
     $('#reg_es_usuario, #edit_es_usuario').on('change', function () {
         const prefijo = this.id.startsWith('reg_') ? 'reg_' : 'edit_';
         const tieneUsuario = $(this).prop('checked');
+        const $select = $('#' + prefijo + 'id_usuario');
 
         $('#' + prefijo + 'usuario_wrap').toggleClass('d-none', !tieneUsuario);
 
-        if (!tieneUsuario) {
-            $('#' + prefijo + 'id_usuario').val('').removeClass('is-valid is-invalid');
+        if (tieneUsuario) {
+            validarCampo($select, { mensajeVacio: 'Seleccione el usuario asociado.' });
+        } else {
+            $select.val('').removeClass('is-valid is-invalid').removeAttr('data-tocado');
+            $select.siblings('.feedback-validacion').remove();
         }
     });
 
@@ -403,7 +415,7 @@ $(function () {
         cargarUsuarios($('#reg_id_usuario'), null, false, null);
     });
 
-    // Editar activo
+    // Editar (activo o inactivo: guardar también reactiva)
     $('#tablaEmpleados tbody').on('click', '.btnEditarActivo', function () {
         const empleado = empleadoDeFila($(this));
         if (!empleado) return;
@@ -416,7 +428,8 @@ $(function () {
             edit_activo_telefono: empleado.telefono,
             edit_activo_direccion: empleado.direccion,
             edit_activo_cargo: empleado.cargo,
-            edit_activo_salario: empleado.salario
+            edit_activo_salario: empleado.salario,
+            edit_activo_status: empleado.status_empleado || 'Activo'
         }, function (id, valor) {
             $('#' + id).val(valor);
         });
@@ -587,7 +600,7 @@ $(function () {
                     const botones = estaActivo(empleado)
                         ? botonAccion('btn-outline-primary btnEditarActivo', 'pencil-square', 'Editar', id) +
                           botonAccion('btn-outline-danger btnCambiarEstado', 'trash3-fill', 'Inhabilitar', id)
-                        : botonAccion('btn-outline-warning btnEditarInactivo', 'pencil-square', 'Editar', id);
+                        : botonAccion('btn-outline-warning btnEditarActivo', 'pencil-square', 'Editar y reactivar', id);
 
                     return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
                 }

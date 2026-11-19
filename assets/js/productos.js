@@ -2,7 +2,7 @@ import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
-import { limpiarValidaciones } from './helpers/validaciones.js';
+import { limpiarValidaciones, configurarValidacionEnVivo, obtenerFeedback } from './helpers/validaciones.js';
 
 const CONFIG_TALLAS = {
     Ropa: {
@@ -81,7 +81,7 @@ $(function () {
     }
 
     function reactivar(id) {
-        return `<button type="button" class="btn btn-sm btn-outline-warning btnEditarInactivo" data-id="${escapar(id)}" title="Editar / Reactivar">` +
+        return `<button type="button" class="btn btn-sm btn-outline-warning btnEditarActivo" data-id="${escapar(id)}" title="Editar y reactivar">` +
             '<i class="bi bi-pencil-square"></i></button>';
     }
 
@@ -141,6 +141,26 @@ $(function () {
         return REGLAS[campo] ? validarCampo($campo, REGLAS[campo]) : true;
     }
 
+    function validarTallas(config) {
+        const contenedor = config.prefijo === 'reg' ? 'reg_contenedor_tallas' : 'edit_contenedor_tallas';
+        const $contenedor = $('#' + contenedor);
+        if (!$contenedor.length) return true;
+
+        const seleccionadas = $contenedor.find('input[name="tallas[]"]:checked').length;
+        const $feedback = obtenerFeedback($contenedor);
+        $contenedor.attr('data-tocado', '1');
+
+        if (seleccionadas > 0) {
+            $contenedor.removeClass('is-invalid');
+            $feedback.text('').hide();
+            return true;
+        }
+
+        $contenedor.addClass('is-invalid');
+        $feedback.text('Seleccione al menos una talla o medida.').css('color', '#dc3545').show();
+        return false;
+    }
+
     function actualizarCamposPorTipo(prefijo, tipo, tallasSeleccionadas = []) {
         const campos = CAMPOS_TIPO[prefijo];
         const config = CONFIG_TALLAS[String(tipo || '').toLowerCase().includes('accesorio') ? 'Accesorio' : 'Ropa'];
@@ -195,7 +215,7 @@ $(function () {
             return errorAlert('Datos inválidos', 'Revise los campos marcados en rojo.');
         }
 
-        if (obtenerTallasSeleccionadas(config.prefijo).length === 0) {
+        if (!validarTallas(config)) {
             return errorAlert('Talla requerida', 'Debe seleccionar al menos una talla o medida para el producto.');
         }
 
@@ -214,12 +234,13 @@ $(function () {
         recargar();
     }
 
-    // Validación en vivo
-    $('#modalRegistrarProducto, #modalEditarActivo').on('input change', 'input, select', function () {
-        const $campo = $(this);
-        if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
+    // Validación en tiempo real (mientras se escribe y al salir del campo)
+    configurarValidacionEnVivo('#modalRegistrarProducto, #modalEditarActivo', validarCampoProducto);
 
-        validarCampoProducto($campo);
+    // Las tallas se validan aparte porque son casillas generadas dinámicamente
+    $('#modalRegistrarProducto, #modalEditarActivo').on('change', 'input[name="tallas[]"]', function () {
+        const config = $(this).closest('#modalEditarActivo').length ? FORMS.edicion : FORMS.registro;
+        validarTallas(config);
     });
 
     // Activos / inhabilitados
@@ -241,16 +262,20 @@ $(function () {
     // Cambios de tipo y selección de tallas
     $('#reg_tipo_de_producto').on('change', function () {
         actualizarCamposPorTipo('reg', this.value);
+        if ($('#reg_contenedor_tallas').attr('data-tocado') === '1') validarTallas(FORMS.registro);
     });
 
     $('#edit_activo_tipo_de_producto').on('change', function () {
         actualizarCamposPorTipo('edit', this.value, obtenerTallasSeleccionadas('edit'));
+        if ($('#edit_contenedor_tallas').attr('data-tocado') === '1') validarTallas(FORMS.edicion);
     });
 
     $('#modalRegistrarProducto, #modalEditarActivo').on('click', '.btnSeleccionarTallas, .btnLimpiarTallas', function () {
         const $boton = $(this);
         const marcar = $boton.hasClass('btnSeleccionarTallas');
-        $('#' + $boton.data('prefijo') + '_contenedor_tallas input[name="tallas[]"]').prop('checked', marcar);
+        const prefijo = $boton.data('prefijo');
+        $('#' + prefijo + '_contenedor_tallas input[name="tallas[]"]').prop('checked', marcar);
+        validarTallas(prefijo === 'reg' ? FORMS.registro : FORMS.edicion);
     });
 
     // Registrar
@@ -261,7 +286,7 @@ $(function () {
         guardarProducto(FORMS.registro);
     });
 
-    // Editar activo
+    // Editar (activo o inactivo: guardar también reactiva)
     $('#tablaProductos tbody').on('click', '.btnEditarActivo', function () {
         const producto = deFila($(this));
         if (!producto) return;
@@ -272,7 +297,7 @@ $(function () {
         $('#edit_activo_tipo_de_prenda').val(producto.tipo_de_prenda);
         $('#edit_activo_detalle_material').val(producto.detalle_material);
         $('#edit_activo_color').val(producto.color);
-        $('#edit_activo_status_producto').val('activo');
+        $('#edit_activo_status_producto').val(producto.status_producto || 'activo');
         limpiarValidaciones('#formEditarActivo');
 
         actualizarCamposPorTipo('edit', producto.tipo_de_producto, producto.tallas_array || []);

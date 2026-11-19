@@ -1,3 +1,6 @@
+<?php
+$puedeEditarUsuarios = strtolower(trim($_SESSION['nombre_rol'] ?? '')) === 'superadministrador';
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -315,6 +318,9 @@
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script type="importmap">
         {"imports":{"jquery":"./assets/js/helpers/jquery-bridge.js","sweetalert2":"./assets/js/helpers/sweetalert2-bridge.js"}}
+    </script>
+    <script>
+        window.PUEDE_EDITAR_USUARIOS = <?php echo $puedeEditarUsuarios ? 'true' : 'false'; ?>;
     </script>
     <script type="module" src="assets/js/usuario.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/usuario.js') ?>"></script>
 

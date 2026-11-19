@@ -192,6 +192,13 @@
                                 <label class="form-label">Salario Base ($)</label>
                                 <input type="number" step="0.01" class="form-control" id="edit_activo_salario" required>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_activo_status">Estado del Empleado</label>
+                                <select class="form-select" id="edit_activo_status" required>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </div>
                             <div class="col-12">
                                 <div class="foto-empleado-bloque">
                                     <button type="button" class="foto-empleado-preview foto-empleado-preview-lg" id="edit_activo_foto_ver"

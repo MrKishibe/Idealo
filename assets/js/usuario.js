@@ -2,7 +2,7 @@ import $ from 'jquery';
 import { lenguajeDataTableEs } from './helpers/datatable-espanol.js';
 import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.js';
 import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
-import { limpiarValidaciones } from './helpers/validaciones.js';
+import { limpiarValidaciones, configurarValidacionEnVivo } from './helpers/validaciones.js';
 import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
 
 $(function () {
@@ -73,12 +73,15 @@ $(function () {
     }
 
     function acciones(usuario) {
-        const botones = activo(usuario)
-            ? boton('btn-outline-primary btnEditarActivo', 'pencil-square', 'Editar Usuario', usuario.id_usuario) +
-              boton('btn-outline-danger btnCambiarEstado', 'trash3-fill', 'Inactivar Usuario', usuario.id_usuario)
+        const puedeEditar = window.PUEDE_EDITAR_USUARIOS !== false;
+        const editar = puedeEditar
+            ? boton('btn-outline-primary btnEditarActivo', 'pencil-square', 'Editar Usuario', usuario.id_usuario)
+            : '';
+        const cambiarEstado = activo(usuario)
+            ? boton('btn-outline-danger btnCambiarEstado', 'trash3-fill', 'Inactivar Usuario', usuario.id_usuario)
             : reactivar(usuario.id_usuario);
 
-        return '<div class="text-center d-flex justify-content-center gap-1">' + botones + '</div>';
+        return '<div class="text-center d-flex justify-content-center gap-1">' + editar + cambiarEstado + '</div>';
     }
 
     function celdaUsuario(usuario) {
@@ -271,30 +274,41 @@ $(function () {
             .fail(() => $select.html('<option value="">No se pudieron cargar los empleados</option>'));
     }
 
-    function validarUsuario(config) {
-        let valido = true;
-
-        $.each(REGLAS, function (campo, regla) {
-            if (!validarCampo('#' + config.prefijo + campo, regla)) valido = false;
-        });
-
+    function validarPassword(config, forzarConfirmacion = false) {
         const $password = $('#' + config.prefijo + 'contrasena');
         const $confirmar = $('#' + config.prefijo + 'confirmar_contrasena');
         const password = String($password.val() || '');
 
-        if (!validarCampo($password, {
+        const contrasenaValida = validarCampo($password, {
             requerido: config.esRegistro,
             patron: /^.{6,255}$/,
             mensaje: 'La contraseña debe tener al menos 6 caracteres.',
             mensajeVacio: 'La contraseña es obligatoria.'
-        })) valido = false;
+        });
 
-        if (!validarCampo($confirmar, {
+        const confirmacionTocada = forzarConfirmacion ||
+            $confirmar.attr('data-tocado') === '1' ||
+            $confirmar.hasClass('is-valid') || $confirmar.hasClass('is-invalid') ||
+            String($confirmar.val() || '') !== '';
+
+        if (!confirmacionTocada) return contrasenaValida;
+
+        const confirmacionValida = validarCampo($confirmar, {
             requerido: config.esRegistro || password !== '',
             mensajeVacio: 'Confirme la contraseña.',
             mensaje: 'Las contraseñas no coinciden.',
             validar: (valor) => valor === password || 'Las contraseñas no coinciden.'
-        })) valido = false;
+        });
+
+        return contrasenaValida && confirmacionValida;
+    }
+
+    function validarUsuario(config) {
+        let valido = validarPassword(config, true);
+
+        $.each(REGLAS, function (campo, regla) {
+            if (!validarCampo('#' + config.prefijo + campo, regla)) valido = false;
+        });
 
         return valido;
     }
@@ -311,7 +325,7 @@ $(function () {
             });
         }
 
-        return /contrasena|confirmar_contrasena/.test(campo) ? validarUsuario(config) : true;
+        return /contrasena|confirmar_contrasena/.test(campo) ? validarPassword(config) : true;
     }
 
     async function guardarUsuario(config) {
@@ -352,13 +366,10 @@ $(function () {
         recargar();
     }
 
-    // Validación en vivo
-    $('#modalRegistrarUsuario, #modalEditarActivo').on('input change', 'input, select', function () {
-        const $campo = $(this);
-        if (!$campo.hasClass('is-invalid') && !$campo.hasClass('is-valid')) return;
-
+    // Validación en tiempo real (mientras se escribe y al salir del campo)
+    configurarValidacionEnVivo('#modalRegistrarUsuario, #modalEditarActivo', function ($campo) {
         const config = $campo.closest('#modalEditarActivo').length ? FORMS.edicion : FORMS.registro;
-        validarCampoUsuario($campo, config);
+        return validarCampoUsuario($campo, config);
     });
 
     // Activos / inhabilitados
@@ -376,9 +387,15 @@ $(function () {
     // Empleado asociado
     $('#reg_es_empleado, #edit_es_empleado').on('change', function () {
         const config = this.id.startsWith('edit_') ? FORMS.edicion : FORMS.registro;
-        $(config.select).closest('[id$="_empleado_wrap"]').toggleClass('d-none', !this.checked);
+        const $select = $(config.select);
+        $select.closest('[id$="_empleado_wrap"]').toggleClass('d-none', !this.checked);
 
-        if (!this.checked) $(config.select).val('').removeClass('is-valid is-invalid');
+        if (this.checked) {
+            validarCampo($select, { mensajeVacio: 'Seleccione el empleado asociado.' });
+        } else {
+            $select.val('').removeClass('is-valid is-invalid').removeAttr('data-tocado');
+            $select.siblings('.feedback-validacion').remove();
+        }
     });
 
     // Registrar

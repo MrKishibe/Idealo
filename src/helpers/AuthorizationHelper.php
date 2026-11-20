@@ -339,8 +339,6 @@ class AuthorizationHelper
     {
         http_response_code($status);
         $isAjax = isset($_GET['ajax'])
-            || isset($_GET['accion'])
-            || isset($_POST['accion'])
             || stripos((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json') !== false
             || stripos((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''), 'xmlhttprequest') !== false;
 
@@ -356,9 +354,17 @@ class AuthorizationHelper
         }
 
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>Acceso denegado</title><h1>Acceso denegado</h1><p>'
-            . htmlspecialchars($message, ENT_QUOTES, 'UTF-8')
-            . '</p></html>';
+        $messageJson = json_encode(
+            $message,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        );
+        echo '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<title>Acceso denegado</title><script src="assets/libs/sweetalert2.all.min.js"></script></head><body>'
+            . '<script>Swal.fire({icon:"error",title:"Acceso denegado",text:' . $messageJson
+            . ',confirmButtonText:"Volver al panel",confirmButtonColor:"#198754",allowOutsideClick:false,allowEscapeKey:false})'
+            . '.then(function(){window.location.replace("index.php?controller=auth&action=dashboard");});</script>'
+            . '<noscript><h1>Acceso denegado</h1><p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8')
+            . '</p><a href="index.php?controller=auth&action=dashboard">Volver al panel</a></noscript></body></html>';
         exit;
     }
 }

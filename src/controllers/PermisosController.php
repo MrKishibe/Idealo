@@ -113,4 +113,22 @@ if ($accion === 'eliminarPermiso' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if ($accion === 'activarPermiso' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        $idPermiso = filter_var($_POST['id_permiso'] ?? null, FILTER_VALIDATE_INT);
+        if ($idPermiso === false || $idPermiso === null || $idPermiso <= 0) {
+            $responder(['status' => 'error', 'message' => 'Debe indicar un permiso válido.'], 400);
+        }
+
+        if (!$modelo->activarPermiso($idPermiso)) {
+            $responder(['status' => 'error', 'message' => 'No se pudo habilitar el permiso.'], 404);
+        }
+
+        $responder(['status' => 'success', 'message' => 'Permiso habilitado correctamente.']);
+    } catch (Throwable $error) {
+        error_log('Error al habilitar permiso: ' . $error->getMessage());
+        $responder(['status' => 'error', 'message' => 'No se pudo habilitar el permiso.'], 500);
+    }
+}
+
 $responder(['status' => 'error', 'message' => 'Acción no encontrada.'], 404);

@@ -90,15 +90,27 @@ class PermisosModel extends Database {
             throw new InvalidArgumentException('Debe indicar un permiso válido.');
         }
 
-        return $this->dbEliminarPermiso($id_permiso);
+        return $this->actualizarEstadoPermiso($id_permiso, 'inactivo');
     }
 
-    private function dbEliminarPermiso(int $id_permiso): bool {
+    public function activarPermiso(int $id_permiso): bool {
+        if ($id_permiso <= 0) {
+            throw new InvalidArgumentException('Debe indicar un permiso válido.');
+        }
+
+        return $this->actualizarEstadoPermiso($id_permiso, 'activo');
+    }
+
+    private function actualizarEstadoPermiso(int $id_permiso, string $estado): bool {
         $sql = "UPDATE permiso
-                SET status_permiso = 'inactivo'
+                SET status_permiso = :estado
                 WHERE id_permiso = :id_permiso";
         $stmt = $this->pdo->connect()->prepare($sql);
-        return $stmt->execute([':id_permiso' => $id_permiso]);
+        $stmt->execute([
+            ':estado' => $estado,
+            ':id_permiso' => $id_permiso,
+        ]);
+        return $stmt->rowCount() > 0;
     }
 
     private function registrarPermisoRol(int $id_rol, int $id_permiso): bool {

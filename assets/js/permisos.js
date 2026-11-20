@@ -76,7 +76,9 @@ $(function () {
                 searchable: false,
                 className: 'text-center',
                 render: function (data, tipo, permiso) {
-                    if (!esActivo(permiso)) return '<span class="text-muted">—</span>';
+                    if (!esActivo(permiso)) {
+                        return `<button type="button" class="btn btn-sm btn-outline-success btn-activar-permiso" data-id="${escapar(permiso.id_permiso)}" title="Habilitar permiso" aria-label="Habilitar ${escapar(permiso.nombre_permiso)}"><i class="bi bi-arrow-counterclockwise"></i></button>`;
+                    }
                     return `<button type="button" class="btn btn-sm btn-outline-danger btn-inactivar-permiso" data-id="${escapar(permiso.id_permiso)}" title="Inactivar permiso" aria-label="Inactivar ${escapar(permiso.nombre_permiso)}"><i class="bi bi-trash3-fill"></i></button>`;
                 }
             }
@@ -328,6 +330,35 @@ $(function () {
             tabla.ajax.reload(null, false);
         } catch (error) {
             await errorAlert('Error', error.message || 'No se pudo inactivar el permiso.');
+        }
+    });
+
+    $('#tablaPermisos tbody').on('click', '.btn-activar-permiso', async function () {
+        const fila = tabla.row($(this).closest('tr')).data();
+        if (!fila) return;
+
+        const confirmacion = await confirmActionAlert(
+            '¿Habilitar permiso?',
+            `El permiso "${fila.nombre_permiso}" volverá a estar disponible.`
+        );
+        if (!confirmacion.isConfirmed) return;
+
+        try {
+            const respuesta = await $.ajax({
+                url: URL + '&action=activarPermiso',
+                type: 'POST',
+                dataType: 'json',
+                data: { id_permiso: fila.id_permiso }
+            });
+            if (respuesta.status !== 'success') {
+                throw new Error(respuesta.message || 'No se pudo habilitar el permiso.');
+            }
+
+            await successAlert('¡Habilitado!', respuesta.message || 'Permiso habilitado correctamente.');
+            tabla.ajax.reload(null, false);
+        } catch (error) {
+            const respuesta = error.responseJSON || {};
+            await errorAlert('Error', respuesta.message || error.message || 'No se pudo habilitar el permiso.');
         }
     });
 });

@@ -236,6 +236,7 @@ main.main-content {
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    min-width: 0;
     animation: fadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -372,7 +373,14 @@ main.main-content {
     flex-wrap: wrap;
 }
 
+.productos-view .table-container {
+    min-width: 0;
+}
+
 .productos-view .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
 }
 

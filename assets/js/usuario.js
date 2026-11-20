@@ -5,6 +5,11 @@ import { successAlert, errorAlert, confirmActionAlert } from './helpers/alerts.j
 import { obtenerPatron, validarCampo } from './helpers/expresiones.js';
 import { limpiarValidaciones, configurarValidacionEnVivo } from './helpers/validaciones.js';
 import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
+import {
+    crearXhrProgresoCarga,
+    mostrarProgresoCargaArchivo,
+    mostrarSkeletonCargaArchivo
+} from './helpers/carga-archivo-skeleton.js';
 
 $(function () {
     const URL = 'index.php?controller=usuario';
@@ -190,12 +195,17 @@ $(function () {
     }
 
     async function peticion(url, datos, titulo) {
+        const progreso = datos instanceof FormData && datos.has('foto')
+            ? mostrarProgresoCargaArchivo()
+            : null;
+
         try {
             const opciones = { url, type: 'POST', dataType: 'json', data: datos };
 
             if (datos instanceof FormData) {
                 opciones.processData = false;
                 opciones.contentType = false;
+                if (progreso) opciones.xhr = crearXhrProgresoCarga(progreso);
             }
 
             const respuesta = await $.ajax(opciones);
@@ -210,6 +220,8 @@ $(function () {
         } catch (error) {
             await errorAlert('Error', 'No se pudo conectar con el servidor.');
             return null;
+        } finally {
+            if (progreso) progreso.cerrar();
         }
     }
 
@@ -351,12 +363,20 @@ $(function () {
             datos.append('foto', fotosPendientes[config.claveFoto]);
         }
 
-        const respuesta = await peticion(URL + '&action=' + config.accion, datos, config.titulo);
-        if (!respuesta) return;
+        const quitarSkeleton = fotosPendientes[config.claveFoto]
+            ? mostrarSkeletonCargaArchivo($('#' + config.claveFoto + '_foto_ver')[0], 'Subiendo foto del usuario')
+            : null;
 
-        limpiarFoto(config.claveFoto);
-        $('#' + config.modal).modal('hide');
-        recargar(config.reiniciar);
+        try {
+            const respuesta = await peticion(URL + '&action=' + config.accion, datos, config.titulo);
+            if (!respuesta) return;
+
+            limpiarFoto(config.claveFoto);
+            $('#' + config.modal).modal('hide');
+            recargar(config.reiniciar);
+        } finally {
+            if (quitarSkeleton) quitarSkeleton();
+        }
     }
 
     async function cambiarEstado(id, estado, modal, titulo) {

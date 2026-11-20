@@ -1,3 +1,4 @@
+<?php include 'src/view/loading-skeleton.php'; ?>
 <?php
 $puedeEditarUsuarios = strtolower(trim($_SESSION['nombre_rol'] ?? '')) === 'superadministrador';
 ?>

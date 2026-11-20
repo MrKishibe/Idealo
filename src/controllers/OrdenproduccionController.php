@@ -1,5 +1,9 @@
 <?php
 use Idealo\Models\OrdenDeProduccionModel;
+
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('ordenproduccion');
+
 $model = new OrdenDeProduccionModel();
 $rutaVista  = __DIR__ . '/../view/orden_produccion/listarordenproduccion.php';
 $estadosProduccion = ['Planificado', 'En Proceso', 'Finalizado', 'Inactiva', 'en espera'];

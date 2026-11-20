@@ -11,6 +11,29 @@ $(function () {
 
     const escapar = (texto) => $('<div>').text(texto ?? '').html();
     const esActivo = (permiso) => String(permiso.status_permiso || '').trim().toLowerCase() === 'activo';
+    const etiquetasModulo = {
+        usuarios: 'Usuarios',
+        clientes: 'Clientes',
+        empleados: 'Empleados',
+        pedidos: 'Pedidos',
+        tipos_pedido: 'Tipos de pedido',
+        inventario: 'Inventario',
+        servicios: 'Servicios',
+        produccion: 'Producción',
+        finanzas: 'Finanzas'
+    };
+    const etiquetasAccion = {
+        consultar: 'Consultar',
+        crear: 'Crear',
+        editar: 'Editar',
+        eliminar: 'Eliminar',
+        gestionar: 'Gestionar todo'
+    };
+    const alcance = (permiso) => {
+        const modulo = etiquetasModulo[permiso.modulo_permiso];
+        const accion = etiquetasAccion[permiso.accion_permiso];
+        return modulo && accion ? `${modulo} — ${accion}` : 'Sin módulo u operación';
+    };
 
     const tabla = $('#tablaPermisos').DataTable({
         ajax: {
@@ -32,6 +55,16 @@ $(function () {
             { data: 'id_permiso', render: (id, tipo) => tipo === 'display' ? `<code>#${escapar(id)}</code>` : id },
             { data: 'nombre_permiso', render: (nombre) => escapar(nombre) },
             {
+                data: null,
+                render: (data, tipo, permiso) => {
+                    const modulo = etiquetasModulo[permiso.modulo_permiso];
+                    const accion = etiquetasAccion[permiso.accion_permiso];
+                    return modulo && accion
+                        ? escapar(`${modulo} — ${accion}`)
+                        : '<span class="text-muted">Sin módulo u operación</span>';
+                }
+            },
+            {
                 data: 'status_permiso',
                 render: (estado) => String(estado || '').toLowerCase() === 'activo'
                     ? '<span class="badge bg-success">Activo</span>'
@@ -52,7 +85,7 @@ $(function () {
         processing: true,
         language: {
             ...lenguajeDataTableEs,
-            processing: crearMarkupSkeletonDataTable(4)
+            processing: crearMarkupSkeletonDataTable(5)
         },
         pageLength: 10,
         responsive: true,
@@ -109,13 +142,13 @@ $(function () {
                 value: id,
                 id: 'permiso-' + id,
                 checked: yaAsignado,
-                disabled: yaAsignado || !activo
+                disabled: !activo && !yaAsignado
             });
-            const etiqueta = activo ? permiso.nombre_permiso : `${permiso.nombre_permiso} (inactivo)`;
+            const etiquetaEstado = activo ? '' : ' (inactivo)';
             const $label = $('<label>', {
                 class: 'form-check-label',
                 for: 'permiso-' + id,
-                text: etiqueta
+                text: `${permiso.nombre_permiso} — ${alcance(permiso)}${etiquetaEstado}`
             });
 
             $lista.append(
@@ -159,8 +192,13 @@ $(function () {
     }
 
     $('#btnAlternarEstado').on('click', function () {
-        verInactivos = !verInactivos;
-        $(this).toggleClass('btn-outline-secondary', !verInactivos)
+        cambiarVistaEstado(!verInactivos);
+    });
+
+    function cambiarVistaEstado(mostrarInactivos) {
+        verInactivos = mostrarInactivos;
+        const $botonEstado = $('#btnAlternarEstado');
+        $botonEstado.toggleClass('btn-outline-secondary', !verInactivos)
             .toggleClass('btn-secondary', verInactivos);
         $('#txtBotonEstado').text(verInactivos ? 'Ver activos' : 'Ver inactivos');
         $('#iconoEstado')
@@ -168,6 +206,41 @@ $(function () {
             .toggleClass('bi-eye-fill', verInactivos);
         $('#tituloVista').text(verInactivos ? 'Permisos inactivos' : 'Permisos por Rol');
         tabla.ajax.reload();
+    }
+
+    $('#formRegistrarPermiso').on('submit', async function (event) {
+        event.preventDefault();
+        const $boton = $('#btnRegistrarPermiso').prop('disabled', true);
+
+        try {
+            const respuesta = await $.ajax({
+                url: URL + '&action=registrarPermiso',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    nombre_permiso: $('#nombrePermiso').val().trim(),
+                    modulo_permiso: $('#moduloPermiso').val(),
+                    accion_permiso: $('#accionPermiso').val()
+                }
+            });
+            if (respuesta.status !== 'success') {
+                throw new Error(respuesta.message || 'No se pudo registrar el permiso.');
+            }
+
+            await successAlert('¡Registrado!', respuesta.message || 'Permiso registrado correctamente.');
+            $('#modalRegistrarPermiso').modal('hide');
+            $('#formRegistrarPermiso')[0].reset();
+            if (verInactivos) {
+                cambiarVistaEstado(false);
+            } else {
+                tabla.ajax.reload(null, false);
+            }
+        } catch (error) {
+            const respuesta = error.responseJSON || {};
+            await errorAlert('Error', respuesta.message || error.message || 'No se pudo registrar el permiso.');
+        } finally {
+            $boton.prop('disabled', false);
+        }
     });
 
     $('#modalAsignarPermisos').on('show.bs.modal', async function () {
@@ -205,8 +278,8 @@ $(function () {
         const idPermisos = $('#listaPermisosRol').find('input[name="id_permisos[]"]:checked')
             .map(function () { return this.value; }).get();
 
-        if (!idRol || idPermisos.length === 0) {
-            await errorAlert('Datos incompletos', 'Seleccione un rol y al menos un permiso.');
+        if (!idRol) {
+            await errorAlert('Datos incompletos', 'Seleccione un rol.');
             return;
         }
 
@@ -222,7 +295,7 @@ $(function () {
                 throw new Error(respuesta.message || 'No se pudieron guardar los permisos.');
             }
 
-            await successAlert('¡Guardado!', respuesta.message || 'Permisos asignados correctamente.');
+            await successAlert('¡Guardado!', respuesta.message || 'Permisos del rol actualizados correctamente.');
             $('#modalAsignarPermisos').modal('hide');
         } catch (error) {
             await errorAlert('Error', error.message || 'No se pudieron guardar los permisos.');

@@ -50,13 +50,16 @@ class AuthController
                 $usuario = $this->usuarioModel->obtenerPorCredencial($credencial);
 
                 if ($usuario && password_verify($contrasena, $usuario["contrasena"])) {
-                    if ($usuario["status_usuario"] === "activo") {
+                    if ($usuario["status_usuario"] === "activo"
+                        && strtolower((string) ($usuario["status_roles"] ?? "")) === "activo") {
                         $_SESSION["usuario"] = $usuario["id_usuario"];
                         $_SESSION["rol"] = $usuario["id_rol"];
                         $_SESSION["nombre_usuario"] = $usuario["nombre_usuario"];
                         $_SESSION["nombre_rol"] = $usuario["tipo_de_usuario"] ?? "";
                         header("Location: index.php?controller=auth&action=dashboard");
                         exit;
+                    } elseif (strtolower((string) ($usuario["status_roles"] ?? "")) !== "activo") {
+                        $error = "Tu rol está inactivo. Contacta al administrador.";
                     } else {
                         $error = "Tu cuenta está inactiva. Contacta al administrador.";
                     }

@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('pedido');
+
 use Idealo\Models\PedidoModel;
 
 $model = new PedidoModel();

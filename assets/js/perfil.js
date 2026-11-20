@@ -2,6 +2,11 @@ import $ from 'jquery';
 import { successAlert, errorAlert } from './helpers/alerts.js';
 import { obtenerPatron } from './helpers/expresiones.js';
 import { crearRecortadorFoto } from './helpers/fotodeperfil.js';
+import {
+    crearXhrProgresoCarga,
+    mostrarProgresoCargaArchivo,
+    mostrarSkeletonCargaArchivo
+} from './helpers/carga-archivo-skeleton.js';
 
 $(function () {
     const URL_MODULO = 'index.php?controller=usuario';
@@ -32,7 +37,8 @@ $(function () {
         const datos = new FormData();
 
         datos.append('foto_perfil', archivo);
-        $avatar.addClass('cargando-foto');
+        const quitarSkeleton = mostrarSkeletonCargaArchivo($avatar[0], 'Subiendo foto de perfil');
+        const progreso = mostrarProgresoCargaArchivo();
 
         try {
             const respuesta = await $.ajax({
@@ -41,8 +47,11 @@ $(function () {
                 data: datos,
                 processData: false,
                 contentType: false,
+                xhr: crearXhrProgresoCarga(progreso),
                 dataType: 'json'
             });
+
+            progreso.cerrar();
 
             if (respuesta.status === 'success' && respuesta.url) {
                 mostrarFoto(respuesta.url);
@@ -56,7 +65,8 @@ $(function () {
             await errorAlert('Error', 'No se pudo conectar con el servidor.');
             return false;
         } finally {
-            $avatar.removeClass('cargando-foto');
+            quitarSkeleton();
+            progreso.cerrar();
             $input.val('');
         }
     }

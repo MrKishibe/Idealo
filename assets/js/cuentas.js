@@ -30,6 +30,7 @@ $(document).ready(function () {
 
     if ($('#tablaCuentas').length > 0) {
         tablaCuentas = $('#tablaCuentas').DataTable({
+            processing: true,
             ajax: {
                 url: 'index.php?controller=Finanzas&action=cuentas&ajax=listar',
                 method: 'GET',
@@ -78,10 +79,9 @@ $(document).ready(function () {
                     }
                 }
             ],
-            processing: true,
             language: {
                 ...lenguajeDataTableEs,
-                processing: crearMarkupSkeletonDataTable($('#tablaCuentas thead th').length)
+                processing: crearMarkupSkeletonDataTable(7)
             },
             pageLength: 10,
             responsive: true,

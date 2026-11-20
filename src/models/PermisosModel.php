@@ -25,7 +25,7 @@ class PermisosModel extends Database {
     public function setStatusPermiso($status_permiso) { $this->status_permiso = $status_permiso; }
 
     public function listarPermisos(): array {
-        $sql = "SELECT id_permiso, nombre_permiso, status_permiso
+        $sql = "SELECT id_permiso, nombre_permiso, modulo_permiso, accion_permiso, status_permiso
                 FROM permiso
                 ORDER BY id_permiso";
         $stmt = $this->pdo->connect()->prepare($sql);
@@ -33,12 +33,49 @@ class PermisosModel extends Database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function registrarPermiso(array $datos): bool {
+        $nombre_permiso = $datos['nombre_permiso'] ?? null;
+        $modulo_permiso = $datos['modulo_permiso'] ?? null;
+        $accion_permiso = $datos['accion_permiso'] ?? null;
+        if (!is_string($nombre_permiso)) {
+            throw new InvalidArgumentException('Debe indicar un nombre válido para el permiso.');
+        }
+        if (!is_string($modulo_permiso) || !is_string($accion_permiso)
+            || !\Idealo\Helpers\AuthorizationHelper::isValidPermissionScope($modulo_permiso, $accion_permiso)) {
+            throw new InvalidArgumentException('Debe seleccionar un módulo y una operación válidos.');
+        }
+
+        $nombre_permiso = trim($nombre_permiso);
+        if (preg_match('/^.{1,100}$/uD', $nombre_permiso) !== 1) {
+            throw new InvalidArgumentException('El nombre del permiso debe tener entre 1 y 100 caracteres.');
+        }
+
+        $conn = $this->pdo->connect();
+        $stmtExistente = $conn->prepare(
+            'SELECT 1 FROM permiso WHERE nombre_permiso = :nombre_permiso LIMIT 1'
+        );
+        $stmtExistente->execute([':nombre_permiso' => $nombre_permiso]);
+        if ($stmtExistente->fetchColumn()) {
+            throw new InvalidArgumentException('Ya existe un permiso con ese nombre.');
+        }
+
+        $stmt = $conn->prepare(
+            "INSERT INTO permiso (nombre_permiso, modulo_permiso, accion_permiso, status_permiso)
+             VALUES (:nombre_permiso, :modulo_permiso, :accion_permiso, 'activo')"
+        );
+        return $stmt->execute([
+            ':nombre_permiso' => $nombre_permiso,
+            ':modulo_permiso' => $modulo_permiso,
+            ':accion_permiso' => $accion_permiso,
+        ]);
+    }
+
     public function listarPermisosPorRol(int $id_rol): array {
         if ($id_rol <= 0) {
             throw new InvalidArgumentException('Debe seleccionar un rol válido.');
         }
 
-        $sql = "SELECT p.id_permiso, p.nombre_permiso, p.status_permiso
+        $sql = "SELECT p.id_permiso, p.nombre_permiso, p.modulo_permiso, p.accion_permiso, p.status_permiso
                 FROM permisos_rol pr
                 INNER JOIN permiso p ON p.id_permiso = pr.id_permiso
                 WHERE pr.id_rol = :id_rol
@@ -85,7 +122,7 @@ class PermisosModel extends Database {
 
     protected function validar(array &$datos): void {
         $id_rol = $datos['id_rol'] ?? null;
-        $id_permisos = $datos['id_permisos'] ?? null;
+        $id_permisos = $datos['id_permisos'] ?? [];
         $regexId = '/^[1-9]\d*$/D';
 
         if ((!is_int($id_rol) && !is_string($id_rol))
@@ -93,8 +130,8 @@ class PermisosModel extends Database {
             throw new InvalidArgumentException('Debe indicar un ID de rol válido.');
         }
 
-        if (!is_array($id_permisos) || $id_permisos === []) {
-            throw new InvalidArgumentException('Debe seleccionar al menos un permiso.');
+        if (!is_array($id_permisos)) {
+            throw new InvalidArgumentException('La lista de permisos no es válida.');
         }
 
         $ids_unicos = [];
@@ -116,21 +153,23 @@ class PermisosModel extends Database {
             throw new InvalidArgumentException('El rol seleccionado no existe.');
         }
 
-        $placeholders = [];
-        $parametros = [];
-        foreach ($datos['id_permisos'] as $indice => $id_permiso) {
-            $placeholder = ':id_permiso_' . $indice;
-            $placeholders[] = $placeholder;
-            $parametros[$placeholder] = $id_permiso;
-        }
+        if ($datos['id_permisos'] !== []) {
+            $placeholders = [];
+            $parametros = [];
+            foreach ($datos['id_permisos'] as $indice => $id_permiso) {
+                $placeholder = ':id_permiso_' . $indice;
+                $placeholders[] = $placeholder;
+                $parametros[$placeholder] = $id_permiso;
+            }
 
-        $sqlPermisos = 'SELECT COUNT(*) FROM permiso WHERE id_permiso IN ('
-            . implode(', ', $placeholders) . ')';
-        $stmtPermisos = $conn->prepare($sqlPermisos);
-        $stmtPermisos->execute($parametros);
+            $sqlPermisos = 'SELECT COUNT(*) FROM permiso WHERE id_permiso IN ('
+                . implode(', ', $placeholders) . ')';
+            $stmtPermisos = $conn->prepare($sqlPermisos);
+            $stmtPermisos->execute($parametros);
 
-        if ((int) $stmtPermisos->fetchColumn() !== count($datos['id_permisos'])) {
-            throw new InvalidArgumentException('Uno o más permisos seleccionados no existen.');
+            if ((int) $stmtPermisos->fetchColumn() !== count($datos['id_permisos'])) {
+                throw new InvalidArgumentException('Uno o más permisos seleccionados no existen.');
+            }
         }
     }
 
@@ -140,6 +179,28 @@ class PermisosModel extends Database {
 
         try {
             $conn->beginTransaction();
+
+            if ($datos['id_permisos'] === []) {
+                $stmtEliminar = $conn->prepare('DELETE FROM permisos_rol WHERE id_rol = :id_rol');
+                if (!$stmtEliminar->execute([':id_rol' => $datos['id_rol']])) {
+                    throw new \RuntimeException('No se pudieron quitar los permisos del rol.');
+                }
+            } else {
+                $placeholders = [];
+                $parametros = [':id_rol' => $datos['id_rol']];
+                foreach ($datos['id_permisos'] as $indice => $id_permiso) {
+                    $placeholder = ':id_permiso_' . $indice;
+                    $placeholders[] = $placeholder;
+                    $parametros[$placeholder] = $id_permiso;
+                }
+
+                $sqlEliminar = 'DELETE FROM permisos_rol WHERE id_rol = :id_rol'
+                    . ' AND id_permiso NOT IN (' . implode(', ', $placeholders) . ')';
+                $stmtEliminar = $conn->prepare($sqlEliminar);
+                if (!$stmtEliminar->execute($parametros)) {
+                    throw new \RuntimeException('No se pudieron actualizar los permisos del rol.');
+                }
+            }
 
             foreach ($datos['id_permisos'] as $id_permiso) {
                 if (!$this->registrarPermisoRol($datos['id_rol'], $id_permiso)) {

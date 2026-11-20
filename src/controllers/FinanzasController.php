@@ -3,6 +3,9 @@ use Idealo\Models\ControlPagosModel;
 use Idealo\Models\CuentaEmpresaModel;
 use Idealo\Models\MetodoPagoModel;
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('finanzas');
+
 if (!function_exists('responderJSON')) {
     function responderJSON($success, $message, $evento = '', $extra = []) {
         if (ob_get_length()) ob_clean();

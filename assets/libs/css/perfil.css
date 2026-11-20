@@ -139,36 +139,6 @@ main.main-content .view-container {
     filter: brightness(0) invert(1);
 }
 
-.perfil-avatar.cargando-foto::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.7);
-    z-index: 3;
-}
-
-.perfil-avatar.cargando-foto::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 30px;
-    height: 30px;
-    margin: -15px 0 0 -15px;
-    border: 3px solid var(--verde-glow);
-    border-top-color: var(--verde-opaco);
-    border-radius: 50%;
-    animation: girarFotoPerfil 0.8s linear infinite;
-    z-index: 4;
-}
-
-@keyframes girarFotoPerfil {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .perfil-nombre {
     font-size: 22px;
     font-weight: 700;

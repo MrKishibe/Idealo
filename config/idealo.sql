@@ -398,6 +398,8 @@ CREATE TABLE `perdida_material` (
 CREATE TABLE `permiso` (
   `id_permiso` int(11) NOT NULL,
   `nombre_permiso` varchar(100) NOT NULL,
+  `modulo_permiso` varchar(40) DEFAULT NULL,
+  `accion_permiso` varchar(20) DEFAULT NULL,
   `status_permiso` varchar(20) NOT NULL DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish2_ci;
 
@@ -405,12 +407,12 @@ CREATE TABLE `permiso` (
 -- Volcado de datos para la tabla `permiso`
 --
 
-INSERT INTO `permiso` (`id_permiso`, `nombre_permiso`, `status_permiso`) VALUES
-(1, 'GESTION_USUARIOS', 'activo'),
-(2, 'CREAR_PEDIDO', 'activo'),
-(3, 'GESTION_INVENTARIO', 'activo'),
-(4, 'ASIGNAR_PRODUCCION', 'activo'),
-(5, 'REGISTRAR_PAGO', 'activo');
+INSERT INTO `permiso` (`id_permiso`, `nombre_permiso`, `modulo_permiso`, `accion_permiso`, `status_permiso`) VALUES
+(1, 'GESTION_USUARIOS', 'usuarios', 'gestionar', 'activo'),
+(2, 'CREAR_PEDIDO', 'pedidos', 'crear', 'activo'),
+(3, 'GESTION_INVENTARIO', 'inventario', 'gestionar', 'activo'),
+(4, 'ASIGNAR_PRODUCCION', 'produccion', 'gestionar', 'activo'),
+(5, 'REGISTRAR_PAGO', 'finanzas', 'crear', 'activo');
 
 -- --------------------------------------------------------
 

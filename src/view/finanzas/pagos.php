@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <?php include 'src/view/loading-skeleton.php'; ?>
     <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
     <link rel="stylesheet" href="assets/libs/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
     <link rel="stylesheet" href="assets/libs/skeleton-elements/datatable-skeleton.css">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
 </head>
 <body>
@@ -276,7 +277,7 @@
 <script src="assets/libs/jquery.dataTables.min.js"></script>
 <script src="assets/libs/dataTables.bootstrap5.min.js"></script>
 <script src="assets/libs/sweetalert2.all.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
 <script>
 function obtenerFechaHoraLocal() {

@@ -20,12 +20,14 @@ $rutaFoto     = $tieneFoto ? $imagenPerfil : 'assets/Img/Iconos/person-fill.svg'
 <html lang="es">
 
 <head>
+    <?php include 'src/view/loading-skeleton.php'; ?>
     <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Usuario - Idéalo</title>
     <link rel="stylesheet" href="assets/libs/css/bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/Img/Iconos/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/libs/skeleton-elements/skeleton-elements.css">
     <link rel="stylesheet" href="assets/libs/css/estilo.css">
     <link rel="stylesheet" href="assets/libs/css/iconos.css">
     <link rel="stylesheet" href="assets/libs/css/perfil.css?v=<?= filemtime(__DIR__ . '/../../../assets/libs/css/perfil.css') ?>">

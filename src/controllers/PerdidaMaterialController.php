@@ -1,4 +1,8 @@
 <?php
+
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('perdidamaterial');
+
 use Idealo\Models\PerdidaMaterialModel;
 $model = new PerdidaMaterialModel();
 $rutaVista  = __DIR__ . '/../view/perdida_material/perdida_material.php';

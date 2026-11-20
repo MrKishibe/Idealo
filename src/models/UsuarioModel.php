@@ -529,7 +529,7 @@ class UsuarioModel extends Database
     public function obtenerPorCredencial(string $credencial): ?array
     {
         try {
-            $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario
+            $sql = "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.contrasena, u.status_usuario, u.id_rol, r.tipo_de_usuario, r.status_roles
                     FROM usuario u
                     LEFT JOIN roles r ON u.id_rol = r.id_rol
                     WHERE (u.nombre_usuario = :credencial1 OR u.correo = :credencial2) AND u.status_usuario = 'activo'

@@ -70,6 +70,7 @@ $(function () {
     const escapar = (texto) => $('<div>').text(texto ?? '').html();
     const activo = (producto) => String(producto.status_producto || '').trim().toLowerCase() === 'activo';
     const recargar = (reiniciar) => tabla.ajax.reload(null, Boolean(reiniciar));
+    const etiquetasColumnas = ['ID', 'Nombre', 'Tipo', 'Subtipo / Prenda', 'Material', 'Color', 'Tallas / Medidas', 'Estado', 'Acciones'];
 
     function deFila($boton) {
         const fila = tabla.row($boton.closest('tr'));
@@ -374,6 +375,12 @@ $(function () {
             processing: crearMarkupSkeletonDataTable($('#tablaProductos thead th').length)
         },
         pageLength: 10,
+        responsive: true,
+        createdRow: (fila) => {
+            $('td', fila).each(function (indice) {
+                $(this).attr('data-label', etiquetasColumnas[indice]);
+            });
+        },
         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         order: [[0, 'desc']]
     });

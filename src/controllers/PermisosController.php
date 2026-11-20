@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('permisos');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -48,6 +51,21 @@ if ($accion === 'listarPermisosAjax') {
     }
 }
 
+if ($accion === 'registrarPermiso' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        if (!$modelo->registrarPermiso($_POST)) {
+            $responder(['status' => 'error', 'message' => 'No se pudo registrar el permiso.'], 500);
+        }
+
+        $responder(['status' => 'success', 'message' => 'Permiso registrado correctamente.']);
+    } catch (InvalidArgumentException $error) {
+        $responder(['status' => 'error', 'message' => $error->getMessage()], 400);
+    } catch (Throwable $error) {
+        error_log('Error al registrar permiso: ' . $error->getMessage());
+        $responder(['status' => 'error', 'message' => 'No se pudo registrar el permiso.'], 500);
+    }
+}
+
 if ($accion === 'listarPermisosPorRolAjax') {
     try {
         $idRol = filter_var($_GET['id_rol'] ?? null, FILTER_VALIDATE_INT);
@@ -68,12 +86,12 @@ if ($accion === 'listarPermisosPorRolAjax') {
 if ($accion === 'asignarPermisosRol' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $modelo->asignarPermisosRol($_POST);
-        $responder(['status' => 'success', 'message' => 'Permisos asignados correctamente.']);
+        $responder(['status' => 'success', 'message' => 'Permisos del rol actualizados correctamente.']);
     } catch (InvalidArgumentException $error) {
         $responder(['status' => 'error', 'message' => $error->getMessage()], 400);
     } catch (Throwable $error) {
-        error_log('Error al asignar permisos al rol: ' . $error->getMessage());
-        $responder(['status' => 'error', 'message' => 'No se pudieron asignar los permisos.'], 500);
+        error_log('Error al actualizar permisos del rol: ' . $error->getMessage());
+        $responder(['status' => 'error', 'message' => 'No se pudieron actualizar los permisos del rol.'], 500);
     }
 }
 

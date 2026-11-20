@@ -2,6 +2,9 @@
 
 use Idealo\Models\EmpleadoModel;
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('empleado');
+
 $rutaVista = __DIR__ . '/../view/empleado/listar.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {

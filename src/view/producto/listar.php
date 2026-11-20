@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+    <?php include 'src/view/loading-skeleton.php'; ?>
     <link rel="icon" type="image/svg+xml" href="assets/Img/Iconos/Idealo_logo1.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,7 @@
 
     <?php include 'src/view/sidebar.php'; ?>
     <main class="main-content">
-        <div class="view-container">
+        <div class="view-container productos-view">
             <header class="page-header">
                 <div>
                     <h1 id="tituloVista">Catálogo de Productos</h1>

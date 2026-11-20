@@ -2,6 +2,9 @@
 
 use Idealo\Models\ConsumoMaterialModel;
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('consumomaterial');
+
 $model = new ConsumoMaterialModel();
 $rutaVista = __DIR__ . '/../view/Consumo_material/listar.php';
 

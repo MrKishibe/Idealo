@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('servicio');
+
 use Idealo\Models\ServicioModel;
 
 $rutaVistaListar = __DIR__ . '/../view/servicio/listar.php';

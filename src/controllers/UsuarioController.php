@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('usuario');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

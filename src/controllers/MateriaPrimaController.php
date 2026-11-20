@@ -2,6 +2,9 @@
 
 use Idealo\Models\MateriaPrimaModel;
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('materiaprima');
+
 $rutaVista = __DIR__ . '/../view/materia_prima/listar.php';
 
 if (!function_exists('responderJSONMateriaPrima')) {

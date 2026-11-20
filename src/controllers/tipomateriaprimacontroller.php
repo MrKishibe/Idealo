@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('tipomateriaprima');
+
 use Idealo\Models\TipoMateriaPrimaModel;
 
 $rutaVista = __DIR__ . '/../view/tipo_materia_prima/listar.php';

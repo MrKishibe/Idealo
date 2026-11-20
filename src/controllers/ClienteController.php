@@ -2,6 +2,9 @@
 
 use Idealo\Models\ClienteModel;
 
+require_once __DIR__ . '/../helpers/AuthorizationHelper.php';
+\Idealo\Helpers\AuthorizationHelper::enforce('cliente');
+
 $model = new ClienteModel();
 
 // Manejo de peticiones POST (Guardar, Editar, Verificar Duplicado)

@@ -25,6 +25,7 @@ $(document).ready(function () {
 
     if ($('#tablaMetodos').length > 0) {
         tablaMetodos = $('#tablaMetodos').DataTable({
+            processing: true,
             ajax: {
                 url: 'index.php?controller=Finanzas&action=metodos&ajax=listar',
                 method: 'GET',
@@ -70,10 +71,9 @@ $(document).ready(function () {
                     }
                 }
             ],
-            processing: true,
             language: {
                 ...lenguajeDataTableEs,
-                processing: crearMarkupSkeletonDataTable($('#tablaMetodos thead th').length)
+                processing: crearMarkupSkeletonDataTable(4)
             },
             pageLength: 10,
             responsive: true,

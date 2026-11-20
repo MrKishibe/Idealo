@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import Swal from 'sweetalert2';
+import { mostrarSkeletonCargaArchivo } from './carga-archivo-skeleton.js';
 
 const TIPOS_POR_DEFECTO = ['image/jpeg', 'image/png', 'image/webp'];
 const PESO_MAXIMO_POR_DEFECTO = 2 * 1024 * 1024;
@@ -65,6 +66,7 @@ export function crearRecortadorFoto(opciones = {}) {
 
     let url = null;
     let urlAlCerrar = null;
+    let quitarSkeleton = null;
 
     function validar(archivo) {
         if (!archivo) return false;
@@ -155,6 +157,11 @@ export function crearRecortadorFoto(opciones = {}) {
         const imagen = $imagen[0];
         if (!imagen || !imagen.naturalWidth || !imagen.naturalHeight) return;
 
+        if (quitarSkeleton) {
+            quitarSkeleton();
+            quitarSkeleton = null;
+        }
+
         estado.anchoNatural = imagen.naturalWidth;
         estado.altoNatural = imagen.naturalHeight;
         estado.viewport = $viewport[0].clientWidth || 300;
@@ -175,6 +182,11 @@ export function crearRecortadorFoto(opciones = {}) {
 
         imagen.onload = preparar;
         imagen.onerror = function () {
+            if (quitarSkeleton) {
+                quitarSkeleton();
+                quitarSkeleton = null;
+            }
+
             Swal.fire({
                 icon: 'error',
                 title: 'Imagen no válida',
@@ -187,6 +199,11 @@ export function crearRecortadorFoto(opciones = {}) {
     }
 
     function limpiar() {
+        if (quitarSkeleton) {
+            quitarSkeleton();
+            quitarSkeleton = null;
+        }
+
         if (url && url === urlAlCerrar) {
             URL.revokeObjectURL(url);
             url = null;
@@ -323,6 +340,8 @@ export function crearRecortadorFoto(opciones = {}) {
 
         url = URL.createObjectURL(archivo);
         estado.listo = false;
+        if (quitarSkeleton) quitarSkeleton();
+        quitarSkeleton = mostrarSkeletonCargaArchivo($viewport[0], 'Cargando imagen');
 
         $(cfg.input).val('');
         $zoom.val(cfg.zoomMin).prop('disabled', true);
@@ -337,6 +356,11 @@ export function crearRecortadorFoto(opciones = {}) {
         $viewport.off('.recorteFoto');
         $zoom.off('.recorteFoto');
         $confirmar.off('.recorteFoto');
+
+        if (quitarSkeleton) {
+            quitarSkeleton();
+            quitarSkeleton = null;
+        }
 
         if (url) {
             URL.revokeObjectURL(url);

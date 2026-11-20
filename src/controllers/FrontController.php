@@ -2,6 +2,8 @@
 
 namespace Idealo\Controllers;
 
+use Idealo\Helpers\AuthorizationHelper;
+
 class FrontController
 {
     private string $url;
@@ -77,6 +79,7 @@ class FrontController
 
         // Si el script no se detuvo, verificamos si es una clase (Estructura POO)
         if (class_exists($fullClass)) {
+            AuthorizationHelper::enforce($this->controller, $this->method);
             $controllerObject = new $fullClass();
 
             if (!method_exists($controllerObject, $this->method)) {
